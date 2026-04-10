@@ -1,22 +1,22 @@
-# Norma 3100 Compliance Management System
+# Sistema de Gestión de Cumplimiento Norma 3100
 
-A comprehensive compliance management platform for Colombian health service providers to meet **Norma 3100 de 2019** requirements. The system automates provider certification, self-assessment, findings tracking, and regulatory reporting for REPS/INVIMA authorities.
+Una plataforma integral de gestión de cumplimiento normativo para prestadores de servicios de salud en Colombia que buscan cumplir con los requisitos de la **Norma 3100 de 2019**. El sistema automatiza la certificación de prestadores, autoevaluación, seguimiento de hallazgos y reportes regulatorios ante autoridades REPS/INVIMA.
 
-## Overview
+## Descripción General
 
-**Norma 3100** is a health sector compliance standard in Colombia that requires healthcare providers to demonstrate compliance with specific organizational, clinical, and infrastructure requirements. This platform streamlines the complex audit and certification process.
+La **Norma 3100** es un estándar de cumplimiento en el sector salud en Colombia que requiere que los prestadores de servicios de salud demuestren cumplimiento con requisitos organizacionales, clínicos e infraestructurales específicos. Esta plataforma simplifica el complejo proceso de auditoría y certificación.
 
-### Key Features
+### Características Principales
 
-- **Provider Management** - Track organizational information, certifications, and compliance status
-- **Service Catalog** - Manage healthcare services offered and compliance per service
-- **Self-Assessment** - Structured questionnaires aligned to Norma 3100 requirements
-- **Findings & Actions** - Record findings, assign corrective actions, track resolution
-- **Documentary Matrix** - Track required documents and compliance status
-- **Event Sourcing** - Immutable audit trail of all compliance state changes
-- **REPS/INVIMA Integration** - Synchronize with Colombian health registries
-- **Audit Reports** - Generate compliance and audit readiness reports
-- **Role-Based Access** - Admin, Auditor, Provider, and Viewer roles
+- **Gestión de Prestadores** - Registro y seguimiento de información organizacional, certificaciones y estado de cumplimiento
+- **Catálogo de Servicios** - Administración de servicios de salud ofrecidos y cumplimiento por servicio
+- **Autoevaluación** - Cuestionarios estructurados alineados a requisitos de Norma 3100
+- **Hallazgos y Acciones** - Registro de hallazgos, asignación de acciones correctivas y seguimiento de resolución
+- **Matriz Documental** - Seguimiento de documentos requeridos y estado de cumplimiento
+- **Almacenamiento de Eventos** - Auditoría inmutable de todos los cambios de estado de cumplimiento
+- **Integración REPS/INVIMA** - Sincronización con registros de salud colombianos
+- **Reportes de Auditoría** - Generación de reportes de cumplimiento y disposición para auditoría
+- **Control de Acceso por Rol** - Roles de Admin, Auditor, Prestador y Visualizador
 
 ## Tech Stack
 
