@@ -13,7 +13,10 @@
 Health compliance management system for Colombian health providers. ~55 functional requirements spanning provider management, self-assessment, findings tracking, audit trails, and REPS/INVIMA integration. Target: 16-week MVP with core modules operational.
 
 ### Active Milestone
-**Phase 1: Setup & Infrastructure** (Weeks 1-2)
+**Phase 3: Core Compliance Workflows** (Weeks 5-8)
+- Task 1-2: Foundation (COMPLETE ✓)
+- Task 3: Service Catalog (COMPLETE ✓)
+- Task 4-11: In progress
 
 ### Team & Stakeholders
 - **Adriana Perdomo** — Auditor/compliance SME
