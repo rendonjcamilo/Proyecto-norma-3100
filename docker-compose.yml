@@ -1,0 +1,116 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      target: development
+    container_name: norma3100-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=norma3100
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_dev_password
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev_jwt_secret_change_in_production
+      - LOG_LEVEL=debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - norma-network
+    volumes:
+      - ./backend/src:/app/src
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: norma3100-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api
+      - VITE_ENV=development
+    depends_on:
+      - backend
+    networks:
+      - norma-network
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: npm run dev
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: norma3100-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=norma3100
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_dev_password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - norma-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/02-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: norma3100-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - norma-network
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+networks:
+  norma-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
