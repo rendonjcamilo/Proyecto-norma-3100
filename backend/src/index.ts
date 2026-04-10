@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentRouter } from './routes/assessment.routes.js';
 import { createFindingRouter } from './routes/finding.routes.js';
+import { createServiceRouter } from './routes/services.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -85,6 +86,7 @@ app.get('/api', (_req: Request, res: Response) => {
 app.use('/api', createProviderRouter(pool, eventStore));
 app.use('/api', createAssessmentRouter(pool, eventStore));
 app.use('/api', createFindingRouter(pool, eventStore));
+app.use('/api', createServiceRouter(pool, eventStore));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
