@@ -9,8 +9,10 @@ import { logger } from './utils/logger.js';
 import authRoutes from './routes/auth.routes.js';
 import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentRouter } from './routes/assessment.routes.js';
+import { createAssessmentsRouter } from './routes/assessments.routes.js';
 import { createFindingRouter } from './routes/finding.routes.js';
 import { createServiceRouter } from './routes/services.routes.js';
+import { createQuestionsRouter } from './routes/questions.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -85,8 +87,10 @@ app.get('/api', (_req: Request, res: Response) => {
 // Phase 3 Routes
 app.use('/api', createProviderRouter(pool, eventStore));
 app.use('/api', createAssessmentRouter(pool, eventStore));
+app.use('/api', createAssessmentsRouter(pool, eventStore));
 app.use('/api', createFindingRouter(pool, eventStore));
 app.use('/api', createServiceRouter(pool, eventStore));
+app.use('/api/questions', createQuestionsRouter(pool, eventStore));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
