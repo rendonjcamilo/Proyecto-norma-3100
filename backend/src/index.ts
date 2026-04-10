@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import 'express-async-errors';
 
 import { logger } from './utils/logger.js';
+import authRoutes from './routes/auth.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +47,9 @@ app.get('/health', (_req: Request, res: Response) => {
     environment: NODE_ENV,
   });
 });
+
+// Auth Routes
+app.use('/auth', authRoutes);
 
 // API Routes (placeholder)
 app.get('/api', (_req: Request, res: Response) => {
