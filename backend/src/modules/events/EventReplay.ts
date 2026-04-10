@@ -61,7 +61,7 @@ export class EventReplay {
    * Apply a sequence of events to initial state
    */
   private applyEvents<T>(state: T, events: StoredEvent[]): T {
-    return events.reduce((acc, event) => this.applyEvent(acc as Record<string, unknown>, event), state) as T;
+    return events.reduce((acc: Record<string, unknown>, event: StoredEvent) => this.applyEvent(acc, event), state as Record<string, unknown>) as T;
   }
 
   /**

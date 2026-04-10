@@ -66,6 +66,7 @@ Enable health providers to efficiently manage and demonstrate compliance with Co
 | Containerization: Docker | Dev/prod parity, Hostinger VPS compatibility, easy scaling | Chosen |
 | Auth: Internal JWT + bcrypt | No vendor lock-in, HIPAA-adjacent audit control, Phase 1 requirement | Chosen |
 | Encryption: TLS 1.3 + AES-256 | Regulatory compliance, military-grade data protection | Chosen |
+| Frontend Language: Spanish | All UI in Spanish for Colombian health providers; i18n setup for future expansion | Chosen |
 
 ### Decision: Architecture Pattern
 

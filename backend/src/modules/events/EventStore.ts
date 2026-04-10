@@ -121,18 +121,18 @@ export class EventStore {
       [aggregateId]
     );
 
-    return result.rows.map((row) => ({
-      id: row.id,
-      aggregateId: row.aggregate_id,
-      aggregateType: row.aggregate_type,
-      eventType: row.event_type,
-      payload: JSON.parse(row.payload),
-      metadata: JSON.parse(row.metadata),
-      userId: row.user_id,
-      eventHash: row.event_hash,
-      previousEventHash: row.previous_event_hash,
-      timestamp: row.timestamp,
-    }));
+    return result.rows.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      aggregateId: row.aggregate_id as string,
+      aggregateType: row.aggregate_type as string,
+      eventType: row.event_type as string,
+      payload: JSON.parse(row.payload as string),
+      metadata: JSON.parse(row.metadata as string),
+      userId: row.user_id as string | undefined,
+      eventHash: row.event_hash as string,
+      previousEventHash: row.previous_event_hash as string | undefined,
+      timestamp: row.timestamp as Date,
+    })) as StoredEvent[];
   }
 
   /**
@@ -147,18 +147,18 @@ export class EventStore {
       [eventType, limit]
     );
 
-    return result.rows.map((row) => ({
-      id: row.id,
-      aggregateId: row.aggregate_id,
-      aggregateType: row.aggregate_type,
-      eventType: row.event_type,
-      payload: JSON.parse(row.payload),
-      metadata: JSON.parse(row.metadata),
-      userId: row.user_id,
-      eventHash: row.event_hash,
-      previousEventHash: row.previous_event_hash,
-      timestamp: row.timestamp,
-    }));
+    return result.rows.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      aggregateId: row.aggregate_id as string,
+      aggregateType: row.aggregate_type as string,
+      eventType: row.event_type as string,
+      payload: JSON.parse(row.payload as string),
+      metadata: JSON.parse(row.metadata as string),
+      userId: row.user_id as string | undefined,
+      eventHash: row.event_hash as string,
+      previousEventHash: row.previous_event_hash as string | undefined,
+      timestamp: row.timestamp as Date,
+    })) as StoredEvent[];
   }
 
   /**
@@ -172,18 +172,18 @@ export class EventStore {
       [limit]
     );
 
-    return result.rows.map((row) => ({
-      id: row.id,
-      aggregateId: row.aggregate_id,
-      aggregateType: row.aggregate_type,
-      eventType: row.event_type,
-      payload: JSON.parse(row.payload),
-      metadata: JSON.parse(row.metadata),
-      userId: row.user_id,
-      eventHash: row.event_hash,
-      previousEventHash: row.previous_event_hash,
-      timestamp: row.timestamp,
-    }));
+    return result.rows.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      aggregateId: row.aggregate_id as string,
+      aggregateType: row.aggregate_type as string,
+      eventType: row.event_type as string,
+      payload: JSON.parse(row.payload as string),
+      metadata: JSON.parse(row.metadata as string),
+      userId: row.user_id as string | undefined,
+      eventHash: row.event_hash as string,
+      previousEventHash: row.previous_event_hash as string | undefined,
+      timestamp: row.timestamp as Date,
+    })) as StoredEvent[];
   }
 
   /**

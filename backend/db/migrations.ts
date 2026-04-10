@@ -35,7 +35,7 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
       const schema = fs.readFileSync(schemaPath, 'utf8');
 
       // Split by semicolons and execute each statement
-      const statements = schema
+      let statements = schema
         .split(';')
         .map((stmt) => stmt.trim())
         .filter((stmt) => stmt.length > 0);
@@ -55,6 +55,31 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
         ['01-initial-schema']
       );
 
+      // Read and execute schema-phase3.sql (Phase 3 extensions)
+      const phase3SchemaPath = path.join(__dirname, 'schema-phase3.sql');
+      if (fs.existsSync(phase3SchemaPath)) {
+        const phase3Schema = fs.readFileSync(phase3SchemaPath, 'utf8');
+        statements = phase3Schema
+          .split(';')
+          .map((stmt) => stmt.trim())
+          .filter((stmt) => stmt.length > 0);
+
+        for (const statement of statements) {
+          try {
+            await client.query(statement);
+          } catch (err) {
+            console.error('Error executing Phase 3 statement:', statement.substring(0, 100));
+            console.error(err);
+          }
+        }
+
+        // Record migration
+        await client.query(
+          'INSERT INTO migrations (name) VALUES ($1) ON CONFLICT DO NOTHING',
+          ['02-phase3-schema']
+        );
+      }
+
       console.log('Migrations UP completed successfully');
     } else if (direction === 'down') {
       console.log('Running migrations DOWN (rollback)...');
@@ -66,8 +91,20 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
         'DROP TABLE IF EXISTS events CASCADE',
         'DROP TABLE IF EXISTS documents CASCADE',
         'DROP TABLE IF EXISTS documentary_matrix CASCADE',
+        'DROP TABLE IF EXISTS escalation_alerts CASCADE',
+        'DROP TABLE IF EXISTS action_comments CASCADE',
+        'DROP TABLE IF EXISTS action_evidence CASCADE',
+        'DROP TABLE IF EXISTS action_status_history CASCADE',
+        'DROP TABLE IF EXISTS finding_status_history CASCADE',
+        'DROP TABLE IF EXISTS finding_categories CASCADE',
         'DROP TABLE IF EXISTS corrective_actions CASCADE',
         'DROP TABLE IF EXISTS findings CASCADE',
+        'DROP TABLE IF EXISTS assessment_responses CASCADE',
+        'DROP TABLE IF EXISTS assessments CASCADE',
+        'DROP TABLE IF EXISTS question_options CASCADE',
+        'DROP TABLE IF EXISTS questions CASCADE',
+        'DROP TABLE IF EXISTS questionnaire_sections CASCADE',
+        'DROP TABLE IF EXISTS questionnaires CASCADE',
         'DROP TABLE IF EXISTS evaluation_criteria CASCADE',
         'DROP TABLE IF EXISTS permissions CASCADE',
         'DROP TABLE IF EXISTS roles CASCADE',

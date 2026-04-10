@@ -19,6 +19,8 @@ Implement secure authentication, JWT token lifecycle management, bcrypt password
 
 **Dependencies:** Phase 1 COMPLETE (Docker, DB schema, Redis functional)
 
+**Frontend Language:** All user-facing UI in Spanish (es_CO — Colombian Spanish). No English text in forms, buttons, labels, error messages, or help text.
+
 ---
 
 ## Success Criteria
@@ -195,7 +197,7 @@ Implement secure authentication, JWT token lifecycle management, bcrypt password
 ### Task 7: Login & Register Frontend UI (8 hours)
 **Traceability:** ROADMAP.md P2.2.1
 
-**Description:** Build React login/register pages with form validation, error handling, password reset flow. Integrate with backend /auth endpoints.
+**Description:** Build React login/register pages with form validation, error handling, password reset flow. Integrate with backend /auth endpoints. **All UI text in Spanish (es_CO):** botones, etiquetas, mensajes de error, validación, flujo de recuperación de contraseña.
 
 **Dependencies:** Task 5
 
@@ -213,7 +215,7 @@ Implement secure authentication, JWT token lifecycle management, bcrypt password
 ### Task 8: User Administration Dashboard (6 hours)
 **Traceability:** ROADMAP.md P2.2.2
 
-**Description:** Build React admin dashboard for user management: CRUD, role assignment, bulk import CSV, audit trail.
+**Description:** Build React admin dashboard for user management: CRUD, role assignment, bulk import CSV, audit trail. **All UI text in Spanish (es_CO):** títulos, etiquetas de formulario, botones, mensajes de éxito/error, reportes de validación.
 
 **Dependencies:** Task 6
 
