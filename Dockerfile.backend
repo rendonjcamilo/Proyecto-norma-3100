@@ -10,7 +10,7 @@ RUN apk add --no-cache curl
 COPY backend/package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY backend/src ./src
@@ -39,7 +39,7 @@ RUN apk add --no-cache curl
 COPY backend/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy built application from builder
 COPY backend/dist ./dist
