@@ -1,6 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ComplianceDashboard } from './components/Compliance';
 import { NotificationCenter } from './components/Notifications';
+import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
+import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
+import { PushTemplateEditor } from './components/Notifications/PushTemplateEditor';
+import { MultiChannelPreferences } from './components/Notifications/MultiChannelPreferences';
+import { NotificationAnalyticsDashboard } from './components/Notifications/NotificationAnalyticsDashboard';
+import { DeliveryStatusTracker } from './components/Notifications/DeliveryStatusTracker';
 import './App.css';
 
 function App(): JSX.Element {
@@ -86,6 +92,31 @@ function App(): JSX.Element {
                   userRole="provider_admin"
                 />
               }
+            />
+            {/* Notification Management Routes */}
+            <Route
+              path='/notifications/templates/email'
+              element={<EmailTemplateEditor userId="user-1" />}
+            />
+            <Route
+              path='/notifications/templates/sms'
+              element={<SmsTemplateEditor userId="user-1" />}
+            />
+            <Route
+              path='/notifications/templates/push'
+              element={<PushTemplateEditor userId="user-1" />}
+            />
+            <Route
+              path='/notifications/preferences'
+              element={<MultiChannelPreferences userId="user-1" />}
+            />
+            <Route
+              path='/notifications/analytics'
+              element={<NotificationAnalyticsDashboard userId="user-1" />}
+            />
+            <Route
+              path='/notifications/delivery-status'
+              element={<DeliveryStatusTracker userId="user-1" />}
             />
           </Routes>
         </main>
