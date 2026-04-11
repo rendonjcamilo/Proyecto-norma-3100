@@ -1,0 +1,39 @@
+/* Location Selector Styles */
+
+.location-selector {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 400px;
+  width: 100%;
+}
+
+.location-selector:hover {
+  border-color: #999;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.location-selector:focus {
+  outline: none;
+  border-color: #2e75b6;
+  box-shadow: 0 0 0 3px rgba(46, 117, 182, 0.1);
+}
+
+.location-selector option {
+  padding: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .location-selector {
+    max-width: 100%;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
