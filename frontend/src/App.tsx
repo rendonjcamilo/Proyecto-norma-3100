@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ComplianceDashboard } from './components/Compliance';
 import { NotificationCenter } from './components/Notifications';
+import { NotificationNav } from './components/NotificationNav';
 import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
 import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
 import { PushTemplateEditor } from './components/Notifications/PushTemplateEditor';
@@ -68,6 +69,7 @@ function App(): JSX.Element {
             <h1 className='app-title'>Norma 3100 - Sistema de Cumplimiento</h1>
             <div className='header-right'>
               <span className='provider-badge'>Hospital Central de Bogotá</span>
+              <NotificationNav />
               <NotificationCenter
                 userId="user-1"
                 providerId="prov-001"
