@@ -16,7 +16,8 @@ Health compliance management system for Colombian health providers. ~55 function
 **Phase 3: Core Compliance Workflows** (Weeks 5-8)
 - Task 1-2: Foundation (COMPLETE ✓)
 - Task 3: Service Catalog (COMPLETE ✓)
-- Task 4-11: In progress
+- Task 4: Questionnaire Builder (COMPLETE ✓) - 11 endpoints, 7 transversales, versioning
+- Task 5-11: In progress
 
 ### Team & Stakeholders
 - **Adriana Perdomo** — Auditor/compliance SME
