@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ComplianceDashboard } from './components/Compliance';
+import { DocumentsPage } from './components/Documents';
+import { ReportsPage } from './components/Reports';
 import { NotificationCenter } from './components/Notifications';
 import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
 import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
@@ -94,6 +96,24 @@ function App(): JSX.Element {
                     riskAlerts={mockRiskAlerts}
                     onRefresh={handleRefresh}
                     userRole="provider_admin"
+                  />
+                }
+              />
+              <Route
+                path="/documents"
+                element={
+                  <DocumentsPage
+                    providerId="prov-001"
+                    providerName="Hospital Central de Bogotá"
+                  />
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ReportsPage
+                    providerId="prov-001"
+                    providerName="Hospital Central de Bogotá"
                   />
                 }
               />
