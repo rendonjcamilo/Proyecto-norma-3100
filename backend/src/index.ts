@@ -20,6 +20,8 @@ import { createWebhooksRouter } from './routes/webhooks.routes.js';
 import { createDocumentsRouter } from './routes/documents.routes.js';
 import { createReportsRouter } from './routes/reports.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
+import swaggerUi from 'swagger-ui-express';
+import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
 
 // Load environment variables
 dotenv.config();
@@ -97,6 +99,15 @@ app.use((req: Request, res: Response, next) => {
   });
   next();
 });
+
+// === API DOCUMENTATION (Swagger / OpenAPI) ===
+// Raw OpenAPI spec
+app.get('/api/docs.json', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(openapiSpec);
+});
+// Interactive Swagger UI
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
