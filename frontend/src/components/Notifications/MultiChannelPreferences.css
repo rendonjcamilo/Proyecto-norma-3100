@@ -1,0 +1,366 @@
+/**
+ * Multi-Channel Preferences Styles
+ */
+
+.multichannel-preferences {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preferences-header {
+  margin-bottom: 32px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 20px;
+}
+
+.preferences-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.preferences-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Tabs */
+.preferences-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-button {
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #333;
+}
+
+.tab-button.active {
+  color: #2196f3;
+  border-bottom-color: #2196f3;
+}
+
+/* Preference Section */
+.preference-section {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preference-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Preference Groups */
+.preference-group {
+  margin-bottom: 20px;
+}
+
+.preference-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.preference-group input[type="email"],
+.preference-group input[type="tel"],
+.preference-group input[type="time"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.preference-group input[type="email"]:focus,
+.preference-group input[type="tel"]:focus,
+.preference-group input[type="time"]:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* Checkbox Label */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2196f3;
+}
+
+.checkbox-label span {
+  font-weight: 500;
+  color: #333;
+}
+
+/* Time Range */
+.time-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.time-range input[type="time"] {
+  flex: 1;
+  width: auto;
+}
+
+.time-range span {
+  color: #999;
+  font-size: 14px;
+}
+
+.time-range small {
+  display: block;
+  margin-top: 8px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Verified Badge */
+.verified-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Message */
+.preferences-message {
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preferences-message {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-left: 4px solid #2196f3;
+}
+
+/* Actions */
+.preferences-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #2196f3;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #1976d2;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background-color: #efefef;
+}
+
+/* Loading & Error States */
+.preferences-loading,
+.preferences-error {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.preferences-error {
+  background-color: #ffebee;
+  color: #c62828;
+  border-radius: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .multichannel-preferences {
+    padding: 16px;
+  }
+
+  .preferences-tabs {
+    flex-wrap: wrap;
+  }
+
+  .time-range {
+    flex-direction: column;
+  }
+
+  .time-range input[type="time"] {
+    width: 100%;
+  }
+
+  .preferences-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .multichannel-preferences {
+    background: #1e1e1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .preferences-header {
+    border-bottom-color: #333;
+  }
+
+  .preferences-header h2 {
+    color: #fff;
+  }
+
+  .preferences-header p {
+    color: #aaa;
+  }
+
+  .preferences-tabs {
+    border-bottom-color: #333;
+  }
+
+  .tab-button {
+    color: #aaa;
+  }
+
+  .tab-button:hover {
+    color: #fff;
+  }
+
+  .preference-section h3 {
+    color: #fff;
+  }
+
+  .preference-group label {
+    color: #fff;
+  }
+
+  .preference-group input[type="email"],
+  .preference-group input[type="tel"],
+  .preference-group input[type="time"] {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+  }
+
+  .preference-group input[type="email"]:focus,
+  .preference-group input[type="tel"]:focus,
+  .preference-group input[type="time"]:focus {
+    border-color: #2196f3;
+  }
+
+  .checkbox-label span {
+    color: #fff;
+  }
+
+  .time-range span {
+    color: #777;
+  }
+
+  .time-range small {
+    color: #777;
+  }
+
+  .preferences-actions {
+    border-top-color: #333;
+  }
+
+  .btn-secondary {
+    background-color: #2a2a2a;
+    color: #fff;
+    border-color: #444;
+  }
+
+  .btn-secondary:hover {
+    background-color: #333;
+  }
+}

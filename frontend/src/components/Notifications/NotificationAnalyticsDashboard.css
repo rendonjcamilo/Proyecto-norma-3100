@@ -1,0 +1,459 @@
+/**
+ * Notification Analytics Dashboard Styles
+ */
+
+.analytics-dashboard {
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.analytics-header {
+  margin-bottom: 32px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 20px;
+}
+
+.analytics-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #333;
+}
+
+.analytics-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Controls */
+.analytics-controls {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group select {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.control-group select:hover,
+.control-group select:focus {
+  outline: none;
+  border-color: #2196f3;
+}
+
+/* Summary Cards */
+.analytics-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.summary-card {
+  padding: 20px;
+  border-radius: 10px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.summary-card.success {
+  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+  color: white;
+}
+
+.summary-card.failed {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: white;
+}
+
+.summary-card.rate {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  color: white;
+}
+
+.card-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* Queue Health */
+.queue-health {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 32px;
+}
+
+.queue-health h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.queue-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.metric-value.pending {
+  color: #ff9800;
+}
+
+.metric-value.processing {
+  color: #2196f3;
+}
+
+.metric-value.failed {
+  color: #f44336;
+}
+
+/* Analytics Table */
+.analytics-table {
+  margin-bottom: 24px;
+}
+
+.analytics-table h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+thead {
+  background: #f5f5f5;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #333;
+}
+
+tbody tr:hover {
+  background-color: #fafafa;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 24px !important;
+}
+
+.channel-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.success {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.failed {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.success-rate {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.success-rate.high {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.success-rate.medium {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.success-rate.low {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Footer */
+.analytics-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #2196f3;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1976d2;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+/* Loading State */
+.analytics-loading {
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .analytics-dashboard {
+    padding: 16px;
+  }
+
+  .analytics-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .analytics-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .queue-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th,
+  td {
+    padding: 10px 8px;
+  }
+
+  .analytics-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .queue-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .card-value {
+    font-size: 18px;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .analytics-dashboard {
+    background: #1e1e1e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .analytics-header {
+    border-bottom-color: #333;
+  }
+
+  .analytics-header h2 {
+    color: #fff;
+  }
+
+  .analytics-header p {
+    color: #aaa;
+  }
+
+  .control-group label {
+    color: #aaa;
+  }
+
+  .control-group select {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+  }
+
+  .queue-health {
+    background: #2a2a2a;
+  }
+
+  .queue-health h3 {
+    color: #fff;
+  }
+
+  .metric {
+    background: #333;
+    border-left-color: #2196f3;
+  }
+
+  .metric-label {
+    color: #aaa;
+  }
+
+  .analytics-table h3 {
+    color: #fff;
+  }
+
+  table {
+    background: #2a2a2a;
+  }
+
+  thead {
+    background: #333;
+    border-bottom-color: #444;
+  }
+
+  th {
+    color: #aaa;
+  }
+
+  td {
+    border-bottom-color: #333;
+    color: #fff;
+  }
+
+  tbody tr:hover {
+    background-color: #333;
+  }
+
+  .channel-badge {
+    background: #1a3a52;
+    color: #64b5f6;
+  }
+
+  .analytics-footer {
+    border-top-color: #333;
+    color: #aaa;
+  }
+}
