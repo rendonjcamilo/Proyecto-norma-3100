@@ -18,6 +18,7 @@ import { createQuestionsRouter } from './routes/questions.routes.js';
 import { createMultiChannelRouter } from './routes/multichannel.routes.js';
 import { createWebhooksRouter } from './routes/webhooks.routes.js';
 import { createDocumentsRouter } from './routes/documents.routes.js';
+import { createReportsRouter } from './routes/reports.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -134,6 +135,9 @@ app.use('/api/webhooks', webhookLimiter, createWebhooksRouter(pool));
 
 // Phase 4.1: Documentary Matrix
 app.use('/api', apiLimiter, createDocumentsRouter(pool, eventStore));
+
+// Phase 5: Compliance Reports (PDF/Excel)
+app.use('/api', apiLimiter, createReportsRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

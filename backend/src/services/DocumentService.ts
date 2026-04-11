@@ -148,17 +148,17 @@ export class DocumentService {
     const document = await this.model.createDocument(createInput);
 
     // Emit audit event
-    await this.eventStore.appendEvent({
-      aggregate_id: document.id,
-      aggregate_type: 'provider_document',
-      event_type: 'DocumentUploaded',
-      event_data: {
+    await this.eventStore.append({
+      aggregateId: document.id,
+      aggregateType: 'provider_document',
+      eventType: 'DocumentUploaded',
+      payload: {
         provider_id: input.provider_id,
         document_code: catalogItem.code,
         version: document.version,
         checksum,
       },
-      user_id: input.uploaded_by,
+      userId: input.uploaded_by,
     });
 
     logger.info({
@@ -212,12 +212,12 @@ export class DocumentService {
   ): Promise<ProviderDocument | null> {
     const result = await this.model.validateDocument(documentId, status, notes, validatorId);
     if (result) {
-      await this.eventStore.appendEvent({
-        aggregate_id: documentId,
-        aggregate_type: 'provider_document',
-        event_type: 'DocumentValidated',
-        event_data: { status, notes },
-        user_id: validatorId,
+      await this.eventStore.append({
+        aggregateId: documentId,
+        aggregateType: 'provider_document',
+        eventType: 'DocumentValidated',
+        payload: { status, notes: notes || null },
+        userId: validatorId,
       });
     }
     return result;

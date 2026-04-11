@@ -21,10 +21,6 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-interface AuthenticatedRequest extends Request {
-  user?: { id: string; role: string };
-}
-
 export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Router {
   const router = Router();
   const service = new DocumentService(pool, eventStore);
@@ -74,7 +70,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     rbacMiddleware(['super_admin', 'provider_admin', 'auditor']),
     validateUuidParam('providerId'),
     upload.single('file'),
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
         if (!req.file) {
           return res.status(400).json({ error: 'Archivo no proporcionado' });
@@ -93,7 +89,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
           mime_type: req.file.mimetype,
           issue_date: issue_date ? new Date(issue_date) : undefined,
           expiry_date: expiry_date ? new Date(expiry_date) : undefined,
-          uploaded_by: req.user?.id || 'system',
+          uploaded_by: req.user?.user_id || 'system',
         });
 
         res.status(201).json({ data: document });
@@ -223,7 +219,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     authMiddleware,
     rbacMiddleware(['super_admin', 'auditor']),
     validateUuidParam('documentId'),
-    async (req: AuthenticatedRequest, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
         const { status, notes } = req.body;
         const validStatuses: DocumentStatus[] = ['compliant', 'rejected', 'under_review', 'pending'];
@@ -236,7 +232,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
           req.params.documentId,
           status,
           notes,
-          req.user?.id || 'system'
+          req.user?.user_id || 'system'
         );
         if (!result) {
           return res.status(404).json({ error: 'Document not found' });
