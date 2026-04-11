@@ -7,6 +7,8 @@ import { Pool } from 'pg';
 
 import { logger } from './utils/logger.js';
 import authRoutes from './routes/auth.routes.js';
+import { apiLimiter, authLimiter, webhookLimiter } from './middleware/rate-limit.middleware.js';
+import { sanitizeInputs } from './middleware/sanitize.middleware.js';
 import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentRouter } from './routes/assessment.routes.js';
 import { createAssessmentsRouter } from './routes/assessments.routes.js';
@@ -40,14 +42,44 @@ pool.on('error', (err) => {
 // Initialize event store
 const eventStore = new EventStore(pool);
 
-// Middleware
-app.use(helmet());
+// Security middleware (order matters)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'ws:', 'wss:'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: NODE_ENV === 'production' ? [] : null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  } : false,
+}));
+
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400,
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Input sanitization (after body parsing)
+app.use(sanitizeInputs);
+
+// Trust proxy for accurate IP addresses behind reverse proxy
+app.set('trust proxy', 1);
 
 // Request logging middleware
 app.use((req: Request, res: Response, next) => {
@@ -74,10 +106,10 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// Auth Routes
-app.use('/auth', authRoutes);
+// Auth Routes (strict rate limiting for brute-force protection)
+app.use('/auth', authLimiter, authRoutes);
 
-// API Routes
+// API Routes (standard rate limiting)
 app.get('/api', (_req: Request, res: Response) => {
   res.status(200).json({
     message: 'Norma 3100 Compliance Management API',
@@ -86,17 +118,18 @@ app.get('/api', (_req: Request, res: Response) => {
   });
 });
 
-// Phase 3 Routes
-app.use('/api', createProviderRouter(pool, eventStore));
-app.use('/api', createAssessmentRouter(pool, eventStore));
-app.use('/api', createAssessmentsRouter(pool, eventStore));
-app.use('/api', createFindingRouter(pool, eventStore));
-app.use('/api', createServiceRouter(pool, eventStore));
-app.use('/api/questions', createQuestionsRouter(pool, eventStore));
+// Phase 3 Routes (protected by standard API limiter)
+app.use('/api', apiLimiter, createProviderRouter(pool, eventStore));
+app.use('/api', apiLimiter, createAssessmentRouter(pool, eventStore));
+app.use('/api', apiLimiter, createAssessmentsRouter(pool, eventStore));
+app.use('/api', apiLimiter, createFindingRouter(pool, eventStore));
+app.use('/api', apiLimiter, createServiceRouter(pool, eventStore));
+app.use('/api/questions', apiLimiter, createQuestionsRouter(pool, eventStore));
 
 // Phase 4 Sprint 2: Multi-Channel Notifications
-app.use('/api/multichannel', createMultiChannelRouter(pool));
-app.use('/api/webhooks', createWebhooksRouter(pool));
+app.use('/api/multichannel', apiLimiter, createMultiChannelRouter(pool));
+// Webhooks use their own (higher) limiter since providers may burst
+app.use('/api/webhooks', webhookLimiter, createWebhooksRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
