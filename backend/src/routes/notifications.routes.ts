@@ -337,5 +337,142 @@ export function createNotificationsRouter(
     }
   });
 
+  /**
+   * GET /api/notifications/channels/preferences
+   * Get user's multi-channel notification preferences (Sprint 2)
+   */
+  router.get('/notifications/channels/preferences', async (req: Request, res: Response) => {
+    try {
+      const userId = req.userId!;
+
+      const result = await pool.query(
+        `SELECT * FROM user_notification_channels WHERE user_id = $1`,
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.json({
+          userId,
+          emailEnabled: true,
+          smsEnabled: false,
+          pushEnabled: true,
+          emailVerified: false,
+          smsVerified: false,
+        });
+      }
+
+      res.json(result.rows[0]);
+    } catch (error) {
+      logger.error(`Failed to get channel preferences`, {
+        error: (error as Error).message,
+      });
+      res.status(500).json({ error: 'Failed to fetch channel preferences' });
+    }
+  });
+
+  /**
+   * PUT /api/notifications/channels/preferences
+   * Update user's multi-channel notification preferences (Sprint 2)
+   */
+  router.put('/notifications/channels/preferences', async (req: Request, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const preferences = req.body;
+
+      const result = await pool.query(
+        `UPDATE user_notification_channels
+         SET
+           email_enabled = $2,
+           sms_enabled = $3,
+           push_enabled = $4,
+           email_address = $5,
+           phone_number = $6,
+           email_quiet_hours_start = $7,
+           email_quiet_hours_end = $8,
+           sms_quiet_hours_start = $9,
+           sms_quiet_hours_end = $10,
+           push_quiet_hours_start = $11,
+           push_quiet_hours_end = $12,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $1
+         RETURNING *`,
+        [
+          userId,
+          preferences.emailEnabled ?? true,
+          preferences.smsEnabled ?? false,
+          preferences.pushEnabled ?? true,
+          preferences.emailAddress,
+          preferences.phoneNumber,
+          preferences.emailQuietHoursStart,
+          preferences.emailQuietHoursEnd,
+          preferences.smsQuietHoursStart,
+          preferences.smsQuietHoursEnd,
+          preferences.pushQuietHoursStart,
+          preferences.pushQuietHoursEnd,
+        ]
+      );
+
+      logger.info(`Channel preferences updated`, { userId });
+
+      res.json({
+        success: true,
+        message: 'Channel preferences updated',
+        preferences: result.rows[0],
+      });
+    } catch (error) {
+      logger.error(`Failed to update channel preferences`, {
+        error: (error as Error).message,
+      });
+      res.status(500).json({ error: 'Failed to update channel preferences' });
+    }
+  });
+
+  /**
+   * GET /api/notifications/multichannel/stats/:channel
+   * Get delivery statistics for a specific channel (Sprint 2)
+   */
+  router.get(
+    '/notifications/multichannel/stats/:channel',
+    async (req: Request, res: Response) => {
+      try {
+        const userId = req.userId!;
+        const { channel } = req.params;
+        const days = parseInt(req.query.days as string) || 7;
+
+        let table = '';
+        if (channel === 'email') table = 'email_deliveries';
+        else if (channel === 'sms') table = 'sms_deliveries';
+        else if (channel === 'push') table = 'push_deliveries';
+        else return res.status(400).json({ error: 'Invalid channel' });
+
+        const result = await pool.query(
+          `SELECT
+             DATE(created_at) as date,
+             COUNT(*) as total,
+             COUNT(CASE WHEN status = 'sent' THEN 1 END) as sent,
+             COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
+             ROUND(100.0 * COUNT(CASE WHEN status = 'sent' THEN 1 END) / COUNT(*), 2) as success_rate
+           FROM ${table}
+           WHERE user_id = $1 AND created_at > CURRENT_TIMESTAMP - INTERVAL '${days} days'
+           GROUP BY DATE(created_at)
+           ORDER BY date DESC`,
+          [userId]
+        );
+
+        res.json({
+          channel,
+          userId,
+          days,
+          stats: result.rows,
+        });
+      } catch (error) {
+        logger.error(`Failed to get channel stats`, {
+          error: (error as Error).message,
+        });
+        res.status(500).json({ error: 'Failed to fetch channel statistics' });
+      }
+    }
+  );
+
   return router;
 }

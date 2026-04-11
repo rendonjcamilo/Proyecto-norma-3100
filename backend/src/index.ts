@@ -13,6 +13,7 @@ import { createAssessmentsRouter } from './routes/assessments.routes.js';
 import { createFindingRouter } from './routes/finding.routes.js';
 import { createServiceRouter } from './routes/services.routes.js';
 import { createQuestionsRouter } from './routes/questions.routes.js';
+import { createMultiChannelRouter } from './routes/multichannel.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -91,6 +92,9 @@ app.use('/api', createAssessmentsRouter(pool, eventStore));
 app.use('/api', createFindingRouter(pool, eventStore));
 app.use('/api', createServiceRouter(pool, eventStore));
 app.use('/api/questions', createQuestionsRouter(pool, eventStore));
+
+// Phase 4 Sprint 2: Multi-Channel Notifications
+app.use('/api/multichannel', createMultiChannelRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

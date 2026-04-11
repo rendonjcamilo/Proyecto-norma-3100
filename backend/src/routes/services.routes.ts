@@ -123,7 +123,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateId: serviceId,
           aggregateType: 'Service',
           eventType: 'service.status_changed',
-          data: {
+          payload: {
             service_code: service.code,
             service_name: service.name,
             old_status: 'unknown',
@@ -201,7 +201,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
             aggregateId: providerId,
             aggregateType: 'Provider',
             eventType: 'service.assigned',
-            data: {
+            payload: {
               provider_id: providerId,
               service_id: serviceId,
               location_id: locationId,
@@ -353,7 +353,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateId: providerId,
           aggregateType: 'Provider',
           eventType: 'service.unassigned',
-          data: {
+          payload: {
             provider_id: providerId,
             service_id: serviceId,
             location_id: locationId,
@@ -419,7 +419,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateId: providerId,
           aggregateType: 'Provider',
           eventType: 'services.bulk_assigned',
-          data: {
+          payload: {
             provider_id: providerId,
             service_count: results.length,
             location_id: locationId,
