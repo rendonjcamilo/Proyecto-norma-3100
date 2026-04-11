@@ -1,16 +1,19 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ComplianceDashboard } from './components/Compliance';
 import { NotificationCenter } from './components/Notifications';
-import { NotificationNav } from './components/NotificationNav';
 import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
 import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
 import { PushTemplateEditor } from './components/Notifications/PushTemplateEditor';
 import { MultiChannelPreferences } from './components/Notifications/MultiChannelPreferences';
 import { NotificationAnalyticsDashboard } from './components/Notifications/NotificationAnalyticsDashboard';
 import { DeliveryStatusTracker } from './components/Notifications/DeliveryStatusTracker';
+import { Sidebar, TopBar } from './components/Layout';
 import './App.css';
 
 function App(): JSX.Element {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   // Mock data para demostración
   const mockMetrics = {
     providerId: 'prov-001',
@@ -55,73 +58,72 @@ function App(): JSX.Element {
 
   const handleRefresh = async () => {
     console.log('Refreshing compliance data...');
-    // Simular actualización de datos
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('Data refreshed');
   };
 
+  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+
   return (
     <Router>
-      <div className='app'>
-        {/* Header with Notification Center */}
-        <header className='app-header'>
-          <div className='header-content'>
-            <h1 className='app-title'>Norma 3100 - Sistema de Cumplimiento</h1>
-            <div className='header-right'>
-              <span className='provider-badge'>Hospital Central de Bogotá</span>
-              <NotificationNav />
+      <div className="app-shell">
+        <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+
+        <div className="app-content">
+          <TopBar
+            onMenuToggle={toggleSidebar}
+            rightSlot={
               <NotificationCenter
                 userId="user-1"
                 providerId="prov-001"
                 role="provider_admin"
                 autoConnect={true}
               />
-            </div>
-          </div>
-        </header>
+            }
+          />
 
-        <main className='app-main'>
-          <Routes>
-            <Route
-              path='/'
-              element={
-                <ComplianceDashboard
-                  providerId="prov-001"
-                  providerName="Hospital Central de Bogotá"
-                  metrics={mockMetrics}
-                  riskAlerts={mockRiskAlerts}
-                  onRefresh={handleRefresh}
-                  userRole="provider_admin"
-                />
-              }
-            />
-            {/* Notification Management Routes */}
-            <Route
-              path='/notifications/templates/email'
-              element={<EmailTemplateEditor userId="user-1" />}
-            />
-            <Route
-              path='/notifications/templates/sms'
-              element={<SmsTemplateEditor userId="user-1" />}
-            />
-            <Route
-              path='/notifications/templates/push'
-              element={<PushTemplateEditor userId="user-1" />}
-            />
-            <Route
-              path='/notifications/preferences'
-              element={<MultiChannelPreferences userId="user-1" />}
-            />
-            <Route
-              path='/notifications/analytics'
-              element={<NotificationAnalyticsDashboard userId="user-1" />}
-            />
-            <Route
-              path='/notifications/delivery-status'
-              element={<DeliveryStatusTracker userId="user-1" />}
-            />
-          </Routes>
-        </main>
+          <main className="app-main">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <ComplianceDashboard
+                    providerId="prov-001"
+                    providerName="Hospital Central de Bogotá"
+                    metrics={mockMetrics}
+                    riskAlerts={mockRiskAlerts}
+                    onRefresh={handleRefresh}
+                    userRole="provider_admin"
+                  />
+                }
+              />
+              <Route
+                path="/notifications/templates/email"
+                element={<EmailTemplateEditor userId="user-1" />}
+              />
+              <Route
+                path="/notifications/templates/sms"
+                element={<SmsTemplateEditor userId="user-1" />}
+              />
+              <Route
+                path="/notifications/templates/push"
+                element={<PushTemplateEditor userId="user-1" />}
+              />
+              <Route
+                path="/notifications/preferences"
+                element={<MultiChannelPreferences userId="user-1" />}
+              />
+              <Route
+                path="/notifications/analytics"
+                element={<NotificationAnalyticsDashboard userId="user-1" />}
+              />
+              <Route
+                path="/notifications/delivery-status"
+                element={<DeliveryStatusTracker userId="user-1" />}
+              />
+            </Routes>
+          </main>
+        </div>
       </div>
     </Router>
   );

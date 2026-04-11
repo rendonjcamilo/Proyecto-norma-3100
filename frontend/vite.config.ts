@@ -15,6 +15,8 @@ export default defineConfig({
     minify: 'terser',
   },
   resolve: {
+    // Prefer .tsx/.ts over stale compiled .js artifacts in src/
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.mjs', '.mts', '.json'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@components': path.resolve(__dirname, './src/components'),

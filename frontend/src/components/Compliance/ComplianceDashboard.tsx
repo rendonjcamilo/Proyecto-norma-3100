@@ -1,7 +1,6 @@
 /**
  * Compliance Dashboard Component
- * Displays comprehensive compliance metrics, risk scoring, and action status
- * for both providers and auditors
+ * Professional, interactive dashboard with metric cards, KPIs and risk insights
  */
 
 import React, { useState, useEffect } from 'react';
@@ -40,8 +39,121 @@ interface DashboardProps {
   userRole?: 'auditor' | 'provider_admin' | 'super_admin';
 }
 
+type ComplianceStatus = 'verde' | 'naranja' | 'rojo';
+
+const STATUS_LABELS: Record<ComplianceStatus, string> = {
+  verde: 'Cumplimiento Alto',
+  naranja: 'Cumplimiento Parcial',
+  rojo: 'Cumplimiento Bajo',
+};
+
+const getComplianceStatus = (percentage: number): ComplianceStatus => {
+  if (percentage >= 80) return 'verde';
+  if (percentage >= 50) return 'naranja';
+  return 'rojo';
+};
+
+// SVG Icons
+const Icons = {
+  refresh: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  ),
+  trendUp: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+      <polyline points="17 6 23 6 23 12" />
+    </svg>
+  ),
+  trendFlat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="13 6 19 12 13 18" />
+    </svg>
+  ),
+  trendDown: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+      <polyline points="17 18 23 18 23 12" />
+    </svg>
+  ),
+  open: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  ),
+  inProgress: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  resolved: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  closed: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  overdue: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+  riskShield: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+  download: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+  list: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  ),
+  edit: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  arrow: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
+  ),
+};
+
 export const ComplianceDashboard: React.FC<DashboardProps> = ({
-  providerId,
   providerName,
   metrics,
   riskAlerts = [],
@@ -51,20 +163,18 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
 }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [activeBreakdown, setActiveBreakdown] = useState<string | null>(null);
 
   useEffect(() => {
     if (!autoRefresh) return;
-
     const interval = setInterval(() => {
       handleRefresh();
-    }, 5 * 60 * 1000); // Refresh every 5 minutes
-
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [autoRefresh, onRefresh]);
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
-
     setRefreshing(true);
     try {
       await onRefresh();
@@ -73,249 +183,420 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const getComplianceStatus = (percentage: number): 'verde' | 'naranja' | 'rojo' => {
-    if (percentage >= 80) return 'verde';
-    if (percentage >= 50) return 'naranja';
-    return 'rojo';
-  };
-
-  const getStatusColor = (status: 'verde' | 'naranja' | 'rojo'): string => {
-    switch (status) {
-      case 'verde':
-        return '#2e7d32';
-      case 'naranja':
-        return '#f57c00';
-      case 'rojo':
-        return '#c62828';
-    }
-  };
-
-  const getStatusLabel = (status: 'verde' | 'naranja' | 'rojo'): string => {
-    switch (status) {
-      case 'verde':
-        return 'Cumplimiento Alto';
-      case 'naranja':
-        return 'Cumplimiento Parcial';
-      case 'rojo':
-        return 'Cumplimiento Bajo';
-    }
-  };
-
   if (loading && !metrics) {
     return (
-      <div className="compliance-dashboard loading">
-        <div className="spinner">Cargando dashboard...</div>
+      <div className="dashboard-state">
+        <div className="dashboard-spinner" />
+        <p>Cargando dashboard de cumplimiento...</p>
       </div>
     );
   }
 
   if (!metrics) {
     return (
-      <div className="compliance-dashboard error">
+      <div className="dashboard-state error">
         <p>No hay datos de cumplimiento disponibles</p>
       </div>
     );
   }
 
   const complianceStatus = getComplianceStatus(metrics.compliancePercentage);
-  const statusColor = getStatusColor(complianceStatus);
+  const compliancePct = Math.round(metrics.compliancePercentage);
+  const circumference = 2 * Math.PI * 70;
+  const strokeOffset = circumference - (compliancePct / 100) * circumference;
+
+  const trendMap = {
+    improving: { icon: Icons.trendUp, label: 'Mejorando', tone: 'success', delta: '+5.2%' },
+    stable: { icon: Icons.trendFlat, label: 'Estable', tone: 'neutral', delta: '0%' },
+    worsening: { icon: Icons.trendDown, label: 'Empeorando', tone: 'danger', delta: '-3.4%' },
+  };
+  const trend = trendMap[metrics.trendDirection];
+
+  const riskTone =
+    metrics.averageRiskScore >= 70 ? 'danger' : metrics.averageRiskScore >= 40 ? 'warning' : 'success';
+  const riskLabel =
+    metrics.averageRiskScore >= 70 ? 'Alto Riesgo' : metrics.averageRiskScore >= 40 ? 'Riesgo Moderado' : 'Bajo Riesgo';
+
+  const breakdownItems = [
+    { key: 'open', label: 'Abiertos', count: metrics.openFindings, icon: Icons.open, tone: 'danger', description: 'Sin acción inicial' },
+    { key: 'in-progress', label: 'En Progreso', count: metrics.inProgressFindings, icon: Icons.inProgress, tone: 'info', description: 'Con plan de acción' },
+    { key: 'resolved', label: 'Resueltos', count: metrics.resolvedFindings, icon: Icons.resolved, tone: 'success', description: 'Pendientes verificación' },
+    { key: 'closed', label: 'Cerrados', count: metrics.closedFindings, icon: Icons.closed, tone: 'neutral', description: 'Verificados y archivados' },
+    { key: 'overdue', label: 'Vencidos', count: metrics.overdueFindingsCount, icon: Icons.overdue, tone: 'warning', description: 'Requieren atención urgente' },
+  ];
 
   return (
     <div className="compliance-dashboard">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-info">
-          <h1>Dashboard de Cumplimiento Norma 3100</h1>
-          {providerName && <p className="provider-name">{providerName}</p>}
+      {/* === HEADER === */}
+      <header className="dashboard-header">
+        <div className="dashboard-header-info">
+          <div className="header-eyebrow">
+            <span className="status-pulse" data-status={complianceStatus} />
+            <span>Sistema operativo · Datos en tiempo real</span>
+          </div>
+          <h1 className="dashboard-title">Dashboard de Cumplimiento</h1>
+          {providerName && (
+            <p className="dashboard-subtitle">
+              {providerName} <span className="subtitle-divider">·</span> Norma 3100
+            </p>
+          )}
         </div>
-        <div className="header-actions">
-          <button
-            type="button"
-            className="btn-refresh"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            title="Actualizar datos"
-          >
-            🔄 {refreshing ? 'Actualizando...' : 'Actualizar'}
-          </button>
+
+        <div className="dashboard-header-actions">
           <label className="auto-refresh-toggle">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={e => setAutoRefresh(e.target.checked)}
             />
-            Auto-actualizar
+            <span className="toggle-track">
+              <span className="toggle-thumb" />
+            </span>
+            <span className="toggle-label">Auto-actualizar</span>
           </label>
+          <button
+            type="button"
+            className={`btn-primary ${refreshing ? 'is-loading' : ''}`}
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <span className="btn-icon">{Icons.refresh}</span>
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Compliance Overview */}
-      <div className="compliance-overview">
-        <div className="compliance-card main">
-          <div className="compliance-circle" style={{ borderColor: statusColor }}>
-            <div className="compliance-percentage">{Math.round(metrics.compliancePercentage)}%</div>
+      {/* === KPI HERO === */}
+      <section className="kpi-hero">
+        {/* Compliance Gauge */}
+        <article className={`kpi-card kpi-hero-main status-${complianceStatus}`}>
+          <div className="kpi-card-header">
+            <span className="kpi-label">Cumplimiento General</span>
+            <span className={`kpi-badge tone-${complianceStatus}`}>{STATUS_LABELS[complianceStatus]}</span>
           </div>
-          <div className="compliance-info">
-            <h3>Cumplimiento General</h3>
-            <p className="status-label" style={{ color: statusColor }}>
-              {getStatusLabel(complianceStatus)}
-            </p>
-            <p className="status-description">
-              {metrics.inProgressFindings + metrics.resolvedFindings} de {metrics.totalFindings} hallazgos en proceso o resueltos
-            </p>
+          <div className="kpi-gauge-wrapper">
+            <svg className="kpi-gauge" viewBox="0 0 160 160">
+              <defs>
+                <linearGradient id="gauge-gradient-verde" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#00875a" />
+                  <stop offset="100%" stopColor="#36b37e" />
+                </linearGradient>
+                <linearGradient id="gauge-gradient-naranja" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#ff8b00" />
+                  <stop offset="100%" stopColor="#ffab00" />
+                </linearGradient>
+                <linearGradient id="gauge-gradient-rojo" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#de350b" />
+                  <stop offset="100%" stopColor="#ff5630" />
+                </linearGradient>
+              </defs>
+              <circle cx="80" cy="80" r="70" className="gauge-track" />
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                className="gauge-fill"
+                stroke={`url(#gauge-gradient-${complianceStatus})`}
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeOffset}
+                transform="rotate(-90 80 80)"
+              />
+            </svg>
+            <div className="kpi-gauge-center">
+              <div className="kpi-gauge-value">{compliancePct}<span>%</span></div>
+              <div className="kpi-gauge-label">Conformidad</div>
+            </div>
           </div>
-        </div>
+          <div className="kpi-card-footer">
+            <div className="kpi-footer-stat">
+              <span className="stat-value">{metrics.inProgressFindings + metrics.resolvedFindings}</span>
+              <span className="stat-label">en proceso/resueltos</span>
+            </div>
+            <div className="kpi-footer-divider" />
+            <div className="kpi-footer-stat">
+              <span className="stat-value">{metrics.totalFindings}</span>
+              <span className="stat-label">total hallazgos</span>
+            </div>
+          </div>
+        </article>
 
-        {/* Trend Indicator */}
-        <div className="compliance-card trend">
-          <h3>Tendencia</h3>
-          <div className="trend-indicator">
-            {metrics.trendDirection === 'improving' && (
-              <div className="trend improving">
-                📈 Mejorando
-              </div>
-            )}
-            {metrics.trendDirection === 'stable' && (
-              <div className="trend stable">
-                ➡️ Estable
-              </div>
-            )}
-            {metrics.trendDirection === 'worsening' && (
-              <div className="trend worsening">
-                📉 Empeorando
-              </div>
-            )}
+        {/* Trend */}
+        <article className={`kpi-card kpi-trend tone-${trend.tone}`}>
+          <div className="kpi-card-header">
+            <span className="kpi-label">Tendencia Mensual</span>
+            <span className={`kpi-delta tone-${trend.tone}`}>{trend.delta}</span>
           </div>
-        </div>
+          <div className="kpi-trend-display">
+            <div className={`trend-icon tone-${trend.tone}`}>{trend.icon}</div>
+            <div>
+              <div className="trend-value">{trend.label}</div>
+              <div className="trend-context">vs. mes anterior</div>
+            </div>
+          </div>
+          <div className="kpi-sparkline">
+            <svg viewBox="0 0 200 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spark-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(0, 135, 90, 0.3)" />
+                  <stop offset="100%" stopColor="rgba(0, 135, 90, 0)" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M0,45 L25,40 L50,42 L75,30 L100,32 L125,25 L150,20 L175,15 L200,10 L200,60 L0,60 Z"
+                fill="url(#spark-gradient)"
+              />
+              <path
+                d="M0,45 L25,40 L50,42 L75,30 L100,32 L125,25 L150,20 L175,15 L200,10"
+                fill="none"
+                stroke="#00875a"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </article>
 
         {/* Risk Score */}
-        <div className="compliance-card risk-score">
-          <h3>Riesgo Promedio</h3>
-          <div className="score-display">
-            <span className="score-value">{Math.round(metrics.averageRiskScore)}</span>
-            <span className="score-label">de 100</span>
+        <article className={`kpi-card kpi-risk tone-${riskTone}`}>
+          <div className="kpi-card-header">
+            <span className="kpi-label">Riesgo Promedio</span>
+            <div className={`kpi-icon-badge tone-${riskTone}`}>{Icons.riskShield}</div>
           </div>
-          <p className="risk-description">
-            {metrics.averageRiskScore >= 70 ? '🔴 Alto riesgo' : metrics.averageRiskScore >= 40 ? '🟡 Riesgo moderado' : '🟢 Bajo riesgo'}
-          </p>
-        </div>
-      </div>
+          <div className="kpi-risk-display">
+            <div className="risk-value">
+              <span className="risk-number">{Math.round(metrics.averageRiskScore)}</span>
+              <span className="risk-max">/100</span>
+            </div>
+            <div className={`risk-label tone-${riskTone}`}>{riskLabel}</div>
+          </div>
+          <div className="kpi-risk-bar">
+            <div className="risk-bar-track">
+              <div
+                className={`risk-bar-fill tone-${riskTone}`}
+                style={{ width: `${metrics.averageRiskScore}%` }}
+              />
+            </div>
+            <div className="risk-bar-markers">
+              <span>0</span>
+              <span>40</span>
+              <span>70</span>
+              <span>100</span>
+            </div>
+          </div>
+        </article>
+      </section>
 
-      {/* Findings Status Breakdown */}
-      <div className="findings-breakdown">
-        <h2>Estado de Hallazgos</h2>
+      {/* === FINDINGS BREAKDOWN === */}
+      <section className="dashboard-section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Estado de Hallazgos</h2>
+            <p className="section-subtitle">Distribución actual por estado del ciclo de vida</p>
+          </div>
+          <button type="button" className="section-link">
+            Ver detalles {Icons.arrow}
+          </button>
+        </div>
+
         <div className="breakdown-grid">
-          <div className="breakdown-card open">
-            <div className="count">{metrics.openFindings}</div>
-            <div className="label">Abiertos</div>
-          </div>
-          <div className="breakdown-card in-progress">
-            <div className="count">{metrics.inProgressFindings}</div>
-            <div className="label">En Progreso</div>
-          </div>
-          <div className="breakdown-card resolved">
-            <div className="count">{metrics.resolvedFindings}</div>
-            <div className="label">Resueltos</div>
-          </div>
-          <div className="breakdown-card closed">
-            <div className="count">{metrics.closedFindings}</div>
-            <div className="label">Cerrados</div>
-          </div>
-          <div className="breakdown-card overdue">
-            <div className="count">{metrics.overdueFindingsCount}</div>
-            <div className="label">Vencidos</div>
-          </div>
+          {breakdownItems.map(item => {
+            const percentage = metrics.totalFindings > 0
+              ? Math.round((item.count / metrics.totalFindings) * 100)
+              : 0;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`breakdown-card tone-${item.tone} ${activeBreakdown === item.key ? 'is-active' : ''}`}
+                onMouseEnter={() => setActiveBreakdown(item.key)}
+                onMouseLeave={() => setActiveBreakdown(null)}
+              >
+                <div className="breakdown-card-top">
+                  <div className={`breakdown-icon tone-${item.tone}`}>{item.icon}</div>
+                  <span className="breakdown-percentage">{percentage}%</span>
+                </div>
+                <div className="breakdown-count">{item.count}</div>
+                <div className="breakdown-label">{item.label}</div>
+                <div className="breakdown-description">{item.description}</div>
+                <div className="breakdown-progress">
+                  <div
+                    className={`breakdown-progress-fill tone-${item.tone}`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Status Progress Bar */}
-        <div className="progress-container">
-          <div className="progress-bar">
-            <div
-              className="progress-segment open"
-              style={{ width: `${(metrics.openFindings / metrics.totalFindings) * 100}%` }}
-              title={`Abiertos: ${metrics.openFindings}`}
-            />
-            <div
-              className="progress-segment in-progress"
-              style={{ width: `${(metrics.inProgressFindings / metrics.totalFindings) * 100}%` }}
-              title={`En Progreso: ${metrics.inProgressFindings}`}
-            />
-            <div
-              className="progress-segment resolved"
-              style={{ width: `${(metrics.resolvedFindings / metrics.totalFindings) * 100}%` }}
-              title={`Resueltos: ${metrics.resolvedFindings}`}
-            />
-            <div
-              className="progress-segment closed"
-              style={{ width: `${(metrics.closedFindings / metrics.totalFindings) * 100}%` }}
-              title={`Cerrados: ${metrics.closedFindings}`}
-            />
+        {/* Combined progress bar */}
+        <div className="distribution-bar">
+          <div className="distribution-header">
+            <span className="distribution-title">Distribución Total</span>
+            <span className="distribution-total">{metrics.totalFindings} hallazgos</span>
           </div>
-        </div>
-      </div>
-
-      {/* Risk Alerts */}
-      {riskAlerts.length > 0 && (
-        <div className="risk-alerts-section">
-          <h2>Alertas de Riesgo</h2>
-          <div className="alerts-list">
-            {riskAlerts.slice(0, 5).map(alert => (
-              <div key={alert.id} className={`alert alert-${alert.severity}`}>
-                <div className="alert-header">
-                  <h4>{alert.title}</h4>
-                  <span className={`severity-badge ${alert.severity}`}>
-                    {alert.severity.toUpperCase()}
-                  </span>
-                </div>
-                <div className="alert-details">
-                  <p>
-                    <strong>Puntuación de riesgo:</strong> {Math.round(alert.riskScore)}/100
-                  </p>
-                  {alert.daysOverdue > 0 && (
-                    <p className="overdue">
-                      <strong>⚠️ Vencido hace {alert.daysOverdue} días</strong>
-                    </p>
-                  )}
-                </div>
+          <div className="distribution-track">
+            {breakdownItems.slice(0, 4).map(item => {
+              const width = metrics.totalFindings > 0
+                ? (item.count / metrics.totalFindings) * 100
+                : 0;
+              if (width === 0) return null;
+              return (
+                <div
+                  key={item.key}
+                  className={`distribution-segment tone-${item.tone} ${activeBreakdown === item.key ? 'is-highlighted' : ''}`}
+                  style={{ width: `${width}%` }}
+                  title={`${item.label}: ${item.count}`}
+                  onMouseEnter={() => setActiveBreakdown(item.key)}
+                  onMouseLeave={() => setActiveBreakdown(null)}
+                />
+              );
+            })}
+          </div>
+          <div className="distribution-legend">
+            {breakdownItems.slice(0, 4).map(item => (
+              <div
+                key={item.key}
+                className={`legend-item ${activeBreakdown === item.key ? 'is-highlighted' : ''}`}
+                onMouseEnter={() => setActiveBreakdown(item.key)}
+                onMouseLeave={() => setActiveBreakdown(null)}
+              >
+                <span className={`legend-dot tone-${item.tone}`} />
+                <span>{item.label}</span>
               </div>
             ))}
           </div>
-          {riskAlerts.length > 5 && (
-            <p className="more-alerts">... y {riskAlerts.length - 5} alertas más</p>
-          )}
         </div>
+      </section>
+
+      {/* === RISK ALERTS === */}
+      {riskAlerts.length > 0 && (
+        <section className="dashboard-section">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">
+                Alertas de Riesgo
+                <span className="section-count">{riskAlerts.length}</span>
+              </h2>
+              <p className="section-subtitle">Hallazgos críticos que requieren atención inmediata</p>
+            </div>
+            <button type="button" className="section-link">
+              Ver todas {Icons.arrow}
+            </button>
+          </div>
+
+          <div className="alerts-list">
+            {riskAlerts.slice(0, 5).map((alert, idx) => (
+              <article
+                key={alert.id}
+                className={`alert-card severity-${alert.severity}`}
+                style={{ animationDelay: `${idx * 50}ms` }}
+              >
+                <div className={`alert-severity-bar severity-${alert.severity}`} />
+                <div className="alert-body">
+                  <div className="alert-meta">
+                    <span className={`severity-pill severity-${alert.severity}`}>
+                      {alert.severity.toUpperCase()}
+                    </span>
+                    <span className="alert-id">#{alert.findingId}</span>
+                    {alert.daysOverdue > 0 && (
+                      <span className="overdue-pill">
+                        Vencido hace {alert.daysOverdue} {alert.daysOverdue === 1 ? 'día' : 'días'}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="alert-title">{alert.title}</h4>
+                  <div className="alert-footer">
+                    <div className="alert-risk">
+                      <span className="alert-risk-label">Puntuación de riesgo</span>
+                      <div className="alert-risk-bar">
+                        <div
+                          className={`alert-risk-fill severity-${alert.severity}`}
+                          style={{ width: `${alert.riskScore}%` }}
+                        />
+                      </div>
+                      <span className="alert-risk-value">{Math.round(alert.riskScore)}/100</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" className="alert-action" aria-label="Ver hallazgo">
+                  {Icons.arrow}
+                </button>
+              </article>
+            ))}
+          </div>
+
+          {riskAlerts.length > 5 && (
+            <div className="more-alerts">
+              <button type="button" className="more-alerts-btn">
+                Ver {riskAlerts.length - 5} alertas más
+              </button>
+            </div>
+          )}
+        </section>
       )}
 
-      {/* Quick Actions */}
-      <div className="quick-actions">
-        <h2>Acciones Rápidas</h2>
+      {/* === QUICK ACTIONS === */}
+      <section className="dashboard-section">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Acciones Rápidas</h2>
+            <p className="section-subtitle">Accesos directos a las tareas más frecuentes</p>
+          </div>
+        </div>
+
         <div className="actions-grid">
-          <button type="button" className="action-button">
-            📋 Ver Todos los Hallazgos
+          <button type="button" className="action-card">
+            <div className="action-icon tone-info">{Icons.list}</div>
+            <div className="action-content">
+              <h4>Ver Hallazgos</h4>
+              <p>Listado completo y filtros</p>
+            </div>
+            <span className="action-arrow">{Icons.arrow}</span>
           </button>
-          <button type="button" className="action-button">
-            📝 Ver Todas las Acciones
+
+          <button type="button" className="action-card">
+            <div className="action-icon tone-purple">{Icons.edit}</div>
+            <div className="action-content">
+              <h4>Plan de Acciones</h4>
+              <p>Gestionar acciones correctivas</p>
+            </div>
+            <span className="action-arrow">{Icons.arrow}</span>
           </button>
-          <button type="button" className="action-button">
-            📊 Descargar Reporte
+
+          <button type="button" className="action-card">
+            <div className="action-icon tone-success">{Icons.download}</div>
+            <div className="action-content">
+              <h4>Descargar Reporte</h4>
+              <p>Exportar datos en PDF/Excel</p>
+            </div>
+            <span className="action-arrow">{Icons.arrow}</span>
           </button>
+
           {userRole !== 'provider_admin' && (
-            <button type="button" className="action-button">
-              ✅ Verificar Acciones
+            <button type="button" className="action-card">
+              <div className="action-icon tone-warning">{Icons.check}</div>
+              <div className="action-content">
+                <h4>Verificar Acciones</h4>
+                <p>Aprobar cierres pendientes</p>
+              </div>
+              <span className="action-arrow">{Icons.arrow}</span>
             </button>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Footer Info */}
-      <div className="dashboard-footer">
-        <p className="update-time">
-          Última actualización: {new Date().toLocaleString('es-CO')}
+      {/* === FOOTER === */}
+      <footer className="dashboard-footer">
+        <div className="footer-meta">
+          <span className="footer-dot" />
+          <span>Última actualización: {new Date().toLocaleString('es-CO')}</span>
+        </div>
+        <p className="footer-help">
+          Las métricas se actualizan automáticamente cada 5 minutos. Activa "Auto-actualizar" para ver datos en tiempo real.
         </p>
-        <p className="help-text">
-          Las métricas se actualizan automáticamente cada 5 minutos. Haz clic en "Actualizar" para forzar una actualización inmediata.
-        </p>
-      </div>
+      </footer>
     </div>
   );
 };
