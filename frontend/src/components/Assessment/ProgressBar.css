@@ -1,0 +1,86 @@
+/* ProgressBar Component Styles */
+
+.progress-bar-container {
+  margin: 15px 0;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.label-text {
+  font-weight: 600;
+  color: #333;
+}
+
+.label-count {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+.progress-fill.progress-verde {
+  background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+}
+
+.progress-fill.progress-naranja {
+  background: linear-gradient(90deg, #ff9800 0%, #ffc107 100%);
+}
+
+.progress-fill.progress-rojo {
+  background: linear-gradient(90deg, #f44336 0%, #e91e63 100%);
+}
+
+.progress-percent {
+  display: inline-block;
+  width: 50px;
+  text-align: center;
+}
+
+.progress-text {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progress-label {
+    font-size: 13px;
+  }
+
+  .progress-bar {
+    height: 20px;
+  }
+
+  .progress-fill {
+    font-size: 11px;
+  }
+}
