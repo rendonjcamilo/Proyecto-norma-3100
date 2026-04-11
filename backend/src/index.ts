@@ -14,6 +14,7 @@ import { createFindingRouter } from './routes/finding.routes.js';
 import { createServiceRouter } from './routes/services.routes.js';
 import { createQuestionsRouter } from './routes/questions.routes.js';
 import { createMultiChannelRouter } from './routes/multichannel.routes.js';
+import { createWebhooksRouter } from './routes/webhooks.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -95,6 +96,7 @@ app.use('/api/questions', createQuestionsRouter(pool, eventStore));
 
 // Phase 4 Sprint 2: Multi-Channel Notifications
 app.use('/api/multichannel', createMultiChannelRouter(pool));
+app.use('/api/webhooks', createWebhooksRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
