@@ -1,0 +1,564 @@
+/* Action Progress Dashboard Styles */
+
+.dashboard-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.dashboard-header {
+  margin-bottom: 32px;
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.metric-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  transition: all 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.metric-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.metric-card.alert {
+  border-left-color: #dc3545;
+}
+
+.metric-icon {
+  font-size: 32px;
+  opacity: 0.8;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2196f3;
+}
+
+.alert-text {
+  color: #dc3545;
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.dashboard-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.dashboard-section.alert-section {
+  border-left: 4px solid #ff9800;
+}
+
+.dashboard-section.alert-section h3 {
+  color: #ff9800;
+}
+
+/* Status Distribution */
+.status-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.distribution-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.distribution-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.bar-segment {
+  flex: 1;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.bar-segment:hover {
+  opacity: 0.8;
+}
+
+.bar-legend {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* Completion Progress */
+.completion-progress {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.progress-visualization {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.progress-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-circle-inner {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.progress-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.progress-label {
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Progress Breakdown */
+.progress-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.breakdown-item label {
+  width: 80px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+}
+
+.breakdown-bar {
+  flex: 1;
+  height: 20px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.breakdown-fill {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.breakdown-label {
+  width: 100px;
+  font-size: 12px;
+  color: #999;
+  text-align: right;
+}
+
+/* Overdue List */
+.overdue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overdue-item {
+  padding: 16px;
+  background: #fff3cd;
+  border-left: 4px solid #ff9800;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.overdue-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.overdue-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.priority-badge {
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.priority-crítica {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.priority-alta {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+.priority-media {
+  background: #fff9c4;
+  color: #f57f17;
+}
+
+.priority-baja {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.overdue-info {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.overdue-days {
+  font-weight: 600;
+  color: #ff9800;
+}
+
+.deadline {
+  color: #999;
+}
+
+/* Timeline Chart */
+.timeline-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #999;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.timeline-bar {
+  position: relative;
+  height: 40px;
+  background: linear-gradient(90deg, #e8f5e9 0%, #fff9c4 50%, #ffebee 100%);
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #999;
+  opacity: 0.3;
+}
+
+.timeline-note {
+  margin: 0;
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}
+
+/* Loading & Error */
+.loading,
+.error {
+  padding: 32px;
+  text-align: center;
+  font-size: 14px;
+  color: #999;
+}
+
+.error {
+  color: #dc3545;
+}
+
+/* Dashboard Actions */
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-secondary,
+.btn-primary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover {
+  background: #eeeeee;
+  border-color: #bbb;
+}
+
+.btn-primary {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1976d2;
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .completion-progress {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .progress-circle {
+    width: 160px;
+    height: 160px;
+  }
+
+  .progress-circle-inner {
+    width: 130px;
+    height: 130px;
+  }
+
+  .progress-value {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .metric-card {
+    padding: 16px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .metric-icon {
+    font-size: 24px;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+
+  .dashboard-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-section h3 {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .completion-progress {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-breakdown {
+    gap: 12px;
+  }
+
+  .breakdown-item {
+    flex-wrap: wrap;
+  }
+
+  .breakdown-label {
+    width: 100%;
+  }
+
+  .overdue-item {
+    flex-direction: column;
+  }
+
+  .overdue-info {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dashboard-actions {
+    flex-direction: column;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 16px;
+  }
+
+  .dashboard-header h2 {
+    font-size: 20px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .metric-icon {
+    font-size: 20px;
+  }
+
+  .metric-value {
+    font-size: 20px;
+  }
+
+  .progress-circle {
+    width: 140px;
+    height: 140px;
+  }
+
+  .progress-circle-inner {
+    width: 110px;
+    height: 110px;
+  }
+
+  .progress-value {
+    font-size: 28px;
+  }
+
+  .bar-legend {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .timeline-header {
+    font-size: 11px;
+  }
+}

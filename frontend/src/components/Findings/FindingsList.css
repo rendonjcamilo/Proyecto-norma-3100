@@ -1,0 +1,483 @@
+/* FindingsList Component Styles */
+
+.findings-list-container {
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.findings-header {
+  margin-bottom: 24px;
+}
+
+.findings-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.findings-header .subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Filters */
+.findings-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 6px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 13px;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+  border-color: #2196f3;
+  outline: none;
+}
+
+/* Table */
+.findings-table-wrapper {
+  overflow-x: auto;
+  margin-bottom: 24px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.findings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.findings-table thead {
+  background: #f9f9f9;
+  border-bottom: 2px solid #ddd;
+}
+
+.findings-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+}
+
+.findings-table tbody tr {
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.findings-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.findings-table td {
+  padding: 12px;
+}
+
+/* Column Widths */
+.col-number {
+  width: 100px;
+  text-align: center;
+}
+
+.col-title {
+  min-width: 250px;
+}
+
+.col-service {
+  width: 120px;
+}
+
+.col-status {
+  width: 110px;
+}
+
+.col-severity {
+  width: 100px;
+}
+
+.col-risk {
+  width: 100px;
+}
+
+.col-assigned {
+  width: 130px;
+}
+
+.col-date {
+  width: 120px;
+  text-align: center;
+}
+
+.col-actions {
+  width: 80px;
+  text-align: center;
+}
+
+/* Finding Title Cell */
+.finding-title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finding-title-cell strong {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.finding-description {
+  margin: 0;
+  color: #999;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.status-open {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-assigned {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-in-progress {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-closed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-default {
+  background: #f5f5f5;
+  color: #666;
+}
+
+/* Severity Badge */
+.severity-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.severity-critical {
+  background: #dc3545;
+  color: white;
+}
+
+.severity-high {
+  background: #ff9800;
+  color: white;
+}
+
+.severity-medium {
+  background: #ffc107;
+  color: #000;
+}
+
+.severity-low {
+  background: #4caf50;
+  color: white;
+}
+
+.severity-pending {
+  background: #e0e0e0;
+  color: #666;
+}
+
+/* Risk Score */
+.risk-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.risk-bar {
+  flex: 1;
+  height: 6px;
+  background: #eee;
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.risk-fill {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.risk-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-view {
+  color: #2196f3;
+}
+
+.btn-view:hover {
+  background: #e3f2fd;
+}
+
+.btn-action {
+  color: #4caf50;
+}
+
+.btn-action:hover {
+  background: #e8f5e9;
+}
+
+/* Loading & Empty States */
+.loading {
+  padding: 32px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.empty-state {
+  padding: 48px 32px;
+  text-align: center;
+  color: #999;
+  background: #f9f9f9;
+  border-radius: 6px;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-top: 1px solid #eee;
+  background: #f9f9f9;
+  border-radius: 0 0 6px 6px;
+}
+
+.btn-pagination {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #2196f3;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background: #2196f3;
+  color: white;
+  border-color: #2196f3;
+}
+
+.btn-pagination:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  border-color: #eee;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .col-title {
+    min-width: 180px;
+  }
+
+  .col-service {
+    width: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .findings-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .findings-table {
+    font-size: 12px;
+  }
+
+  .findings-table th,
+  .findings-table td {
+    padding: 8px;
+  }
+
+  .col-number {
+    width: 80px;
+  }
+
+  .col-title {
+    min-width: 140px;
+  }
+
+  .col-service,
+  .col-severity,
+  .col-risk {
+    display: none;
+  }
+
+  .col-status {
+    width: 90px;
+  }
+
+  .col-assigned {
+    width: 100px;
+  }
+
+  .col-date {
+    width: 100px;
+  }
+
+  .finding-description {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .findings-list-container {
+    padding: 12px;
+  }
+
+  .findings-header h2 {
+    font-size: 18px;
+  }
+
+  .findings-filters {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .findings-table {
+    font-size: 11px;
+  }
+
+  .findings-table th,
+  .findings-table td {
+    padding: 6px;
+  }
+
+  .col-number {
+    width: 60px;
+  }
+
+  .col-title {
+    min-width: 100px;
+  }
+
+  .col-status {
+    width: 70px;
+  }
+
+  .col-assigned,
+  .col-date {
+    display: none;
+  }
+
+  .action-buttons {
+    gap: 4px;
+  }
+
+  .btn-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .pagination {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-pagination {
+    width: 100%;
+    padding: 10px;
+  }
+}
