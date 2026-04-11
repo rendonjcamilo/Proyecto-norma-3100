@@ -17,6 +17,7 @@ import { createServiceRouter } from './routes/services.routes.js';
 import { createQuestionsRouter } from './routes/questions.routes.js';
 import { createMultiChannelRouter } from './routes/multichannel.routes.js';
 import { createWebhooksRouter } from './routes/webhooks.routes.js';
+import { createDocumentsRouter } from './routes/documents.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 
 // Load environment variables
@@ -130,6 +131,9 @@ app.use('/api/questions', apiLimiter, createQuestionsRouter(pool, eventStore));
 app.use('/api/multichannel', apiLimiter, createMultiChannelRouter(pool));
 // Webhooks use their own (higher) limiter since providers may burst
 app.use('/api/webhooks', webhookLimiter, createWebhooksRouter(pool));
+
+// Phase 4.1: Documentary Matrix
+app.use('/api', apiLimiter, createDocumentsRouter(pool, eventStore));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
