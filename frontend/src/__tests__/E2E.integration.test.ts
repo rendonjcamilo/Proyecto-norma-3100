@@ -337,7 +337,7 @@ describe('E2E: Complete Compliance Workflow', () => {
         { event_type: 'StatusChanged', data: { new_status: 'resolved' } },
       ];
 
-      let currentState = { status: 'unknown', completion: 0 };
+      let currentState: { status: string; completion: number } = { status: 'unknown', completion: 0 };
 
       events.forEach(event => {
         if (event.event_type === 'ActionCreated') {

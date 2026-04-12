@@ -123,7 +123,7 @@ export const ActionDetail: React.FC<ActionDetailProps> = ({
           </div>
         </div>
 
-        <div className="deadline-info" className={isOverdue ? 'overdue' : isDueSoon ? 'due-soon' : ''}>
+        <div className={`deadline-info ${isOverdue ? 'overdue' : isDueSoon ? 'due-soon' : ''}`}>
           <span className="deadline-label">Plazo:</span>
           <span className="deadline-date">
             {new Date(actionDetail.due_date).toLocaleDateString('es-CO')}

@@ -15,6 +15,12 @@ dist/
 build/
 out/
 
+# Compiled TypeScript output in src (Vite handles bundling)
+frontend/src/**/*.js
+frontend/src/**/*.d.ts
+frontend/src/**/*.js.map
+frontend/src/**/*.d.ts.map
+
 # Development
 .DS_Store
 .vscode/
@@ -22,7 +28,6 @@ out/
 *.swp
 *.swo
 *~
-.env.example
 
 # Testing
 coverage/

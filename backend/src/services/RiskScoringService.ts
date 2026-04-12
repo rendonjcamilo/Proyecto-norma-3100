@@ -430,7 +430,7 @@ export class RiskScoringService {
    */
   private calculateActionStatusPoints(
     actions: ActionData[]
-  ): { actionStatusPoints: number; actionStatus: string } {
+  ): { actionStatusPoints: number; actionStatus: RiskScore['actionStatus'] } {
     if (actions.length === 0) {
       return { actionStatusPoints: 0, actionStatus: 'open' };
     }
@@ -448,7 +448,7 @@ export class RiskScoringService {
     );
 
     let points = 0;
-    let statusLabel = 'open';
+    let statusLabel: RiskScore['actionStatus'] = 'open';
 
     if (daysUntilDeadline < 0) {
       // Overdue

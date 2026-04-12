@@ -106,7 +106,7 @@ export function createWebhooksRouter(pool: Pool): Router {
             ? 'sent'
             : payload.event === 'failed'
               ? 'failed'
-              : payload.event === 'bounce'
+              : payload.event === 'bounced'
                 ? 'bounced'
                 : null;
 

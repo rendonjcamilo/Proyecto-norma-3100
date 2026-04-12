@@ -19,6 +19,7 @@ import { createMultiChannelRouter } from './routes/multichannel.routes.js';
 import { createWebhooksRouter } from './routes/webhooks.routes.js';
 import { createDocumentsRouter } from './routes/documents.routes.js';
 import { createReportsRouter } from './routes/reports.routes.js';
+import { createRiskScoringRouter } from './routes/risk-scoring.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
@@ -149,6 +150,9 @@ app.use('/api', apiLimiter, createDocumentsRouter(pool, eventStore));
 
 // Phase 5: Compliance Reports (PDF/Excel)
 app.use('/api', apiLimiter, createReportsRouter(pool));
+
+// Risk Scoring Engine
+app.use('/api', apiLimiter, createRiskScoringRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ComplianceDashboard } from './components/Compliance';
 import { DocumentsPage } from './components/Documents';
 import { ReportsPage } from './components/Reports';
+import { FindingsPage } from './pages/FindingsPage';
+import { AssessmentsPage } from './pages/AssessmentsPage';
+import { ProvidersPage } from './pages/ProvidersPage';
 import { NotificationCenter } from './components/Notifications';
 import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
 import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
@@ -116,6 +119,18 @@ function App(): JSX.Element {
                     providerName="Hospital Central de Bogotá"
                   />
                 }
+              />
+              <Route
+                path="/findings"
+                element={<FindingsPage providerId="prov-001" />}
+              />
+              <Route
+                path="/assessments"
+                element={<AssessmentsPage providerId="prov-001" />}
+              />
+              <Route
+                path="/providers"
+                element={<ProvidersPage />}
               />
               <Route
                 path="/notifications/templates/email"
