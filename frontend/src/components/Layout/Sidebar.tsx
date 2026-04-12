@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
 interface NavItem {
@@ -153,6 +154,14 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <>
@@ -222,18 +231,68 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         {/* User Section */}
         <div className="sidebar-footer">
           <div className="user-card">
-            <div className="user-avatar">AC</div>
-            <div className="user-info">
-              <div className="user-name">Admin Cumplimiento</div>
-              <div className="user-role">Provider Admin</div>
+            <div className="user-avatar">
+              {user?.firstName.charAt(0)}{user?.lastName.charAt(0)}
             </div>
-            <button className="user-menu-btn" aria-label="User menu">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="1" />
-                <circle cx="12" cy="5" r="1" />
-                <circle cx="12" cy="19" r="1" />
-              </svg>
-            </button>
+            <div className="user-info">
+              <div className="user-name">
+                {user?.firstName} {user?.lastName}
+              </div>
+              <div className="user-role">
+                {user?.role === 'super_admin' && 'Super Admin'}
+                {user?.role === 'auditor' && 'Auditor'}
+                {user?.role === 'provider_admin' && 'Provider Admin'}
+                {user?.role === 'viewer' && 'Visualizador'}
+              </div>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <button
+                className="user-menu-btn"
+                aria-label="User menu"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
+              </button>
+              {showUserMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    minWidth: '160px',
+                    zIndex: 1000,
+                  }}
+                >
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '10px 16px',
+                      border: 'none',
+                      background: 'none',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      color: '#d32f2f',
+                      borderRadius: '6px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#ffebee')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    🚪 Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </aside>
