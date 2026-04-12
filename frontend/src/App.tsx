@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoginPage } from './pages/LoginPage';
 import { ComplianceDashboard } from './components/Compliance';
 import { DocumentsPage } from './components/Documents';
 import { ReportsPage } from './components/Reports';
@@ -16,8 +19,9 @@ import { DeliveryStatusTracker } from './components/Notifications/DeliveryStatus
 import { Sidebar, TopBar } from './components/Layout';
 import './App.css';
 
-function App(): JSX.Element {
+function AppContent(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isAuthenticated } = useAuth();
 
   // Mock data para demostración
   const mockMetrics = {
@@ -69,29 +73,33 @@ function App(): JSX.Element {
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
 
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
-    <Router>
-      <div className="app-shell">
-        <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+    <div className="app-shell">
+      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
 
-        <div className="app-content">
-          <TopBar
-            onMenuToggle={toggleSidebar}
-            rightSlot={
-              <NotificationCenter
-                userId="user-1"
-                providerId="prov-001"
-                role="provider_admin"
-                autoConnect={true}
-              />
-            }
-          />
+      <div className="app-content">
+        <TopBar
+          onMenuToggle={toggleSidebar}
+          rightSlot={
+            <NotificationCenter
+              userId="user-1"
+              providerId="prov-001"
+              role="provider_admin"
+              autoConnect={false}
+            />
+          }
+        />
 
-          <main className="app-main">
-            <Routes>
-              <Route
-                path="/"
-                element={
+        <main className="app-main">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
                   <ComplianceDashboard
                     providerId="prov-001"
                     providerName="Hospital Central de Bogotá"
@@ -100,67 +108,119 @@ function App(): JSX.Element {
                     onRefresh={handleRefresh}
                     userRole="provider_admin"
                   />
-                }
-              />
-              <Route
-                path="/documents"
-                element={
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/documents"
+              element={
+                <ProtectedRoute>
                   <DocumentsPage
                     providerId="prov-001"
                     providerName="Hospital Central de Bogotá"
                   />
-                }
-              />
-              <Route
-                path="/reports"
-                element={
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
                   <ReportsPage
                     providerId="prov-001"
                     providerName="Hospital Central de Bogotá"
                   />
-                }
-              />
-              <Route
-                path="/findings"
-                element={<FindingsPage providerId="prov-001" />}
-              />
-              <Route
-                path="/assessments"
-                element={<AssessmentsPage providerId="prov-001" />}
-              />
-              <Route
-                path="/providers"
-                element={<ProvidersPage />}
-              />
-              <Route
-                path="/notifications/templates/email"
-                element={<EmailTemplateEditor userId="user-1" />}
-              />
-              <Route
-                path="/notifications/templates/sms"
-                element={<SmsTemplateEditor userId="user-1" />}
-              />
-              <Route
-                path="/notifications/templates/push"
-                element={<PushTemplateEditor userId="user-1" />}
-              />
-              <Route
-                path="/notifications/preferences"
-                element={<MultiChannelPreferences userId="user-1" />}
-              />
-              <Route
-                path="/notifications/analytics"
-                element={<NotificationAnalyticsDashboard userId="user-1" />}
-              />
-              <Route
-                path="/notifications/delivery-status"
-                element={<DeliveryStatusTracker userId="user-1" />}
-              />
-            </Routes>
-          </main>
-        </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/findings"
+              element={
+                <ProtectedRoute>
+                  <FindingsPage providerId="prov-001" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assessments"
+              element={
+                <ProtectedRoute>
+                  <AssessmentsPage providerId="prov-001" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/providers"
+              element={
+                <ProtectedRoute>
+                  <ProvidersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/templates/email"
+              element={
+                <ProtectedRoute>
+                  <EmailTemplateEditor userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/templates/sms"
+              element={
+                <ProtectedRoute>
+                  <SmsTemplateEditor userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/templates/push"
+              element={
+                <ProtectedRoute>
+                  <PushTemplateEditor userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/preferences"
+              element={
+                <ProtectedRoute>
+                  <MultiChannelPreferences userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/analytics"
+              element={
+                <ProtectedRoute>
+                  <NotificationAnalyticsDashboard userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications/delivery-status"
+              element={
+                <ProtectedRoute>
+                  <DeliveryStatusTracker userId="user-1" />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
       </div>
-    </Router>
+    </div>
+  );
+}
+
+function App(): JSX.Element {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 

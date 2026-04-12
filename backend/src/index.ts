@@ -6,7 +6,7 @@ import 'express-async-errors';
 import { Pool } from 'pg';
 
 import { logger } from './utils/logger.js';
-import authRoutes from './routes/auth.routes.js';
+import authRoutes, { setUserService } from './routes/auth.routes.js';
 import { apiLimiter, authLimiter, webhookLimiter } from './middleware/rate-limit.middleware.js';
 import { sanitizeInputs } from './middleware/sanitize.middleware.js';
 import { createProviderRouter } from './routes/provider.routes.js';
@@ -119,6 +119,9 @@ app.get('/health', (_req: Request, res: Response) => {
     environment: NODE_ENV,
   });
 });
+
+// Initialize auth service with database pool
+setUserService(pool);
 
 // Auth Routes (strict rate limiting for brute-force protection)
 app.use('/auth', authLimiter, authRoutes);
