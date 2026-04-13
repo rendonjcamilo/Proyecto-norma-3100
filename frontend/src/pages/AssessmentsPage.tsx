@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useRolePermission } from '../hooks/useRolePermission';
 import './Pages.css';
 
 interface Assessment {
@@ -37,6 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
 export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { can } = useRolePermission();
 
   useEffect(() => {
     const load = async () => {
@@ -73,13 +75,15 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             Autoevaluaciones de cumplimiento según Norma 3100 de 2019
           </p>
         </div>
-        <button className="page-btn-primary">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Nueva Evaluación
-        </button>
+        {can('assessments', 'create') && (
+          <button className="page-btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nueva Evaluación
+          </button>
+        )}
       </header>
 
       {assessments.length === 0 ? (

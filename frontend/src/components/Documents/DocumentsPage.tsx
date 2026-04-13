@@ -5,6 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useRolePermission } from '../../hooks/useRolePermission';
 import './DocumentsPage.css';
 
 interface DocumentCatalogItem {
@@ -96,6 +97,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [uploadModal, setUploadModal] = useState<DocumentCatalogItem | null>(null);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { can } = useRolePermission();
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -367,17 +369,19 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                         </svg>
                       </button>
                     )}
-                    <button
-                      className="btn-icon btn-upload"
-                      title={doc ? 'Actualizar (nueva versión)' : 'Subir'}
-                      onClick={() => setUploadModal(item)}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                    </button>
+                    {can('documents', 'create') && (
+                      <button
+                        className="btn-icon btn-upload"
+                        title={doc ? 'Actualizar (nueva versión)' : 'Subir'}
+                        onClick={() => setUploadModal(item)}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
