@@ -40,12 +40,12 @@ export const LoginPage: React.FC = () => {
         <div className="login-box">
           <div className="login-header">
             <h1>Norma 3100</h1>
-            <p>Compliance Management System</p>
+            <p>Sistema de Gestión de Cumplimiento</p>
           </div>
 
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Correo electrónico</label>
               <input
                 id="email"
                 type="email"
@@ -96,7 +96,7 @@ export const LoginPage: React.FC = () => {
                   onClick={() => handleMockLogin('super_admin')}
                   className="mock-btn super-admin"
                 >
-                  👤 Super Admin
+                  👤 Super Administrador
                 </button>
                 <button
                   type="button"
@@ -127,7 +127,7 @@ export const LoginPage: React.FC = () => {
             <p className="credentials-hint">
               💡 Credenciales de prueba con BD:
               <br />
-              Email: admin@test.com
+              Correo: admin@test.com
               <br />
               Contraseña: AdminTest2025!
             </p>

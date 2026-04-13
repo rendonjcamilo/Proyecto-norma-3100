@@ -318,7 +318,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               </svg>
             </div>
             <h3>Reporte Excel</h3>
-            <p>Workbook multi-hoja para análisis avanzado y manipulación de datos</p>
+            <p>Libro de trabajo multi-hoja para análisis avanzado y manipulación de datos</p>
             <ul className="download-features">
               <li>Hoja "Resumen Ejecutivo"</li>
               <li>Hoja "Hallazgos" con auto-filtro</li>

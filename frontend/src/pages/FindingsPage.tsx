@@ -30,6 +30,13 @@ const SEVERITY_COLORS: Record<string, string> = {
   low: '#36b37e',
 };
 
+const SEVERITY_LABELS: Record<string, string> = {
+  critical: 'CRÍTICO',
+  high: 'ALTO',
+  medium: 'MEDIO',
+  low: 'BAJO',
+};
+
 const STATUS_LABELS: Record<string, string> = {
   open: 'Abierto',
   in_progress: 'En Progreso',
@@ -143,7 +150,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
                   color: SEVERITY_COLORS[f.severity],
                 }}
               >
-                {f.severity.toUpperCase()}
+                {SEVERITY_LABELS[f.severity] || f.severity.toUpperCase()}
               </span>
               <span
                 className="status-badge"

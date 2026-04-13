@@ -497,7 +497,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
                 <div className="alert-body">
                   <div className="alert-meta">
                     <span className={`severity-pill severity-${alert.severity}`}>
-                      {alert.severity.toUpperCase()}
+                      {{ critical: 'CRÍTICO', high: 'ALTO', medium: 'MEDIO', low: 'BAJO' }[alert.severity] || alert.severity.toUpperCase()}
                     </span>
                     <span className="alert-id">#{alert.findingId}</span>
                     {alert.daysOverdue > 0 && (

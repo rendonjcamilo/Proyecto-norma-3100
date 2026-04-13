@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </div>
           <div className="brand-text">
             <span className="brand-name">Norma 3100</span>
-            <span className="brand-tagline">Compliance System</span>
+            <span className="brand-tagline">Sistema de Cumplimiento</span>
           </div>
         </div>
 
@@ -258,16 +258,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 {user?.firstName} {user?.lastName}
               </div>
               <div className="user-role">
-                {user?.role === 'super_admin' && 'Super Admin'}
+                {user?.role === 'super_admin' && 'Super Administrador'}
                 {user?.role === 'auditor' && 'Auditor'}
-                {user?.role === 'provider_admin' && 'Provider Admin'}
+                {user?.role === 'provider_admin' && 'Admin Prestador'}
                 {user?.role === 'viewer' && 'Visualizador'}
               </div>
             </div>
             <div style={{ position: 'relative' }}>
               <button
                 className="user-menu-btn"
-                aria-label="User menu"
+                aria-label="Menú de usuario"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

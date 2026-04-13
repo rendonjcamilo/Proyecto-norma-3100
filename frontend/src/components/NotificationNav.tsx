@@ -20,7 +20,7 @@ export const NotificationNav: React.FC<NotificationNavProps> = ({ isOpen = false
 
   return (
     <div className="notification-nav">
-      <button className="nav-toggle" onClick={toggleMenu} title="Notification Management">
+      <button className="nav-toggle" onClick={toggleMenu} title="Gestión de Notificaciones">
         📬
       </button>
 
