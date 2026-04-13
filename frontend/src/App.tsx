@@ -114,7 +114,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/documents"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <DocumentsPage
                     providerId="prov-001"
                     providerName="Hospital Central de Bogotá"
@@ -125,7 +125,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/reports"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor']}>
                   <ReportsPage
                     providerId="prov-001"
                     providerName="Hospital Central de Bogotá"
@@ -144,7 +144,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/assessments"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <AssessmentsPage providerId="prov-001" />
                 </ProtectedRoute>
               }
@@ -152,7 +152,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/providers"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor']}>
                   <ProvidersPage />
                 </ProtectedRoute>
               }
@@ -160,7 +160,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/templates/email"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin']}>
                   <EmailTemplateEditor userId="user-1" />
                 </ProtectedRoute>
               }
@@ -168,7 +168,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/templates/sms"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin']}>
                   <SmsTemplateEditor userId="user-1" />
                 </ProtectedRoute>
               }
@@ -176,7 +176,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/templates/push"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin']}>
                   <PushTemplateEditor userId="user-1" />
                 </ProtectedRoute>
               }
@@ -192,7 +192,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor']}>
                   <NotificationAnalyticsDashboard userId="user-1" />
                 </ProtectedRoute>
               }
@@ -200,7 +200,7 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/delivery-status"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor']}>
                   <DeliveryStatusTracker userId="user-1" />
                 </ProtectedRoute>
               }

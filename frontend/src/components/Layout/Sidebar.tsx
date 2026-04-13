@@ -8,49 +8,60 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
+type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
+
 interface NavItem {
   to: string;
   icon: string;
   label: string;
   badge?: string | number;
+  roles: UserRole[];
 }
 
 interface NavSection {
   title: string;
+  roles: UserRole[];
   items: NavItem[];
 }
+
+const ALL_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin', 'viewer'];
+const ADMIN_ROLES: UserRole[] = ['super_admin', 'auditor'];
 
 const navigation: NavSection[] = [
   {
     title: 'General',
+    roles: ALL_ROLES,
     items: [
-      { to: '/', icon: 'dashboard', label: 'Dashboard' },
-      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10 },
-      { to: '/assessments', icon: 'assessment', label: 'Evaluaciones' },
-      { to: '/providers', icon: 'providers', label: 'Proveedores' },
+      { to: '/', icon: 'dashboard', label: 'Dashboard', roles: ALL_ROLES },
+      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ALL_ROLES },
+      { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['super_admin', 'auditor', 'provider_admin'] },
+      { to: '/providers', icon: 'providers', label: 'Proveedores', roles: ADMIN_ROLES },
     ],
   },
   {
     title: 'Cumplimiento',
+    roles: ['super_admin', 'auditor', 'provider_admin'],
     items: [
-      { to: '/documents', icon: 'documents', label: 'Matriz Documental' },
-      { to: '/reports', icon: 'reports', label: 'Reportes' },
+      { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['super_admin', 'auditor', 'provider_admin'] },
+      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor'] },
     ],
   },
   {
     title: 'Notificaciones',
+    roles: ADMIN_ROLES,
     items: [
-      { to: '/notifications/analytics', icon: 'analytics', label: 'Analíticas' },
-      { to: '/notifications/delivery-status', icon: 'delivery', label: 'Entregas' },
-      { to: '/notifications/preferences', icon: 'settings', label: 'Preferencias' },
+      { to: '/notifications/analytics', icon: 'analytics', label: 'Analíticas', roles: ADMIN_ROLES },
+      { to: '/notifications/delivery-status', icon: 'delivery', label: 'Entregas', roles: ADMIN_ROLES },
+      { to: '/notifications/preferences', icon: 'settings', label: 'Preferencias', roles: ALL_ROLES },
     ],
   },
   {
     title: 'Plantillas',
+    roles: ['super_admin'],
     items: [
-      { to: '/notifications/templates/email', icon: 'email', label: 'Email' },
-      { to: '/notifications/templates/sms', icon: 'sms', label: 'SMS' },
-      { to: '/notifications/templates/push', icon: 'push', label: 'Push' },
+      { to: '/notifications/templates/email', icon: 'email', label: 'Email', roles: ['super_admin'] },
+      { to: '/notifications/templates/sms', icon: 'sms', label: 'SMS', roles: ['super_admin'] },
+      { to: '/notifications/templates/push', icon: 'push', label: 'Push', roles: ['super_admin'] },
     ],
   },
 ];
@@ -198,34 +209,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </div>
         </div>
 
-        {/* Navigation Sections */}
+        {/* Navigation Sections — filtered by role */}
         <nav className="sidebar-nav">
-          {navigation.map((section) => (
-            <div key={section.title} className="nav-section">
-              <div className="nav-section-title">{section.title}</div>
-              <ul className="nav-list">
-                {section.items.map((item) => (
-                  <li key={item.to} className="nav-item">
-                    <NavLink
-                      to={item.to}
-                      end={item.to === '/'}
-                      className={({ isActive }) =>
-                        `nav-link ${isActive ? 'active' : ''}`
-                      }
-                    >
-                      <span className="nav-icon">
-                        <Icon name={item.icon} />
-                      </span>
-                      <span className="nav-label">{item.label}</span>
-                      {item.badge && (
-                        <span className="nav-badge">{item.badge}</span>
-                      )}
-                    </NavLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {navigation
+            .filter((section) => user && section.roles.includes(user.role))
+            .map((section) => {
+              const visibleItems = section.items.filter(
+                (item) => user && item.roles.includes(user.role)
+              );
+              if (visibleItems.length === 0) return null;
+              return (
+                <div key={section.title} className="nav-section">
+                  <div className="nav-section-title">{section.title}</div>
+                  <ul className="nav-list">
+                    {visibleItems.map((item) => (
+                      <li key={item.to} className="nav-item">
+                        <NavLink
+                          to={item.to}
+                          end={item.to === '/'}
+                          className={({ isActive }) =>
+                            `nav-link ${isActive ? 'active' : ''}`
+                          }
+                        >
+                          <span className="nav-icon">
+                            <Icon name={item.icon} />
+                          </span>
+                          <span className="nav-label">{item.label}</span>
+                          {item.badge && (
+                            <span className="nav-badge">{item.badge}</span>
+                          )}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
         </nav>
 
         {/* User Section */}
