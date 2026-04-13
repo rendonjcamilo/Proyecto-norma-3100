@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 import './TopBar.css';
 
 interface TopBarProps {
@@ -61,6 +62,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle, rightSlot }) => {
   const breadcrumbs = location.pathname.split('/').filter(Boolean);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="topbar">
@@ -273,39 +275,55 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle, rightSlot }) => {
               <div className="settings-section">
                 <h4>Apariencia</h4>
                 <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                  <button style={{
-                    flex: 1,
-                    padding: '8px',
-                    border: '2px solid #0052cc',
-                    background: 'white',
-                    color: '#0052cc',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}>
+                  <button
+                    onClick={() => setTheme('light')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      border: theme === 'light' ? '2px solid #0052cc' : '1px solid #ddd',
+                      background: theme === 'light' ? 'white' : '#f5f5f5',
+                      color: theme === 'light' ? '#0052cc' : '#666',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: theme === 'light' ? 500 : 400,
+                      transition: 'all 0.2s',
+                    }}>
                     ☀️ Claro
                   </button>
-                  <button style={{
-                    flex: 1,
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    background: '#f5f5f5',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}>
+                  <button
+                    onClick={() => setTheme('dark')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      border: theme === 'dark' ? '2px solid #0052cc' : '1px solid #ddd',
+                      background: theme === 'dark' ? 'white' : '#f5f5f5',
+                      color: theme === 'dark' ? '#0052cc' : '#666',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: theme === 'dark' ? 500 : 400,
+                      transition: 'all 0.2s',
+                    }}>
                     🌙 Oscuro
                   </button>
-                  <button style={{
-                    flex: 1,
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    background: '#f5f5f5',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}>
+                  <button
+                    onClick={() => setTheme('auto')}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      border: theme === 'auto' ? '2px solid #0052cc' : '1px solid #ddd',
+                      background: theme === 'auto' ? 'white' : '#f5f5f5',
+                      color: theme === 'auto' ? '#0052cc' : '#666',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: theme === 'auto' ? 500 : 400,
+                      transition: 'all 0.2s',
+                    }}>
                     🔄 Auto
                   </button>
                 </div>
+                <p style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                  {theme === 'auto' ? 'Tema: Automático (según sistema)' : `Tema: ${theme === 'light' ? 'Claro' : 'Oscuro'}`}
+                </p>
               </div>
 
               <button style={{
