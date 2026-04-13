@@ -31,6 +31,10 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
     title: 'Evaluaciones',
     subtitle: 'Auditorías y evaluaciones de cumplimiento',
   },
+  '/invima': {
+    title: 'Registros INVIMA',
+    subtitle: 'Estándar TSMD — Medicamentos, Dispositivos Médicos e Insumos',
+  },
   '/providers': {
     title: 'Proveedores',
     subtitle: 'Administración de proveedores',

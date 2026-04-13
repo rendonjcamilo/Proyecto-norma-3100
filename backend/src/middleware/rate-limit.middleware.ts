@@ -71,7 +71,7 @@ export const webhookLimiter = rateLimit({
   max: 500,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.ip || 'unknown',
+  skip: () => false, // Use default IP detection
   message: {
     error: 'Webhook Rate Limit Exceeded',
     message: 'Webhook rate limit exceeded',

@@ -11,6 +11,7 @@ import { ReportsPage } from './components/Reports';
 import { FindingsPage } from './pages/FindingsPage';
 import { AssessmentsPage } from './pages/AssessmentsPage';
 import { ProvidersPage } from './pages/ProvidersPage';
+import { InvimaPage } from './pages/InvimaPage';
 import { NotificationCenter } from './components/Notifications';
 import { EmailTemplateEditor } from './components/Notifications/EmailTemplateEditor';
 import { SmsTemplateEditor } from './components/Notifications/SmsTemplateEditor';
@@ -152,6 +153,14 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <AssessmentsPage providerId={selectedProvider?.id || 'prov-001'} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invima"
+              element={
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
+                  <InvimaPage providerId={selectedProvider?.id || 'prov-001'} />
                 </ProtectedRoute>
               }
             />

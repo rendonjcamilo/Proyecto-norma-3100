@@ -42,6 +42,7 @@ const navigation: NavSection[] = [
     title: 'Cumplimiento',
     roles: ['super_admin', 'auditor', 'provider_admin'],
     items: [
+      { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['super_admin', 'auditor', 'provider_admin'] },
       { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['super_admin', 'auditor', 'provider_admin'] },
       { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor'] },
     ],
@@ -136,6 +137,12 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+    invima: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M9 12l2 2 4-4" />
       </svg>
     ),
     documents: (

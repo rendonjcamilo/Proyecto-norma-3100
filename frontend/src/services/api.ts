@@ -372,6 +372,95 @@ export const historiaClinicaApi = {
 };
 
 // ─────────────────────────────────────────────
+// INVIMA (Estándar TSMD)
+// ─────────────────────────────────────────────
+
+export interface InvimaRegistro {
+  id: string;
+  numero_registro: string;
+  tipo_registro: string | null;
+  estado: string;
+  nombre_producto: string | null;
+  categoria: string | null;
+  principios_activos: string | null;
+  presentaciones_autorizadas: string | null;
+  clasificacion_riesgo: string | null;
+  titular_registro: string | null;
+  titular_fabricante: string | null;
+  titular_importador: string | null;
+  pais_origen: string | null;
+  fecha_emision: string | null;
+  fecha_vencimiento: string | null;
+  fuente_datos: string;
+  ultima_consulta: string;
+}
+
+export interface InvimaLookupResult {
+  found: boolean;
+  source: string;
+  cached: boolean;
+  data: InvimaRegistro | null;
+  error?: string;
+}
+
+export interface ProviderInvimaItem {
+  id: string;
+  provider_id: string;
+  invima_registro_id: string;
+  nombre_comercial: string | null;
+  lote_actual: string | null;
+  cantidad_disponible: number | null;
+  ubicacion_almacenamiento: string | null;
+  condiciones_almacenamiento: string | null;
+  fecha_vencimiento_lote: string | null;
+  semaforo: string;
+  activo: boolean;
+  numero_registro?: string;
+  nombre_producto?: string;
+  estado_registro?: string;
+  categoria?: string;
+}
+
+export interface InvimaSummary {
+  totalItems: number;
+  itemsVerde: number;
+  itemsNaranja: number;
+  itemsAmarillo: number;
+  itemsRojo: number;
+  registrosVigentes: number;
+  registrosNoVigentes: number;
+  proximoVencimiento: string | null;
+  porcentajeCumplimientoTsmd: number;
+}
+
+export const invimaApi = {
+  lookup: (numeroRegistro: string) =>
+    get<{ data: InvimaLookupResult }>(`/api/invima/lookup/${encodeURIComponent(numeroRegistro)}`),
+
+  search: (q: string, limit = 20) =>
+    get<{ data: InvimaRegistro[]; total: number }>(`/api/invima/registros/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+
+  createRegistro: (payload: Record<string, unknown>) =>
+    post<{ data: InvimaRegistro; message: string }>('/api/invima/registros', payload),
+
+  listProviderItems: (providerId: string, filters?: { semaforo?: string; categoria?: string }) => {
+    const qs = filters
+      ? '?' + new URLSearchParams(Object.entries(filters).filter(([, v]) => v).map(([k, v]) => [k, String(v)])).toString()
+      : '';
+    return get<{ data: ProviderInvimaItem[]; total: number }>(`/api/providers/${providerId}/invima/items${qs}`);
+  },
+
+  addProviderItem: (providerId: string, payload: Record<string, unknown>) =>
+    post<{ data: ProviderInvimaItem; message: string }>(`/api/providers/${providerId}/invima/items`, payload),
+
+  getResumen: (providerId: string) =>
+    get<{ data: InvimaSummary }>(`/api/providers/${providerId}/invima/resumen`),
+
+  getPorVencer: (providerId: string, dias = 90) =>
+    get<{ data: ProviderInvimaItem[]; total: number }>(`/api/providers/${providerId}/invima/por-vencer?dias=${dias}`),
+};
+
+// ─────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────
 
