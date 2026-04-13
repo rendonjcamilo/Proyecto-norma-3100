@@ -41,6 +41,14 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    severity: 'high' as const,
+    due_date: '',
+  });
   const { can } = useRolePermission();
 
   useEffect(() => {
@@ -91,7 +99,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
           </p>
         </div>
         {can('findings', 'create') && (
-          <button className="page-btn-primary">
+          <button className="page-btn-primary" onClick={() => setShowCreateModal(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -170,6 +178,164 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
           </div>
         ))}
       </div>
+
+      {/* Create Finding Modal */}
+      {showCreateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }} onClick={() => setShowCreateModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '8px',
+            padding: '24px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Nuevo Hallazgo</h2>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                setIsSubmitting(true);
+                await axios.post(`/api/findings`, {
+                  ...formData,
+                  provider_id: providerId,
+                });
+                setShowCreateModal(false);
+                setFormData({ title: '', description: '', severity: 'high', due_date: '' });
+                const res = await axios.get(`/api/findings`, { params: { provider_id: providerId } });
+                setFindings(res.data.data || []);
+              } catch (error) {
+                console.error('Error creating finding:', error);
+                alert('Error al crear el hallazgo');
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Título</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                  placeholder="Descripción breve del hallazgo"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Descripción</label>
+                <textarea
+                  required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    minHeight: '80px',
+                  }}
+                  placeholder="Detalles del hallazgo"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Severidad</label>
+                <select
+                  value={formData.severity}
+                  onChange={(e) => setFormData({ ...formData, severity: e.target.value as any })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                  <option value="critical">Crítica</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Fecha de Vencimiento</label>
+                <input
+                  type="date"
+                  required
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    background: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '4px',
+                    background: '#0052cc',
+                    color: 'white',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }}
+                >
+                  {isSubmitting ? 'Creando...' : 'Crear Hallazgo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
