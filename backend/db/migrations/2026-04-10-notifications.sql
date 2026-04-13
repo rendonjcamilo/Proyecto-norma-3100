@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(50) NOT NULL,
   severity VARCHAR(20) NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
   finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
-  action_id UUID REFERENCES actions(id) ON DELETE CASCADE,
+  action_id UUID REFERENCES corrective_actions(id) ON DELETE CASCADE,
   provider_id UUID REFERENCES providers(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
   title VARCHAR(255) NOT NULL,

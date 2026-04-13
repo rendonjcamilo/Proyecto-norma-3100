@@ -6,11 +6,16 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { ProviderSelector } from './ProviderSelector';
+import { Provider } from '../../context/ProviderContext';
 import './TopBar.css';
 
 interface TopBarProps {
   onMenuToggle: () => void;
   rightSlot?: React.ReactNode;
+  providers?: Provider[];
+  selectedProvider?: Provider | null;
+  onSelectProvider?: (provider: Provider) => void;
 }
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
@@ -56,7 +61,13 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   },
 };
 
-export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle, rightSlot }) => {
+export const TopBar: React.FC<TopBarProps> = ({
+  onMenuToggle,
+  rightSlot,
+  providers = [],
+  selectedProvider = null,
+  onSelectProvider = () => {},
+}) => {
   const location = useLocation();
   const meta = routeTitles[location.pathname] || routeTitles['/'];
   const breadcrumbs = location.pathname.split('/').filter(Boolean);
@@ -97,6 +108,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle, rightSlot }) => {
           </nav>
           <h1 className="topbar-title">{meta.title}</h1>
         </div>
+
+        {providers.length > 0 && (
+          <ProviderSelector
+            providers={providers}
+            selectedProvider={selectedProvider}
+            onSelectProvider={onSelectProvider}
+          />
+        )}
       </div>
 
       <div className="topbar-center">

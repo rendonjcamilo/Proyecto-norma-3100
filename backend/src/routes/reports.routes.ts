@@ -148,5 +148,82 @@ export function createReportsRouter(pool: Pool): Router {
     }
   );
 
+  /**
+   * GET /api/providers/:providerId/reports/auditoria.pdf
+   * Genera el Informe de Auditoría oficial según Resolución 3100 de 2019
+   * Organizado por estándares: TSTH · TSINF · TSDOT · TSMD · TSPP · TSHCR · TSINT
+   * Query param: ?assessmentId=UUID (opcional — si no se pasa usa hallazgos abiertos)
+   */
+  router.get(
+    '/providers/:providerId/reports/auditoria.pdf',
+    authMiddleware,
+    reportLimiter,
+    rbacMiddleware(['super_admin', 'auditor']),
+    validateUuidParam('providerId'),
+    async (req: Request, res: Response) => {
+      try {
+        const generatedBy = req.user?.user_id || 'system';
+        const assessmentId = req.query.assessmentId as string | undefined;
+
+        const buffer = await service.generateAuditReportPdf(
+          req.params.providerId,
+          generatedBy,
+          assessmentId
+        );
+
+        const providerResult = await pool.query<{ legal_name: string }>(
+          'SELECT legal_name FROM providers WHERE id = $1',
+          [req.params.providerId]
+        );
+        const providerName = providerResult.rows[0]?.legal_name || 'prestador';
+        const filename = safeFilename(providerName + '_auditoria', 'pdf');
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', buffer.length.toString());
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Cache-Control', 'private, no-store');
+
+        logger.info({
+          msg: 'Audit report PDF generated',
+          provider_id: req.params.providerId,
+          assessment_id: assessmentId,
+          size_bytes: buffer.length,
+          user: generatedBy,
+        });
+
+        res.send(buffer);
+      } catch (err) {
+        logger.error({ msg: 'Failed to generate audit report PDF', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        const status = message.includes('not found') ? 404 : 500;
+        res.status(status).json({ error: message });
+      }
+    }
+  );
+
+  /**
+   * GET /api/providers/:providerId/reports/auditoria/datos
+   * Devuelve los datos del informe de auditoría en JSON (para previsualización)
+   */
+  router.get(
+    '/providers/:providerId/reports/auditoria/datos',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor']),
+    validateUuidParam('providerId'),
+    async (req: Request, res: Response) => {
+      try {
+        const assessmentId = req.query.assessmentId as string | undefined;
+        const data = await service.gatherAuditReportData(req.params.providerId, assessmentId);
+        res.json({ data });
+      } catch (err) {
+        logger.error({ msg: 'Failed to gather audit report data', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        const status = message.includes('not found') ? 404 : 500;
+        res.status(status).json({ error: message });
+      }
+    }
+  );
+
   return router;
 }

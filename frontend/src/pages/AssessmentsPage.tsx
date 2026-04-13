@@ -3,19 +3,9 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { assessmentsApi, type Assessment } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import './Pages.css';
-
-interface Assessment {
-  id: string;
-  title: string;
-  type: string;
-  status: 'draft' | 'in_progress' | 'completed' | 'archived';
-  compliance_percentage: number;
-  created_at: string;
-  updated_at: string;
-}
 
 interface AssessmentsPageProps {
   providerId: string;
@@ -40,9 +30,11 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [services, setServices] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [formData, setFormData] = useState({
     title: '',
-    type: 'Auditoría Interna',
+    type: 'initial',
+    serviceId: ''
   });
   const { can } = useRolePermission();
 
@@ -50,12 +42,19 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     const load = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/api/assessments`, {
-          params: { provider_id: providerId },
-        });
-        setAssessments(res.data.data || res.data || []);
-      } catch {
-        console.error('Failed to load assessments');
+        const assessRes = await assessmentsApi.listByProvider(providerId);
+        setAssessments((assessRes.data || []) as Assessment[]);
+
+        // Load services — for now use mock data since services endpoint may not exist
+        // TODO: Create GET /api/services endpoint
+        setServices([
+          { id: 'svc-001', code: 'HC', name: 'Hospitalization (Hospitalización)' },
+          { id: 'svc-002', code: 'AMB', name: 'Ambulatory (Ambulatorio)' },
+          { id: 'svc-003', code: 'EM', name: 'Emergency (Emergencia)' },
+          { id: 'svc-004', code: 'LAB', name: 'Laboratory (Laboratorio)' },
+        ]);
+      } catch (err) {
+        console.error('Failed to load data:', err);
       } finally {
         setLoading(false);
       }
@@ -122,17 +121,17 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   <span>Cumplimiento</span>
                   <span style={{
                     fontWeight: 700,
-                    color: a.compliance_percentage >= 80 ? '#00875a' : a.compliance_percentage >= 50 ? '#ff8b00' : '#de350b',
+                    color: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
                   }}>
-                    {Math.round(a.compliance_percentage)}%
+                    {Math.round((a.compliance_percentage ?? a.compliance_percent ?? 0))}%
                   </span>
                 </div>
                 <div className="compliance-bar">
                   <div
                     className="compliance-bar-fill"
                     style={{
-                      width: `${a.compliance_percentage}%`,
-                      background: a.compliance_percentage >= 80 ? '#00875a' : a.compliance_percentage >= 50 ? '#ff8b00' : '#de350b',
+                      width: `${(a.compliance_percentage ?? a.compliance_percent ?? 0)}%`,
+                      background: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
                     }}
                   />
                 </div>
@@ -171,21 +170,25 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
             <form onSubmit={async (e) => {
               e.preventDefault();
+              if (!formData.serviceId) {
+                alert('Selecciona un servicio');
+                return;
+              }
               try {
                 setIsSubmitting(true);
-                await axios.post(`/api/assessments`, {
-                  ...formData,
-                  provider_id: providerId,
-                  status: 'draft',
-                  compliance_percentage: 0,
+                await assessmentsApi.create({
+                  providerId,
+                  serviceId: formData.serviceId,
+                  questionnaireId: formData.serviceId,
+                  assessmentVersion: formData.type,
                 });
                 setShowCreateModal(false);
-                setFormData({ title: '', type: 'Auditoría Interna' });
-                const res = await axios.get(`/api/assessments`, { params: { provider_id: providerId } });
-                setAssessments(res.data.data || []);
+                setFormData({ title: '', type: 'initial', serviceId: '' });
+                const res = await assessmentsApi.listByProvider(providerId);
+                setAssessments((res.data || []) as Assessment[]);
               } catch (error) {
                 console.error('Error creating assessment:', error);
-                alert('Error al crear la evaluación');
+                alert(`Error al crear la evaluación: ${error instanceof Error ? error.message : String(error)}`);
               } finally {
                 setIsSubmitting(false);
               }
@@ -210,6 +213,28 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               </div>
 
               <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Servicio</label>
+                <select
+                  value={formData.serviceId}
+                  onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="">-- Seleccionar servicio --</option>
+                  {services.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Tipo de Evaluación</label>
                 <select
                   value={formData.type}
@@ -223,10 +248,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     boxSizing: 'border-box',
                   }}
                 >
-                  <option value="Auditoría Interna">Auditoría Interna</option>
-                  <option value="Auditoría Externa">Auditoría Externa</option>
-                  <option value="Autoevaluación">Autoevaluación</option>
-                  <option value="Evaluación de Seguimiento">Evaluación de Seguimiento</option>
+                  <option value="initial">Autoevaluación Inicial</option>
+                  <option value="annual">Evaluación Anual</option>
+                  <option value="year4">Evaluación a los 4 Años</option>
+                  <option value="pre-novelty">Pre-Novedad</option>
                 </select>
               </div>
 

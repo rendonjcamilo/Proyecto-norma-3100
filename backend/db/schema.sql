@@ -140,24 +140,8 @@ CREATE TABLE IF NOT EXISTS permissions (
 -- EVALUATION & COMPLIANCE TABLES
 -- ============================================================
 
--- Evaluation Criteria
-CREATE TABLE IF NOT EXISTS evaluation_criteria (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    code VARCHAR(50) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    category VARCHAR(100) NOT NULL,
-    severity VARCHAR(50) NOT NULL CHECK (severity IN ('critical', 'major', 'minor')),
-
-    reference_norm VARCHAR(100) DEFAULT 'Norma 3100',
-
-    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
-
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+-- Moved to evaluation-schema.sql
+-- (evaluation_criteria table removed to avoid conflict with evaluation-schema.sql definition)
 
 -- Findings (compliance findings/deficiencies)
 CREATE TABLE IF NOT EXISTS findings (

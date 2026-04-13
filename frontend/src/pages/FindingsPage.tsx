@@ -4,20 +4,9 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { findingsApi, type Finding } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import './Pages.css';
-
-interface Finding {
-  id: string;
-  title: string;
-  description: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  risk_score: number;
-  due_date: string;
-  created_at: string;
-}
 
 interface FindingsPageProps {
   providerId: string;
@@ -62,10 +51,8 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/api/findings`, {
-          params: { provider_id: providerId },
-        });
-        setFindings(res.data.data || res.data || []);
+        const res = await findingsApi.listByProvider(providerId);
+        setFindings(res.data || []);
       } catch {
         console.error('Failed to load findings');
       } finally {
@@ -214,14 +201,17 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
               e.preventDefault();
               try {
                 setIsSubmitting(true);
-                await axios.post(`/api/findings`, {
-                  ...formData,
-                  provider_id: providerId,
+                await findingsApi.create({
+                  providerId,
+                  title: formData.title,
+                  description: formData.description,
+                  severity: formData.severity,
+                  dueDate: formData.due_date,
                 });
                 setShowCreateModal(false);
                 setFormData({ title: '', description: '', severity: 'high', due_date: '' });
-                const res = await axios.get(`/api/findings`, { params: { provider_id: providerId } });
-                setFindings(res.data.data || []);
+                const res = await findingsApi.listByProvider(providerId);
+                setFindings(res.data || []);
               } catch (error) {
                 console.error('Error creating finding:', error);
                 alert('Error al crear el hallazgo');

@@ -6,21 +6,8 @@
 -- ASSESSMENT & QUESTIONNAIRE TABLES
 -- ============================================================
 
--- Questionnaires (assessment templates)
-CREATE TABLE IF NOT EXISTS questionnaires (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    version INT DEFAULT 1,
-    status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
-
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    published_at TIMESTAMP WITH TIME ZONE
-);
+-- Moved to evaluation-schema.sql
+-- (questionnaires table removed to avoid conflict with evaluation-schema.sql definition)
 
 -- Questionnaire Sections
 CREATE TABLE IF NOT EXISTS questionnaire_sections (

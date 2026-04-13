@@ -182,19 +182,41 @@ CREATE INDEX IF NOT EXISTS idx_assessment_criteria_responses_value
     ON assessment_criteria_responses(value);
 
 -- ============================================================
--- Create default 7 transversales standards (if not already present)
--- Norma 3100: 7 estándares transversales aplicables a todos los servicios
+-- 7 Estándares Transversales según Resolución 3100 de 2019
+-- Capítulo 11 — Condición 3: Capacidad Tecnológica y Científica
+-- Aplicables a TODOS los servicios habilitados
 -- ============================================================
 
 INSERT INTO evaluation_standards (code, name, description, is_transversal, category, status)
 VALUES
-  ('T-01', 'Capacidad técnico-administrativa', 'Capacidad de la institución para dirigir y administrar recursos técnicos, humanos y financieros', TRUE, 'Gestión', 'active'),
-  ('T-02', 'Políticas y procedimientos', 'Desarrollo y cumplimiento de políticas y procedimientos operacionales estandarizados', TRUE, 'Gestión', 'active'),
-  ('T-03', 'Gestión de recursos humanos', 'Contratación, capacitación, competencia y gestión del personal', TRUE, 'Personal', 'active'),
-  ('T-04', 'Gestión de información', 'Recolección, almacenamiento, seguridad y acceso a información clínica y administrativa', TRUE, 'Infraestructura', 'active'),
-  ('T-05', 'Infraestructura y tecnología', 'Instalaciones físicas, equipos, tecnología de información y sistemas de soporte', TRUE, 'Infraestructura', 'active'),
-  ('T-06', 'Bioseguridad y ambiente', 'Protección contra riesgos biológicos, químicos, físicos y ambientales', TRUE, 'Seguridad', 'active'),
-  ('T-07', 'Evaluación y mejora continua', 'Evaluación de procesos, satisfacción de usuarios, y mejora continua de la calidad', TRUE, 'Calidad', 'active')
+  ('TSTH',   'Talento Humano',
+   'Requisitos de formación académica, experiencia, certificaciones, inscripción en ReTHUS y dotación de personal para cada servicio. Incluye verificación en Resolución 2003 de 2014 y normas complementarias.',
+   TRUE, 'Talento Humano', 'active'),
+
+  ('TSINF',  'Infraestructura',
+   'Condiciones físicas de la planta: áreas, accesos, pisos continuos e impermeables, paredes con media caña, flujo unidireccional, concepto sanitario, RETIE, uso del suelo y cumplimiento de normas de habilitación.',
+   TRUE, 'Infraestructura', 'active'),
+
+  ('TSDOT',  'Dotación',
+   'Equipos biomédicos con registro INVIMA, clasificación de riesgo, hoja de vida por equipo, programa de mantenimiento preventivo y correctivo, calibraciones anuales, manuales en español y capacitación al personal.',
+   TRUE, 'Dotación', 'active'),
+
+  ('TSMD',   'Medicamentos, Dispositivos Médicos e Insumos',
+   'Gestión de medicamentos y dispositivos médicos: registros INVIMA, control de vencimientos con semáforo, alertas de tecnovigilancia y farmacovigilancia, termohigrómetro, kit de derrames y reportes trimestrales.',
+   TRUE, 'Medicamentos y Dispositivos', 'active'),
+
+  ('TSPP',   'Procesos Prioritarios',
+   'Protocolos basados en evidencia para procesos críticos: seguridad del paciente, cirugía segura, manejo de medicamentos, lavado de manos, protocolo de bioseguridad, guías clínicas y cronograma de capacitación.',
+   TRUE, 'Procesos Asistenciales', 'active'),
+
+  ('TSHCR',  'Historia Clínica y Registros',
+   'Gestión documental de la historia clínica: 15 campos mínimos de identificación (Res. 1995/1999), consentimiento informado, registros clínicos por servicio, archivo, custodia y confidencialidad conforme a la ley.',
+   TRUE, 'Historia Clínica', 'active'),
+
+  ('TSINT',  'Interdependencia de Servicios',
+   'Relaciones de dependencia entre servicios: contratos o convenios con prestadores habilitados para servicios de apoyo, red de referencia y contrarreferencia documentada.',
+   TRUE, 'Interdependencia', 'active')
+
 ON CONFLICT DO NOTHING;
 
 -- ============================================================

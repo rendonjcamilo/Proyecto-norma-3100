@@ -10,7 +10,6 @@ import authRoutes, { setUserService } from './routes/auth.routes.js';
 import { apiLimiter, authLimiter, webhookLimiter } from './middleware/rate-limit.middleware.js';
 import { sanitizeInputs } from './middleware/sanitize.middleware.js';
 import { createProviderRouter } from './routes/provider.routes.js';
-import { createAssessmentRouter } from './routes/assessment.routes.js';
 import { createAssessmentsRouter } from './routes/assessments.routes.js';
 import { createFindingRouter } from './routes/finding.routes.js';
 import { createServiceRouter } from './routes/services.routes.js';
@@ -20,6 +19,8 @@ import { createWebhooksRouter } from './routes/webhooks.routes.js';
 import { createDocumentsRouter } from './routes/documents.routes.js';
 import { createReportsRouter } from './routes/reports.routes.js';
 import { createRiskScoringRouter } from './routes/risk-scoring.routes.js';
+import { createSuficienciaPatrimonialRouter } from './routes/suficiencia-patrimonial.routes.js';
+import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
@@ -137,7 +138,6 @@ app.get('/api', (_req: Request, res: Response) => {
 
 // Phase 3 Routes (protected by standard API limiter)
 app.use('/api', apiLimiter, createProviderRouter(pool, eventStore));
-app.use('/api', apiLimiter, createAssessmentRouter(pool, eventStore));
 app.use('/api', apiLimiter, createAssessmentsRouter(pool, eventStore));
 app.use('/api', apiLimiter, createFindingRouter(pool, eventStore));
 app.use('/api', apiLimiter, createServiceRouter(pool, eventStore));
@@ -156,6 +156,12 @@ app.use('/api', apiLimiter, createReportsRouter(pool));
 
 // Risk Scoring Engine
 app.use('/api', apiLimiter, createRiskScoringRouter(pool));
+
+// Condición 2: Suficiencia Patrimonial y Financiera (Res. 3100/2019, Cap. 9)
+app.use('/api', apiLimiter, createSuficienciaPatrimonialRouter(pool));
+
+// Estándar TSHCR: Historia Clínica y Registros (Res. 3100/2019, Cap. 11 + Res. 1995/1999)
+app.use('/api', apiLimiter, createHistoriaClinicaRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

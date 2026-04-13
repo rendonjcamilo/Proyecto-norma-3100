@@ -399,6 +399,370 @@ export class ReportService {
       );
   }
 
+  // ============================================================
+  // INFORME DE AUDITORÍA OFICIAL — Resolución 3100 de 2019
+  // Organizado por los 7 estándares transversales
+  // ============================================================
+
+  /**
+   * Recopila datos para el informe de auditoría oficial por estándares
+   */
+  async gatherAuditReportData(providerId: string, assessmentId?: string): Promise<{
+    provider: ComplianceReportData['provider'];
+    fechaInforme: Date;
+    estandares: Array<{
+      codigo: string;
+      nombre: string;
+      totalCriterios: number;
+      cumple: number;
+      noCumple: number;
+      noAplica: number;
+      porcentajeCumplimiento: number;
+      semaforo: 'verde' | 'naranja' | 'rojo';
+      hallazgos: Array<{ criterio: string; descripcion: string; tipo: string; severidad: string }>;
+    }>;
+    resumenCondiciones: {
+      condicion1CumpleTecnicoAdministrativa: boolean | null;
+      condicion2CumpleSuficienciaPatrimonial: boolean | null;
+      condicion3PorcentajeCapacidadTecnologica: number;
+    };
+    conceptoHabilitacion: 'habilitado' | 'no_habilitado' | 'habilitado_condicionado' | 'pendiente';
+  }> {
+    const provResult = await this.pool.query<ComplianceReportData['provider']>(
+      'SELECT id, legal_name, rut, city, department FROM providers WHERE id = $1',
+      [providerId]
+    );
+    if (provResult.rows.length === 0) throw new Error('Provider not found');
+    const provider = provResult.rows[0];
+
+    // Obtener los 7 estándares transversales
+    const estandaresResult = await this.pool.query<{
+      id: string; code: string; name: string;
+    }>(
+      `SELECT id, code, name FROM evaluation_standards
+       WHERE is_transversal = TRUE ORDER BY code`,
+    ).catch(() => ({ rows: [] }));
+
+    const estandares = [];
+
+    for (const est of estandaresResult.rows) {
+      // Métricas por estándar (si hay assessment)
+      let metricas = { cumple: 0, noCumple: 0, noAplica: 0, total: 0 };
+
+      if (assessmentId) {
+        const mResult = await this.pool.query<{
+          cumple: string; no_cumple: string; no_aplica: string; total: string;
+        }>(
+          `SELECT
+            COUNT(*) FILTER (WHERE acr.value = 'C')::text AS cumple,
+            COUNT(*) FILTER (WHERE acr.value = 'NC')::text AS no_cumple,
+            COUNT(*) FILTER (WHERE acr.value = 'NA')::text AS no_aplica,
+            COUNT(*)::text AS total
+           FROM assessment_criteria_responses acr
+           JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
+           WHERE acr.assessment_id = $1 AND ec.standard_id = $2`,
+          [assessmentId, est.id]
+        ).catch(() => ({ rows: [] }));
+
+        if (mResult.rows.length > 0) {
+          const r = mResult.rows[0];
+          metricas = {
+            cumple: parseInt(r.cumple) || 0,
+            noCumple: parseInt(r.no_cumple) || 0,
+            noAplica: parseInt(r.no_aplica) || 0,
+            total: parseInt(r.total) || 0,
+          };
+        }
+      } else {
+        // Sin assessment: contar hallazgos abiertos de este estándar
+        const hResult = await this.pool.query<{ total: string }>(
+          `SELECT COUNT(*)::text AS total FROM findings f
+           WHERE f.provider_id = $1 AND f.status NOT IN ('cerrada', 'closed')`,
+          [providerId]
+        ).catch(() => ({ rows: [{ total: '0' }] }));
+        metricas.noCumple = parseInt(hResult.rows[0]?.total) || 0;
+      }
+
+      const aplicables = metricas.cumple + metricas.noCumple;
+      const pct = aplicables > 0 ? Math.round((metricas.cumple / aplicables) * 100) : 0;
+      const semaforo: 'verde' | 'naranja' | 'rojo' =
+        pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
+
+      // Hallazgos NC de este estándar
+      const hallazgosResult = await this.pool.query<{
+        title: string; criterion_code: string; severity: string; status: string;
+      }>(
+        `SELECT f.title, COALESCE(ec.code, '') AS criterion_code,
+                f.severity, f.status
+         FROM findings f
+         LEFT JOIN evaluation_criteria ec ON ec.id = f.criterion_id
+         LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
+         WHERE f.provider_id = $1
+           AND (es.code = $2 OR es.id IS NULL AND $2 = 'TSTH')
+           AND f.status NOT IN ('cerrada', 'closed')
+         ORDER BY f.severity DESC, f.title
+         LIMIT 20`,
+        [providerId, est.code]
+      ).catch(() => ({ rows: [] }));
+
+      estandares.push({
+        codigo: est.code,
+        nombre: est.name,
+        totalCriterios: metricas.total || metricas.cumple + metricas.noCumple + metricas.noAplica,
+        cumple: metricas.cumple,
+        noCumple: metricas.noCumple,
+        noAplica: metricas.noAplica,
+        porcentajeCumplimiento: pct,
+        semaforo,
+        hallazgos: hallazgosResult.rows.map(h => ({
+          criterio: h.criterion_code,
+          descripcion: h.title,
+          tipo: 'no_conformidad',
+          severidad: h.severity || 'media',
+        })),
+      });
+    }
+
+    // Condición 2: suficiencia patrimonial
+    const sp2 = await this.pool.query<{ cumple_suficiencia: boolean }>(
+      `SELECT cumple_suficiencia FROM suficiencia_patrimonial
+       WHERE provider_id = $1 ORDER BY periodo_fiscal DESC LIMIT 1`,
+      [providerId]
+    ).catch(() => ({ rows: [] }));
+
+    const totalHallazgosAbiertos = estandares.reduce((s, e) => s + e.noCumple, 0);
+    const totalCriterios = estandares.reduce((s, e) => s + e.totalCriterios, 0);
+    const totalCumple = estandares.reduce((s, e) => s + e.cumple, 0);
+    const pctGlobal = totalCriterios > 0 ? Math.round((totalCumple / totalCriterios) * 100) : 0;
+
+    const condicion2Cumple = sp2.rows[0]?.cumple_suficiencia ?? null;
+    const conceptoHabilitacion =
+      pctGlobal >= 80 && condicion2Cumple !== false
+        ? 'habilitado'
+        : pctGlobal >= 60
+        ? 'habilitado_condicionado'
+        : 'no_habilitado';
+
+    return {
+      provider,
+      fechaInforme: new Date(),
+      estandares,
+      resumenCondiciones: {
+        condicion1CumpleTecnicoAdministrativa: null, // Requires manual verification
+        condicion2CumpleSuficienciaPatrimonial: condicion2Cumple,
+        condicion3PorcentajeCapacidadTecnologica: pctGlobal,
+      },
+      conceptoHabilitacion,
+    };
+  }
+
+  /**
+   * Genera el PDF del Informe de Auditoría oficial según Res. 3100
+   * Estructura: portada → condiciones habilitación → resultado por estándar → hallazgos → concepto
+   */
+  async generateAuditReportPdf(providerId: string, generatedBy: string, assessmentId?: string): Promise<Buffer> {
+    const data = await this.gatherAuditReportData(providerId, assessmentId);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'LETTER',
+          margin: 50,
+          info: {
+            Title: `Informe de Auditoría — ${data.provider.legal_name}`,
+            Author: generatedBy,
+            Subject: 'Informe de Verificación de Condiciones de Habilitación — Resolución 3100 de 2019',
+            CreationDate: data.fechaInforme,
+          },
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (c: Buffer) => chunks.push(c));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const W = doc.page.width - 100;
+
+        // ── PORTADA ──────────────────────────────────────────────
+        doc.fillColor(COLORS.primary).rect(50, 50, W, 6).fill();
+        doc.moveDown(2);
+
+        doc.fillColor(COLORS.primary).fontSize(20).font('Helvetica-Bold')
+          .text('INFORME DE AUDITORÍA DE HABILITACIÓN', 50, 80, { align: 'center', width: W });
+        doc.fillColor(COLORS.muted).fontSize(11).font('Helvetica')
+          .text('Resolución 3100 de 2019 — Ministerio de Salud y Protección Social', 50, 108, { align: 'center', width: W });
+
+        doc.fillColor(COLORS.border).rect(50, 135, W, 1).fill();
+
+        let y = 160;
+        const info = [
+          ['Prestador:', data.provider.legal_name],
+          ['NIT/RUT:', data.provider.rut],
+          ['Municipio:', `${data.provider.city}, ${data.provider.department}`],
+          ['Fecha del Informe:', data.fechaInforme.toLocaleDateString('es-CO')],
+          ['Generado por:', generatedBy],
+        ];
+        info.forEach(([label, val]) => {
+          doc.fillColor(COLORS.text).fontSize(10).font('Helvetica-Bold').text(label, 50, y);
+          doc.font('Helvetica').text(val, 200, y);
+          y += 18;
+        });
+
+        // Concepto de habilitación — semáforo visual
+        y += 15;
+        const conceptoColor =
+          data.conceptoHabilitacion === 'habilitado' ? COLORS.success :
+          data.conceptoHabilitacion === 'habilitado_condicionado' ? COLORS.warning : COLORS.danger;
+        const conceptoLabel =
+          data.conceptoHabilitacion === 'habilitado' ? 'HABILITADO' :
+          data.conceptoHabilitacion === 'habilitado_condicionado' ? 'HABILITADO CON CONDICIONAMIENTOS' : 'NO HABILITADO';
+
+        doc.rect(50, y, W, 50).fill(conceptoColor + '22');
+        doc.rect(50, y, 6, 50).fill(conceptoColor);
+        doc.fillColor(conceptoColor).fontSize(18).font('Helvetica-Bold')
+          .text(conceptoLabel, 70, y + 15, { width: W - 30 });
+        doc.fillColor(COLORS.muted).fontSize(9).font('Helvetica')
+          .text(`Porcentaje global de cumplimiento Condición 3: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`, 70, y + 35, { width: W - 30 });
+
+        // ── 3 CONDICIONES DE HABILITACIÓN ────────────────────────
+        doc.addPage();
+        y = 50;
+        doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
+          .text('1. CONDICIONES DE HABILITACIÓN', 50, y);
+        y += 25;
+
+        const condiciones = [
+          {
+            numero: '1.1',
+            nombre: 'Capacidad Técnico-Administrativa (Cap. 8, Res. 3100/2019)',
+            cumple: data.resumenCondiciones.condicion1CumpleTecnicoAdministrativa,
+            detalle: 'Acreditación jurídica, uso de suelo, REPS activo, manual de procesos y PAMEC.',
+          },
+          {
+            numero: '1.2',
+            nombre: 'Suficiencia Patrimonial y Financiera (Cap. 9, Res. 3100/2019)',
+            cumple: data.resumenCondiciones.condicion2CumpleSuficienciaPatrimonial,
+            detalle: 'Estados financieros, póliza RC, declaración de renta, certificación bancaria.',
+          },
+          {
+            numero: '1.3',
+            nombre: 'Capacidad Tecnológica y Científica (Cap. 11, Res. 3100/2019)',
+            cumple: data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica >= 80,
+            detalle: `7 estándares transversales evaluados. Cumplimiento global: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`,
+          },
+        ];
+
+        condiciones.forEach((c) => {
+          const cumpleStr = c.cumple === null ? 'PENDIENTE' : c.cumple ? 'CUMPLE' : 'NO CUMPLE';
+          const bgColor = c.cumple === null ? COLORS.bg : c.cumple ? '#E3FCEF' : '#FFEBE6';
+          const txColor = c.cumple === null ? COLORS.muted : c.cumple ? COLORS.success : COLORS.danger;
+
+          doc.rect(50, y, W, 52).fill(bgColor);
+          doc.fillColor(COLORS.text).fontSize(10).font('Helvetica-Bold').text(`${c.numero} ${c.nombre}`, 58, y + 8, { width: W - 100 });
+          doc.fillColor(COLORS.muted).fontSize(9).font('Helvetica').text(c.detalle, 58, y + 24, { width: W - 100 });
+          doc.fillColor(txColor).fontSize(11).font('Helvetica-Bold').text(cumpleStr, W - 30, y + 18, { align: 'right' });
+          y += 60;
+        });
+
+        // ── RESULTADOS POR ESTÁNDAR ──────────────────────────────
+        y += 10;
+        doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
+          .text('2. RESULTADOS POR ESTÁNDAR TRANSVERSAL', 50, y);
+        y += 25;
+
+        // Tabla encabezado
+        doc.rect(50, y, W, 20).fill(COLORS.primary);
+        doc.fillColor('#fff').fontSize(9).font('Helvetica-Bold');
+        doc.text('Estándar', 58, y + 6, { width: 200 });
+        doc.text('C', 268, y + 6, { width: 30, align: 'center' });
+        doc.text('NC', 305, y + 6, { width: 30, align: 'center' });
+        doc.text('NA', 342, y + 6, { width: 30, align: 'center' });
+        doc.text('% Cumpl.', 378, y + 6, { width: 60, align: 'center' });
+        doc.text('Semáforo', 444, y + 6, { width: 70, align: 'center' });
+        y += 20;
+
+        data.estandares.forEach((est, idx) => {
+          if (y > 700) { doc.addPage(); y = 50; }
+          const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
+          doc.rect(50, y, W, 24).fill(bg);
+
+          const semColor = est.semaforo === 'verde' ? COLORS.success :
+            est.semaforo === 'naranja' ? COLORS.warning : COLORS.danger;
+
+          doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
+            .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
+          doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
+          doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
+          doc.fillColor(COLORS.muted).text(est.noAplica.toString(), 342, y + 7, { width: 30, align: 'center' });
+          doc.fillColor(COLORS.text).font('Helvetica-Bold').text(`${est.porcentajeCumplimiento}%`, 378, y + 7, { width: 60, align: 'center' });
+          doc.fillColor(semColor).text(est.semaforo.toUpperCase(), 444, y + 7, { width: 70, align: 'center' });
+          y += 24;
+        });
+
+        // ── HALLAZGOS POR ESTÁNDAR ───────────────────────────────
+        doc.addPage();
+        y = 50;
+        doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
+          .text('3. HALLAZGOS IDENTIFICADOS POR ESTÁNDAR', 50, y);
+        y += 20;
+
+        data.estandares.forEach((est) => {
+          if (est.hallazgos.length === 0) return;
+          if (y > 650) { doc.addPage(); y = 50; }
+
+          doc.fillColor(COLORS.text).fontSize(11).font('Helvetica-Bold')
+            .text(`${est.codigo} — ${est.nombre}`, 50, y);
+          y += 16;
+
+          est.hallazgos.forEach((h, i) => {
+            if (y > 700) { doc.addPage(); y = 50; }
+            const sevColor = h.severidad === 'critica' || h.severidad === 'critical' ? COLORS.danger :
+              h.severidad === 'alta' || h.severidad === 'high' ? COLORS.warning : COLORS.muted;
+
+            doc.fontSize(9).font('Helvetica').fillColor(COLORS.muted)
+              .text(`${i + 1}.`, 58, y);
+            doc.fillColor(COLORS.text).text(h.descripcion, 72, y, { width: W - 130 });
+            doc.fillColor(sevColor).font('Helvetica-Bold')
+              .text(h.severidad.toUpperCase(), W - 40, y, { width: 80, align: 'right' });
+            y += 16;
+          });
+
+          y += 8;
+        });
+
+        // ── FIRMAS ───────────────────────────────────────────────
+        if (y > 650) { doc.addPage(); y = 50; }
+        y += 20;
+        doc.fillColor(COLORS.border).rect(50, y, W, 1).fill();
+        y += 20;
+
+        doc.fillColor(COLORS.text).fontSize(10).font('Helvetica-Bold').text('FIRMAS', 50, y);
+        y += 20;
+
+        const firmaW = (W - 40) / 2;
+        // Firma auditor
+        doc.rect(50, y + 30, firmaW, 1).fill(COLORS.text);
+        doc.fontSize(8).font('Helvetica').fillColor(COLORS.muted)
+          .text('Firma del Auditor Líder', 50, y + 34, { width: firmaW, align: 'center' });
+        // Firma representante
+        doc.rect(90 + firmaW, y + 30, firmaW, 1).fill(COLORS.text);
+        doc.text('Firma del Representante Legal del Prestador', 90 + firmaW, y + 34, { width: firmaW, align: 'center' });
+
+        // ── PIE DE PÁGINA ────────────────────────────────────────
+        const footerY = doc.page.height - 50;
+        doc.fillColor(COLORS.muted).fontSize(7).font('Helvetica')
+          .text(
+            `Informe generado el ${data.fechaInforme.toLocaleString('es-CO')} · Sistema de Gestión Norma 3100 · Resolución 3100 de 2019`,
+            50, footerY, { width: W, align: 'center' }
+          );
+
+        doc.end();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   /**
    * Generate Excel workbook report
    */

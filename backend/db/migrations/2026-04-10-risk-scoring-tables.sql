@@ -110,8 +110,8 @@ SELECT
   ca.deadline,
   ca.assigned_to,
   EXTRACT(DAY FROM CURRENT_TIMESTAMP - ca.deadline) as days_overdue,
-  f.created_date,
-  EXTRACT(DAY FROM CURRENT_TIMESTAMP - f.created_date) as finding_age_days
+  f.created_at,
+  EXTRACT(DAY FROM CURRENT_TIMESTAMP - f.created_at) as finding_age_days
 FROM findings f
 LEFT JOIN LATERAL (
   SELECT risk_score, risk_level FROM risk_score_history

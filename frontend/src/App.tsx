@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ProviderProvider, useProvider } from './context/ProviderContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { ComplianceDashboard } from './components/Compliance';
@@ -23,11 +24,12 @@ import './App.css';
 function AppContent(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isAuthenticated } = useAuth();
+  const { providers, selectedProvider, setSelectedProvider } = useProvider();
 
   // Mock data para demostración
   const mockMetrics = {
-    providerId: 'prov-001',
-    providerName: 'Hospital Central de Bogotá',
+    providerId: selectedProvider?.id || 'prov-001',
+    providerName: selectedProvider?.legalName || 'Hospital Central de Bogotá',
     totalFindings: 50,
     openFindings: 10,
     inProgressFindings: 20,
@@ -85,10 +87,13 @@ function AppContent(): JSX.Element {
       <div className="app-content">
         <TopBar
           onMenuToggle={toggleSidebar}
+          providers={providers}
+          selectedProvider={selectedProvider}
+          onSelectProvider={setSelectedProvider}
           rightSlot={
             <NotificationCenter
               userId="user-1"
-              providerId="prov-001"
+              providerId={selectedProvider?.id || 'prov-001'}
               role="provider_admin"
               autoConnect={false}
             />
@@ -102,8 +107,8 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute>
                   <ComplianceDashboard
-                    providerId="prov-001"
-                    providerName="Hospital Central de Bogotá"
+                    providerId={selectedProvider?.id || 'prov-001'}
+                    providerName={selectedProvider?.legalName || 'Hospital Central de Bogotá'}
                     metrics={mockMetrics}
                     riskAlerts={mockRiskAlerts}
                     onRefresh={handleRefresh}
@@ -117,8 +122,8 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <DocumentsPage
-                    providerId="prov-001"
-                    providerName="Hospital Central de Bogotá"
+                    providerId={selectedProvider?.id || 'prov-001'}
+                    providerName={selectedProvider?.legalName || 'Hospital Central de Bogotá'}
                   />
                 </ProtectedRoute>
               }
@@ -128,8 +133,8 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor']}>
                   <ReportsPage
-                    providerId="prov-001"
-                    providerName="Hospital Central de Bogotá"
+                    providerId={selectedProvider?.id || 'prov-001'}
+                    providerName={selectedProvider?.legalName || 'Hospital Central de Bogotá'}
                   />
                 </ProtectedRoute>
               }
@@ -138,7 +143,7 @@ function AppContent(): JSX.Element {
               path="/findings"
               element={
                 <ProtectedRoute>
-                  <FindingsPage providerId="prov-001" />
+                  <FindingsPage providerId={selectedProvider?.id || 'prov-001'} />
                 </ProtectedRoute>
               }
             />
@@ -146,7 +151,7 @@ function AppContent(): JSX.Element {
               path="/assessments"
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
-                  <AssessmentsPage providerId="prov-001" />
+                  <AssessmentsPage providerId={selectedProvider?.id || 'prov-001'} />
                 </ProtectedRoute>
               }
             />
@@ -219,9 +224,11 @@ function App(): JSX.Element {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        <ProviderProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </ProviderProvider>
       </AuthProvider>
     </ThemeProvider>
   );

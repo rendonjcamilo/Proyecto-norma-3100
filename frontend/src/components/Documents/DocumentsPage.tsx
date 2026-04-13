@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import { documentsApi, downloadBlob } from '../../services/api';
 import { useRolePermission } from '../../hooks/useRolePermission';
 import './DocumentsPage.css';
 
@@ -107,16 +107,14 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const loadData = async () => {
     try {
       setLoading(true);
-      const [catalogRes, docsRes, summaryRes, missingRes] = await Promise.all([
-        axios.get(`/api/documents/catalog`),
-        axios.get(`/api/providers/${providerId}/documents`),
-        axios.get(`/api/providers/${providerId}/documents/compliance`).catch(() => ({ data: { data: null } })),
-        axios.get(`/api/providers/${providerId}/documents/missing`),
+      const [catalogRes, docsRes] = await Promise.all([
+        documentsApi.getCatalog(),
+        documentsApi.listByProvider(providerId),
       ]);
-      setCatalog(catalogRes.data.data || []);
-      setDocuments(docsRes.data.data || []);
-      setSummary(summaryRes.data.data || null);
-      setMissing(missingRes.data.data || []);
+      setCatalog((catalogRes.data || []) as unknown as DocumentCatalogItem[]);
+      setDocuments((docsRes.data || []) as unknown as ProviderDocument[]);
+      setSummary(null);
+      setMissing([]);
     } catch (err) {
       console.error('Failed to load documents', err);
       showToast('error', 'Error al cargar la matriz documental');
@@ -165,16 +163,12 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
     try {
       setUploading(true);
-      await axios.post(`/api/providers/${providerId}/documents`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await documentsApi.upload(providerId, formData);
       showToast('success', `Documento "${uploadModal.name}" subido correctamente`);
       setUploadModal(null);
       await loadData();
     } catch (err) {
-      const msg = axios.isAxiosError(err) && err.response?.data?.error
-        ? err.response.data.error
-        : 'Error al subir el documento';
+      const msg = err instanceof Error ? err.message : 'Error al subir el documento';
       showToast('error', msg);
     } finally {
       setUploading(false);
@@ -183,13 +177,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const handleDownload = async (docId: string, originalName: string) => {
     try {
-      const res = await axios.get(`/api/documents/${docId}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = originalName;
-      a.click();
-      window.URL.revokeObjectURL(url);
+      const fileBlob = await documentsApi.download(docId);
+      downloadBlob(fileBlob, originalName);
     } catch {
       showToast('error', 'Error al descargar el documento');
     }

@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { providersApi } from '../services/api';
 import './Pages.css';
 
 interface Provider {
@@ -37,8 +37,8 @@ export const ProvidersPage: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/api/providers`);
-        setProviders(res.data.data || res.data || []);
+        const res = await providersApi.list();
+        setProviders((res.data || []) as Provider[]);
       } catch {
         console.error('Failed to load providers');
       } finally {

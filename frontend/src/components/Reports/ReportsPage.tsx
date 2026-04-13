@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { reportsApi, downloadBlob } from '../../services/api';
 import './ReportsPage.css';
 
 interface ReportsPageProps {
@@ -62,8 +62,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
     const load = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/api/providers/${providerId}/reports/summary`);
-        setSummary(res.data.data);
+        const res = await reportsApi.getSummary(providerId);
+        setSummary(res.data as ReportSummary);
         setError(null);
       } catch (err) {
         console.error('Failed to load summary', err);
@@ -78,23 +78,27 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   const handleDownload = async (format: 'pdf' | 'xlsx') => {
     try {
       setDownloading(format);
-      const res = await axios.get(
-        `/api/providers/${providerId}/reports/compliance.${format}`,
-        { responseType: 'blob' }
-      );
-      const url = window.URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_cumplimiento_${providerId}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      const blob = format === 'pdf'
+        ? await reportsApi.downloadCompliancePdf(providerId)
+        : await reportsApi.downloadComplianceExcel(providerId);
+      downloadBlob(blob, `reporte_cumplimiento_${providerId}.${format}`);
       showToast('success', `Reporte ${format.toUpperCase()} descargado correctamente`);
     } catch (err) {
-      const msg = axios.isAxiosError(err) && err.response?.data?.error
-        ? err.response.data.error
-        : `Error al generar reporte ${format.toUpperCase()}`;
+      const msg = err instanceof Error ? err.message : `Error al generar reporte ${format.toUpperCase()}`;
+      showToast('error', msg);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleDownloadAuditoria = async () => {
+    try {
+      setDownloading('pdf');
+      const blob = await reportsApi.downloadAuditReportPdf(providerId);
+      downloadBlob(blob, `informe_auditoria_${providerId}.pdf`);
+      showToast('success', 'Informe de Auditoría descargado correctamente');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al generar informe de auditoría';
       showToast('error', msg);
     } finally {
       setDownloading(null);
@@ -301,6 +305,46 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                   Descargar PDF
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* INFORME DE AUDITORÍA OFICIAL */}
+          <div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
+            <div className="download-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                <rect x="9" y="3" width="6" height="4" rx="1" />
+                <line x1="9" y1="12" x2="15" y2="12" />
+                <line x1="9" y1="16" x2="13" y2="16" />
+              </svg>
+            </div>
+            <h3>Informe de Auditoría Oficial</h3>
+            <p>Formato oficial de verificación de condiciones de habilitación según Resolución 3100 de 2019</p>
+            <ul className="download-features">
+              <li>3 condiciones de habilitación</li>
+              <li>Resultados por estándar (TSTH · TSINF · TSDOT · TSMD · TSPP · TSHCR · TSINT)</li>
+              <li>Hallazgos organizados por estándar</li>
+              <li>Concepto de habilitación</li>
+              <li>Espacio para firmas</li>
+            </ul>
+            <button
+              className="btn-download"
+              style={{ background: '#de350b' }}
+              onClick={handleDownloadAuditoria}
+              disabled={!!downloading}
+            >
+              {downloading === 'pdf' ? (
+                <><span className="btn-spinner" />Generando...</>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Descargar Informe
                 </>
               )}
             </button>
