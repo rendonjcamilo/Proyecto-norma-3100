@@ -10,6 +10,7 @@ import { DocumentsPage } from './components/Documents';
 import { ReportsPage } from './components/Reports';
 import { FindingsPage } from './pages/FindingsPage';
 import { AssessmentsPage } from './pages/AssessmentsPage';
+import { AssessmentExecutionPage } from './pages/AssessmentExecutionPage';
 import { ProvidersPage } from './pages/ProvidersPage';
 import { InvimaPage } from './pages/InvimaPage';
 import { NotificationCenter } from './components/Notifications';
@@ -153,6 +154,14 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <AssessmentsPage providerId={selectedProvider?.id || 'prov-001'} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assessments/:id"
+              element={
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
+                  <AssessmentExecutionPage />
                 </ProtectedRoute>
               }
             />

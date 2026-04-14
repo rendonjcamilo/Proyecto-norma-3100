@@ -56,6 +56,14 @@ export interface Assessment {
   updated_at: string;
 }
 
+export interface AssessmentResponse {
+  criterionId: string;
+  status: 'C' | 'NC' | 'NA';
+  description?: string;
+  comments?: string;
+  evidenceFileIds?: string[];
+}
+
 export interface AssessmentMetrics {
   totalCriteria: number;
   cumple: number;
@@ -245,19 +253,73 @@ export const assessmentsApi = {
     get<{ data: Assessment[]; total: number }>(`/api/providers/${providerId}/assessments`),
 
   getById: (id: string) =>
-    get<{ data: Assessment & { metrics?: AssessmentMetrics } }>(`/api/assessment/${id}`),
+    get<{ data: Assessment & { responses?: AssessmentResponse[]; metrics?: AssessmentMetrics } }>(`/api/assessments/${id}`),
 
   create: (payload: { providerId: string; serviceId: string; questionnaireId: string; assessmentVersion: string }) =>
     post<{ data: Assessment }>('/api/assessments', payload),
 
-  submitResponse: (assessmentId: string, criterionId: string, value: 'C' | 'NC' | 'NA', notes?: string) =>
-    post<{ data: unknown }>(`/api/assessments/${assessmentId}/responses`, { criterionId, value, notes }),
+  saveResponses: (assessmentId: string, responses: AssessmentResponse[]) =>
+    put<{ data: Assessment & { metrics: AssessmentMetrics } }>(`/api/assessments/${assessmentId}`, { responses }),
 
   submit: (assessmentId: string) =>
     post<{ data: Assessment & { metrics: AssessmentMetrics } }>(`/api/assessments/${assessmentId}/submit`, {}),
 
   getMetrics: (assessmentId: string) =>
     get<{ data: AssessmentMetrics }>(`/api/assessments/${assessmentId}/metrics`),
+};
+
+// ─────────────────────────────────────────────
+// SERVICIOS DE SALUD
+// ─────────────────────────────────────────────
+
+export interface HealthService {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  status: string;
+}
+
+export const servicesApi = {
+  getAll: (params?: { category?: string; status?: string; search?: string }) => {
+    const qs = params
+      ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
+      : '';
+    return get<{ data: HealthService[]; count: number; categories: string[] }>(`/api/services${qs}`);
+  },
+};
+
+// ─────────────────────────────────────────────
+// CUESTIONARIOS
+// ─────────────────────────────────────────────
+
+export interface QuestionnaireCriterion {
+  id: string;
+  code: string;
+  number: string;
+  name: string;
+  description: string;
+  evidence_requirement?: string;
+  complexity: 'simple' | 'medium' | 'complex';
+  standard_id: string;
+  standard_name: string;
+  is_transversal: boolean;
+  is_mandatory: boolean;
+}
+
+export interface QuestionnaireDetail {
+  id: string;
+  service_id: string;
+  version_type: string;
+  name: string;
+  status: string;
+  total_criteria: number;
+  criteria: QuestionnaireCriterion[];
+}
+
+export const questionnairesApi = {
+  getById: (id: string) =>
+    get<{ data: QuestionnaireDetail }>(`/api/questions/${id}`),
 };
 
 // ─────────────────────────────────────────────

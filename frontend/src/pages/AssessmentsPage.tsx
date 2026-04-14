@@ -3,13 +3,25 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { assessmentsApi, type Assessment } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { assessmentsApi, servicesApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import './Pages.css';
 
 interface AssessmentsPageProps {
   providerId: string;
 }
+
+const MOCK_SERVICES = [
+  { id: 'svc-cx-001', code: 'CX-001', name: 'Consulta por medicina general', category: 'Consulta Externa', status: 'available' },
+  { id: 'svc-cx-002', code: 'CX-003', name: 'Consulta especializada cardiología', category: 'Consulta Externa', status: 'available' },
+  { id: 'svc-int-001', code: 'INT-001', name: 'Hospitalización adultos', category: 'Internación', status: 'available' },
+  { id: 'svc-int-002', code: 'INT-002', name: 'Hospitalización pediátrica', category: 'Internación', status: 'available' },
+  { id: 'svc-urg-001', code: 'URG-001', name: 'Urgencias adultos', category: 'Atención Inmediata', status: 'available' },
+  { id: 'svc-qx-001', code: 'QX-001', name: 'Cirugía general', category: 'Quirúrgico', status: 'available' },
+  { id: 'svc-dx-001', code: 'DX-001', name: 'Laboratorio clínico', category: 'Apoyo Diagnóstico', status: 'available' },
+  { id: 'svc-dx-002', code: 'DX-002', name: 'Imagenología — Radiología', category: 'Apoyo Diagnóstico', status: 'available' },
+];
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -26,11 +38,12 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) => {
+  const navigate = useNavigate();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [services, setServices] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  const [services, setServices] = useState<HealthService[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     type: 'initial',
@@ -45,14 +58,17 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         const assessRes = await assessmentsApi.listByProvider(providerId);
         setAssessments((assessRes.data || []) as Assessment[]);
 
-        // Load services — for now use mock data since services endpoint may not exist
-        // TODO: Create GET /api/services endpoint
-        setServices([
-          { id: 'svc-001', code: 'HC', name: 'Hospitalization (Hospitalización)' },
-          { id: 'svc-002', code: 'AMB', name: 'Ambulatory (Ambulatorio)' },
-          { id: 'svc-003', code: 'EM', name: 'Emergency (Emergencia)' },
-          { id: 'svc-004', code: 'LAB', name: 'Laboratory (Laboratorio)' },
-        ]);
+        try {
+          const svcRes = await servicesApi.getAll({ status: 'available' });
+          if (svcRes.data && svcRes.data.length > 0) {
+            setServices(svcRes.data);
+          } else {
+            // Fallback cuando la BD no está disponible
+            setServices(MOCK_SERVICES);
+          }
+        } catch {
+          setServices(MOCK_SERVICES);
+        }
       } catch (err) {
         console.error('Failed to load data:', err);
       } finally {
@@ -102,7 +118,12 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
       ) : (
         <div className="card-grid">
           {assessments.map((a) => (
-            <div key={a.id} className="assessment-card">
+            <div
+              key={a.id}
+              className="assessment-card"
+              onClick={() => navigate(`/assessments/${a.id}`)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="assessment-card-header">
                 <span
                   className="status-badge"

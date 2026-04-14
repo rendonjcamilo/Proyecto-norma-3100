@@ -60,6 +60,7 @@ export interface AssessmentFormProps {
   questionnaiireData: {
     standards: Standard[];
   };
+  initialResponses?: Response[];
   onSave?: (responses: Response[]) => Promise<void>;
   onSubmit?: () => Promise<void>;
   readOnly?: boolean;
@@ -68,11 +69,20 @@ export interface AssessmentFormProps {
 const AssessmentForm: React.FC<AssessmentFormProps> = ({
   assessment,
   questionnaiireData,
+  initialResponses,
   onSave,
   onSubmit,
   readOnly = false,
 }) => {
-  const [responses, setResponses] = useState<Map<string, Response>>(new Map());
+  const [responses, setResponses] = useState<Map<string, Response>>(() => {
+    const map = new Map<string, Response>();
+    if (initialResponses) {
+      for (const r of initialResponses) {
+        map.set(r.criterionId, r);
+      }
+    }
+    return map;
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
