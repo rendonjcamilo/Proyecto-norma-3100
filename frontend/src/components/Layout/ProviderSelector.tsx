@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Provider } from '../../context/ProviderContext';
 import './ProviderSelector.css';
 
@@ -71,47 +72,51 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
         </div>
       </button>
 
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          className="provider-dropdown"
-          style={{
-            top: `${dropdownPosition.top}px`,
-            right: `${dropdownPosition.right}px`,
-          }}
-        >
-          <div className="dropdown-header">Seleccionar Proveedor</div>
-          <ul className="provider-list">
-            {providers.map(provider => (
-              <li key={provider.id}>
-                <button
-                  className={`provider-item ${
-                    selectedProvider?.id === provider.id ? 'active' : ''
-                  }`}
-                  onClick={() => handleSelect(provider.id)}
-                >
-                  <div className="item-main">
-                    <div className="item-name">{provider.legalName}</div>
-                    <div className="item-meta">
-                      {provider.city} • {provider.rut}
+      {isOpen && createPortal(
+        <>
+          <div className="provider-dropdown-overlay" onClick={() => setIsOpen(false)} />
+          <div
+            ref={dropdownRef}
+            className="provider-dropdown"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              right: `${dropdownPosition.right}px`,
+            }}
+          >
+            <div className="dropdown-header">Seleccionar Proveedor</div>
+            <ul className="provider-list">
+              {providers.map(provider => (
+                <li key={provider.id}>
+                  <button
+                    className={`provider-item ${
+                      selectedProvider?.id === provider.id ? 'active' : ''
+                    }`}
+                    onClick={() => handleSelect(provider.id)}
+                  >
+                    <div className="item-main">
+                      <div className="item-name">{provider.legalName}</div>
+                      <div className="item-meta">
+                        {provider.city} • {provider.rut}
+                      </div>
                     </div>
-                  </div>
-                  {selectedProvider?.id === provider.id && (
-                    <svg
-                      className="checkmark"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    {selectedProvider?.id === provider.id && (
+                      <svg
+                        className="checkmark"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>,
+        document.body
       )}
     </div>
   );

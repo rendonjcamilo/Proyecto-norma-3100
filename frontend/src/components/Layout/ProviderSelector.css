@@ -156,3 +156,13 @@
   flex-shrink: 0;
   margin-left: var(--space-3);
 }
+
+/* Overlay para cerrar el dropdown */
+.provider-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+}
