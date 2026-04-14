@@ -248,8 +248,21 @@
 .kpi-card.tone-success::before { background: var(--gradient-success); }
 .kpi-card.tone-warning::before { background: var(--gradient-warning); }
 .kpi-card.tone-danger::before { background: var(--gradient-danger); }
+
+/* Semáforo: borde izquierdo prominente en la card principal */
+.kpi-card.status-verde {
+  border-left: 4px solid var(--semaforo-verde);
+}
 .kpi-card.status-verde::before { background: var(--gradient-success); opacity: 1; }
+
+.kpi-card.status-naranja {
+  border-left: 4px solid var(--semaforo-naranja);
+}
 .kpi-card.status-naranja::before { background: var(--gradient-warning); opacity: 1; }
+
+.kpi-card.status-rojo {
+  border-left: 4px solid var(--semaforo-rojo);
+}
 .kpi-card.status-rojo::before { background: var(--gradient-danger); opacity: 1; }
 
 .kpi-card-header {
@@ -387,6 +400,7 @@
   font-size: 44px;
   font-weight: 800;
   color: var(--text-primary);
+  font-family: var(--font-mono);
   letter-spacing: var(--tracking-tight);
   line-height: 1;
 }
@@ -426,6 +440,7 @@
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text-primary);
+  font-family: var(--font-mono);
 }
 
 .kpi-footer-stat .stat-label {

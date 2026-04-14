@@ -209,9 +209,9 @@ export const TopBar: React.FC<TopBarProps> = ({
 
               <div className="help-section">
                 <h3>❓ Preguntas Frecuentes</h3>
-                <p><strong>¿Cómo creo un hallazgo?</strong><br />Ve a la sección "Hallazgos" y haz clic en "Nuevo Hallazgo".</p>
+                <p><strong>¿Cómo creo un hallazgo?</strong><br />Ve a la sección &quot;Hallazgos&quot; y haz clic en &quot;Nuevo Hallazgo&quot;.</p>
                 <p><strong>¿Cuáles son los niveles de severidad?</strong><br />Baja, Media, Alta y Crítica.</p>
-                <p><strong>¿Cómo descargo un reporte?</strong><br />Ve a "Reportes" y selecciona PDF o Excel.</p>
+                <p><strong>¿Cómo descargo un reporte?</strong><br />Ve a &quot;Reportes&quot; y selecciona PDF o Excel.</p>
               </div>
 
               <div className="help-section">

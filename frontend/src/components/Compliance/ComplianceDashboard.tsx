@@ -594,7 +594,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
           <span>Última actualización: {new Date().toLocaleString('es-CO')}</span>
         </div>
         <p className="footer-help">
-          Las métricas se actualizan automáticamente cada 5 minutos. Activa "Auto-actualizar" para ver datos en tiempo real.
+          Las métricas se actualizan automáticamente cada 5 minutos. Activa &quot;Auto-actualizar&quot; para ver datos en tiempo real.
         </p>
       </footer>
     </div>

@@ -44,7 +44,7 @@ export const FindingsList: React.FC<FindingsListProps> = ({
     standard_id: '' as string,
   });
   const [total, setTotal] = useState(0);
-  const [limit, setLimit] = useState(25);
+  const [limit] = useState(25);
   const [offset, setOffset] = useState(0);
 
   // Load findings
@@ -206,7 +206,15 @@ export const FindingsList: React.FC<FindingsListProps> = ({
         <div className="loading">Cargando hallazgos...</div>
       ) : findings.length === 0 ? (
         <div className="empty-state">
-          <p>No se encontraron hallazgos con los criterios especificados.</p>
+          <div className="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <h3 className="empty-state-title">Sin hallazgos</h3>
+          <p className="empty-state-desc">No se encontraron hallazgos con los criterios seleccionados.</p>
         </div>
       ) : (
         <>

@@ -9,7 +9,7 @@
  * - Risk scoring and compliance tracking
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('E2E: Complete Compliance Workflow', () => {
   describe('Finding Creation & Action Workflow', () => {
@@ -145,23 +145,6 @@ describe('E2E: Complete Compliance Workflow', () => {
 
   describe('Bulk Action Import Workflow', () => {
     it('should parse and import multiple actions from CSV', () => {
-      const csvData = [
-        {
-          provider_id: 'prov-001',
-          location_id: 'loc-001',
-          action_description: 'Implement backup system',
-          assigned_to: 'engineer@hospital.com',
-          due_date: '2026-05-10',
-        },
-        {
-          provider_id: 'prov-001',
-          location_id: 'loc-002',
-          action_description: 'Update staff certifications',
-          assigned_to: 'hr@hospital.com',
-          due_date: '2026-05-15',
-        },
-      ];
-
       const importResults = [
         { row_number: 1, status: 'success', message: 'Action created successfully' },
         { row_number: 2, status: 'success', message: 'Action created successfully' },

@@ -4,13 +4,17 @@
  * Gestiona automáticamente el token JWT desde localStorage.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// En dev, Vite proxea /api → localhost:3001, por lo que la variable no es necesaria.
+// En prod (Railway), VITE_API_URL debe definirse con la URL absoluta del backend.
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // ─────────────────────────────────────────────
 // TIPOS BASE
 // ─────────────────────────────────────────────
 
 export type Semaforo = 'verde' | 'naranja' | 'rojo';
+// TODO: el backend retorna valores en dos idiomas según el endpoint/versión.
+// Normalizar a inglés en el backend y eliminar los valores en español de estos tipos.
 export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'critica' | 'alta' | 'media' | 'baja';
 export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'closed' | 'abierta' | 'en_proceso' | 'cerrada';
 export type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
@@ -46,7 +50,7 @@ export interface Assessment {
   assessment_version: 'initial' | 'year4' | 'annual' | 'pre-novelty';
   status: 'draft' | 'in_progress' | 'submitted' | 'locked' | 'completed' | 'archived';
   compliance_percent: number;
-  compliance_percentage?: number;
+  compliance_percentage?: number; // TODO: unificar con compliance_percent — distintos endpoints usan nombres distintos
   semaforo?: Semaforo;
   started_date?: string;
   submitted_date?: string;
@@ -123,6 +127,43 @@ export interface HCVerificacion {
   hallazgos_identificados: Array<{ campo: string; descripcion: string; hcCount: number }>;
 }
 
+/** Refleja ComplianceReportData del backend (ReportService.ts) */
+export interface ComplianceSummary {
+  provider: {
+    id: string;
+    legal_name: string;
+    rut: string;
+    city: string;
+    department: string;
+  };
+  generatedAt: string;
+  generatedBy: string;
+  metrics: {
+    totalFindings: number;
+    openFindings: number;
+    inProgressFindings: number;
+    resolvedFindings: number;
+    closedFindings: number;
+    overdueFindings: number;
+    averageRiskScore: number;
+    compliancePercentage: number;
+  };
+  documentCompliance?: {
+    totalRequired: number;
+    compliantCount: number;
+    expiredCount: number;
+    pendingCount: number;
+    compliancePercentage: number;
+  };
+  topFindings: Array<{
+    title: string;
+    severity: string;
+    riskScore: number;
+    status: string;
+    daysOverdue: number;
+  }>;
+}
+
 export interface AuditReportData {
   provider: Provider;
   fechaInforme: string;
@@ -157,18 +198,19 @@ async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
-  options: { blob?: boolean } = {}
+  options: { blob?: boolean; formData?: boolean } = {}
 ): Promise<T> {
   const token = getToken();
   const headers: HeadersInit = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(!options.blob ? { 'Content-Type': 'application/json' } : {}),
+    // Para blob y formData no se envía Content-Type: el browser lo gestiona (multipart boundary)
+    ...(!options.blob && !options.formData ? { 'Content-Type': 'application/json' } : {}),
   };
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(body !== undefined ? { body: options.formData ? (body as FormData) : JSON.stringify(body) } : {}),
   });
 
   if (!res.ok) {
@@ -185,7 +227,6 @@ async function request<T>(
 const get  = <T>(path: string)                       => request<T>('GET',    path);
 const post = <T>(path: string, body: unknown)        => request<T>('POST',   path, body);
 const put  = <T>(path: string, body: unknown)        => request<T>('PUT',    path, body);
-const del  = <T>(path: string)                       => request<T>('DELETE', path);
 const blob = (path: string)                          => request<Blob>('GET', path, undefined, { blob: true });
 
 // ─────────────────────────────────────────────
@@ -333,20 +374,13 @@ export const documentsApi = {
     ),
 
   listByProvider: (providerId: string) =>
-    get<{ data: unknown[]; total: number }>(`/api/providers/${providerId}/documents`),
+    get<{ data: Document[]; total: number }>(`/api/providers/${providerId}/documents`),
 
   download: (docId: string) =>
     blob(`/api/documents/${docId}/download`),
 
   upload: (providerId: string, formData: FormData) =>
-    fetch(`${BASE_URL}/api/providers/${providerId}/documents`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: formData,
-    }).then(async (r) => {
-      if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Upload failed'); }
-      return r.json() as Promise<{ data: Document }>;
-    }),
+    request<{ data: Document }>('POST', `/api/providers/${providerId}/documents`, formData, { formData: true }),
 };
 
 // ─────────────────────────────────────────────
@@ -355,7 +389,7 @@ export const documentsApi = {
 
 export const reportsApi = {
   getSummary: (providerId: string) =>
-    get<{ data: unknown }>(`/api/providers/${providerId}/reports/summary`),
+    get<{ data: ComplianceSummary }>(`/api/providers/${providerId}/reports/summary`),
 
   downloadCompliancePdf: (providerId: string) =>
     blob(`/api/providers/${providerId}/reports/compliance.pdf`),
@@ -533,7 +567,10 @@ export function downloadBlob(blob: Blob, filename: string): void {
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    a.click();
+  } finally {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }

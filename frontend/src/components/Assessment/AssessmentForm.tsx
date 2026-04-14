@@ -169,7 +169,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
 
   const totalCriteria = questionnaiireData.standards.reduce((acc, s) => acc + s.criteria.length, 0);
   const answeredCriteria = responses.size;
-  const completionPercent = totalCriteria > 0 ? (answeredCriteria / totalCriteria) * 100 : 0;
 
   // Group standards (transversales first, then service-specific)
   const transversales = questionnaiireData.standards.filter((s) => s.isTransversal);

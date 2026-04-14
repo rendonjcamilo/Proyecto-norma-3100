@@ -98,6 +98,21 @@
   --transition-normal: 200ms ease-out;
   --transition-slow: 300ms ease-out;
 
+  /* Typography — monospace para datos numéricos */
+  --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(0, 82, 204, 0.35);
+  --focus-ring-error: 0 0 0 3px rgba(222, 53, 11, 0.35);
+
+  /* Semáforo */
+  --semaforo-verde: #00875a;
+  --semaforo-verde-light: #e3fcef;
+  --semaforo-naranja: #ff8b00;
+  --semaforo-naranja-light: #fff7d6;
+  --semaforo-rojo: #de350b;
+  --semaforo-rojo-light: #ffeceb;
+
   /* Topbar */
   --topbar-height: 60px;
   --sidebar-width: 280px;
@@ -284,8 +299,9 @@ pre {
   color: var(--text-inverse);
 }
 
-/* Focus visible */
+/* Focus visible — usa --focus-ring para consistencia en sidebar oscuro */
 :focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
 }

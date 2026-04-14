@@ -91,11 +91,6 @@ export const MultiLocationDashboard: React.FC = () => {
     }
   }, [locations]);
 
-  const getSemaforoColor = (percent: number): 'verde' | 'naranja' | 'rojo' => {
-    if (percent >= 80) return 'verde';
-    if (percent >= 50) return 'naranja';
-    return 'rojo';
-  };
 
   const selectedLocation = locations.find(loc => loc.id === selectedLocationId);
   const selectedCompliance = complianceData.find(

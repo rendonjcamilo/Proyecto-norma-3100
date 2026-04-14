@@ -74,7 +74,7 @@ describe('LocationSelector', () => {
 
   it('displays selected location', () => {
     const mockChange = jest.fn();
-    const { rerender } = render(
+    render(
       <LocationSelector
         locations={mockLocations}
         selectedLocationId="2"

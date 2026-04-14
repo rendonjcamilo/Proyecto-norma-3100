@@ -5,7 +5,7 @@
   max-width: 1440px;
   margin: 0 auto;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  color: #172b4d;
+  color: var(--text-primary);
 }
 
 .docs-loading {
@@ -15,14 +15,14 @@
   justify-content: center;
   padding: 120px 20px;
   gap: 16px;
-  color: #6b778c;
+  color: var(--text-secondary);
 }
 
 .docs-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #dfe1e6;
-  border-top-color: #0052cc;
+  border: 3px solid var(--border-default);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: docs-spin 0.8s linear infinite;
 }
@@ -54,7 +54,7 @@
 
 .docs-subtitle {
   margin: 0;
-  color: #6b778c;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #0052cc;
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -75,7 +75,7 @@
 }
 
 .docs-btn-primary:hover {
-  background: #0043a6;
+  background: var(--color-primary-dark);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 82, 204, 0.25);
 }
@@ -94,22 +94,22 @@
 }
 
 .kpi-card {
-  background: #fff;
-  border: 1px solid #dfe1e6;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.2s;
 }
 
 .kpi-card:hover {
-  border-color: #2684ff;
+  border-color: var(--color-primary);
   box-shadow: 0 4px 16px rgba(9, 30, 66, 0.08);
   transform: translateY(-1px);
 }
 
 .kpi-main {
-  background: linear-gradient(135deg, #f4f5f7 0%, #ffffff 100%);
-  border: 1px solid #c1c7d0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-bold);
 }
 
 .kpi-label {
@@ -117,7 +117,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #6b778c;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -139,12 +139,12 @@
 .kpi-sublabel {
   margin-top: 8px;
   font-size: 12px;
-  color: #6b778c;
+  color: var(--text-secondary);
 }
 
 .kpi-bar {
   height: 8px;
-  background: #dfe1e6;
+  background: var(--border-default);
   border-radius: 4px;
   margin-top: 16px;
   overflow: hidden;

@@ -4,12 +4,13 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useNotifications, Notification, NotificationPreference } from '../useNotifications';
+import { useNotifications, NotificationPreference } from '../useNotifications';
 import axios from 'axios';
 
 // Mock socket.io-client
 jest.mock('socket.io-client');
-const mockIo = require('socket.io-client').io as jest.Mock;
+import { io as _io } from 'socket.io-client';
+const mockIo = _io as jest.Mock;
 
 // Mock axios
 jest.mock('axios');
@@ -24,7 +25,7 @@ describe('useNotifications Hook', () => {
     mockSocket = {
       connected: false,
       id: 'socket-123',
-      on: jest.fn((event: string, handler: Function) => {
+      on: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
         mockSocket.handlers = mockSocket.handlers || {};
         mockSocket.handlers[event] = handler;
       }),

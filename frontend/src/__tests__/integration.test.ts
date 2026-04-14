@@ -7,20 +7,14 @@ import axios from 'axios';
 
 describe('Notification System - E2E Workflows', () => {
   const API_URL = 'http://localhost:3001/api';
-  const WS_URL = 'http://localhost:3001';
-
   const testUser = {
     userId: 'integration-test-user-1',
     providerId: 'integration-test-prov-001',
     role: 'provider',
   };
 
-  let authToken: string;
-
   beforeAll(async () => {
-    // Set up test environment
-    // In a real scenario, this would authenticate the test user
-    authToken = 'test-integration-token';
+    // Set up test environment — en un escenario real se autenticaría el usuario de prueba
   });
 
   describe('Complete Notification Workflow', () => {
@@ -315,8 +309,6 @@ describe('Notification System - E2E Workflows', () => {
 
   describe('Role-Based Access Control', () => {
     it('should restrict access based on user ID', async () => {
-      const otherUserId = 'other-user-123';
-
       // Create notification for first user
       const createResponse = await axios.post(`${API_URL}/notifications/test`, {}, {
         headers: {

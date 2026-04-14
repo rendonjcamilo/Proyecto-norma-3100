@@ -84,6 +84,16 @@
   margin: 0;
 }
 
+.topbar-subtitle {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* === SEARCH === */
 .topbar-center {
   flex: 1;

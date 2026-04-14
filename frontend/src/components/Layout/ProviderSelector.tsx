@@ -3,7 +3,7 @@
  * Allows users to switch between different providers/hospitals
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Provider } from '../../context/ProviderContext';
 import './ProviderSelector.css';
 
@@ -19,6 +19,19 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
   onSelectProvider,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [isOpen]);
 
   const handleSelect = (providerId: string) => {
     const provider = providers.find(p => p.id === providerId);
@@ -31,6 +44,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
   return (
     <div className="provider-selector">
       <button
+        ref={buttonRef}
         className="provider-selector-btn"
         onClick={() => setIsOpen(!isOpen)}
         title="Cambiar proveedor"
@@ -58,7 +72,14 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
       </button>
 
       {isOpen && (
-        <div className="provider-dropdown">
+        <div
+          ref={dropdownRef}
+          className="provider-dropdown"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            right: `${dropdownPosition.right}px`,
+          }}
+        >
           <div className="dropdown-header">Seleccionar Proveedor</div>
           <ul className="provider-list">
             {providers.map(provider => (
