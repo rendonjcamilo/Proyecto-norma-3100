@@ -22,6 +22,7 @@ import { createRiskScoringRouter } from './routes/risk-scoring.routes.js';
 import { createSuficienciaPatrimonialRouter } from './routes/suficiencia-patrimonial.routes.js';
 import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js';
 import { createInvimaRouter } from './routes/invima.routes.js';
+import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
@@ -164,6 +165,9 @@ app.use('/api', apiLimiter, createSuficienciaPatrimonialRouter(pool));
 // Estándar TSHCR: Historia Clínica y Registros (Res. 3100/2019, Cap. 11 + Res. 1995/1999)
 app.use('/api', apiLimiter, createHistoriaClinicaRouter(pool));
 app.use('/api', apiLimiter, createInvimaRouter(pool));
+
+// Norma 3100 JSON-based assessments (no database required)
+app.use('/api', apiLimiter, createNorma3100Router());
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
