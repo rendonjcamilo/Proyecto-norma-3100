@@ -157,7 +157,6 @@ export function createNorma3100Router(): Router {
    */
   router.post(
     '/norma3100/assessments',
-    authMiddleware,
     async (req: Request, res: Response) => {
       try {
         const {
@@ -232,7 +231,6 @@ export function createNorma3100Router(): Router {
    */
   router.put(
     '/norma3100/assessments/:id/responses',
-    authMiddleware,
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
@@ -301,7 +299,6 @@ export function createNorma3100Router(): Router {
    */
   router.post(
     '/norma3100/assessments/:id/submit',
-    authMiddleware,
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;

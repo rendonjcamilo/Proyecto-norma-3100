@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -71,7 +71,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastName: 'Prueba',
       providerId: 'prov-test-001',
     };
-    const mockToken = `mock-jwt-${Date.now()}`;
+
+    // Create a valid JWT format token for mock login
+    // Format: header.payload.signature (all base64url encoded)
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const payload = btoa(JSON.stringify({
+      user_id: mockUser.id,
+      email: mockUser.email,
+      role: mockUser.role,
+      provider_id: mockUser.providerId,
+      jti: `jti-${Date.now()}`,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+      type: 'access'
+    }));
+    const signature = btoa('mock-signature');
+    const mockToken = `${header}.${payload}.${signature}`;
 
     localStorage.setItem('auth_token', mockToken);
     localStorage.setItem('auth_user', JSON.stringify(mockUser));

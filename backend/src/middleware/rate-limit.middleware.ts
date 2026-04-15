@@ -7,10 +7,10 @@ import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
 
-// Standard API rate limiter: 100 requests / 15 minutes per IP
+// Standard API rate limiter: 1000 requests / 15 minutes per IP (increased for development)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {

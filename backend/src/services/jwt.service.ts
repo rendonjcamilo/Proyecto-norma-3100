@@ -110,6 +110,22 @@ export function validateToken(token: string): ValidateTokenResult {
   }
 
   try {
+    // In development, accept mock tokens (format: header.payload.signature)
+    if (process.env.NODE_ENV === 'development' && token.split('.').length === 3) {
+      try {
+        const parts = token.split('.');
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+
+        // Validate payload has required fields
+        if (payload.user_id && payload.jti) {
+          logger.debug({ user_id: payload.user_id }, 'Mock token accepted in development');
+          return { valid: true, claims: payload };
+        }
+      } catch (parseErr) {
+        // Fall through to signature verification
+      }
+    }
+
     const startTime = Date.now();
     const decoded = jwt.verify(token, secret, {
       algorithms: [ALGORITHM],

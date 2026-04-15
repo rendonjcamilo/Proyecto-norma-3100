@@ -31,7 +31,7 @@ import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
 dotenv.config();
 
 const app: Express = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Database setup

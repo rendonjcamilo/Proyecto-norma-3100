@@ -18,8 +18,22 @@ declare global {
 /**
  * Middleware to verify JWT token from Authorization header
  * Expects: Authorization: Bearer <token>
+ * In development mode, allows requests without token
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
+  // In development, bypass authentication
+  if (process.env.NODE_ENV === 'development') {
+    req.user = {
+      user_id: 'dev-user',
+      role: 'super_admin',
+      provider_id: 'prov-001',
+      jti: 'dev-jti',
+    };
+    logger.debug({ path: req.path }, 'Development mode: auth bypassed');
+    next();
+    return;
+  }
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

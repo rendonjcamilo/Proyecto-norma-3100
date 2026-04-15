@@ -11,6 +11,8 @@ import { ReportsPage } from './components/Reports';
 import { FindingsPage } from './pages/FindingsPage';
 import { AssessmentsPage } from './pages/AssessmentsPage';
 import { AssessmentExecutionPage } from './pages/AssessmentExecutionPage';
+import { AssessmentGeneratorPage } from './pages/AssessmentGeneratorPage';
+import { AssessmentResultPage } from './pages/AssessmentResultPage';
 import { ProvidersPage } from './pages/ProvidersPage';
 import { InvimaPage } from './pages/InvimaPage';
 import { NotificationCenter } from './components/Notifications';
@@ -154,6 +156,22 @@ function AppContent(): JSX.Element {
               element={
                 <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
                   <AssessmentsPage providerId={selectedProvider?.id || 'prov-001'} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assessments/new"
+              element={
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
+                  <AssessmentGeneratorPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assessments/result/:id"
+              element={
+                <ProtectedRoute requiredRoles={['super_admin', 'auditor', 'provider_admin']}>
+                  <AssessmentResultPage />
                 </ProtectedRoute>
               }
             />

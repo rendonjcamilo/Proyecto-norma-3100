@@ -6,8 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as api from '@services/api';
-import { useAuth } from '@hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 import styles from './AssessmentGeneratorPage.module.css';
 
 interface Service {
@@ -40,6 +39,16 @@ interface Questionnaire {
   criteria: QuestionnaireQuestion[];
 }
 
+// Servicios predefinidos para fallback
+const FALLBACK_SERVICES: Service[] = [
+  { code: 'CEG', name: 'Consulta Externa General', groupName: 'Consulta Externa', totalCriteria: 128 },
+  { code: 'URG', name: 'Urgencias', groupName: 'Atención Inmediata', totalCriteria: 201 },
+  { code: 'HGP', name: 'Hospitalización General', groupName: 'Internación', totalCriteria: 228 },
+  { code: 'QRG', name: 'Quirúrgico', groupName: 'Quirúrgico', totalCriteria: 205 },
+  { code: 'LAB', name: 'Laboratorio Clínico', groupName: 'Apoyo Diagnóstico', totalCriteria: 59 },
+  { code: 'IDX', name: 'Imágenes Diagnósticas', groupName: 'Apoyo Diagnóstico', totalCriteria: 125 },
+];
+
 export function AssessmentGeneratorPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -49,6 +58,7 @@ export function AssessmentGeneratorPage() {
   );
   const [services, setServices] = useState<Service[]>([]);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [assessmentVersion, setAssessmentVersion] = useState<
     'initial' | 'year4' | 'annual' | 'pre-novelty'
   >('initial');
@@ -66,11 +76,26 @@ export function AssessmentGeneratorPage() {
   const loadServices = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const response = await fetch('/api/norma3100/services');
+
+      if (!response.ok) {
+        throw new Error('No se pudo conectar con el servidor');
+      }
+
       const data = await response.json();
-      setServices(data.services || []);
+
+      if (!data.services || data.services.length === 0) {
+        throw new Error('No hay servicios disponibles');
+      }
+
+      setServices(data.services);
     } catch (err: any) {
-      setError('Error cargando servicios: ' + err.message);
+      console.warn('Error al cargar servicios del API, usando datos locales:', err.message);
+      // Fallback: usar los servicios predefinidos locales
+      setServices(FALLBACK_SERVICES);
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -86,10 +111,23 @@ export function AssessmentGeneratorPage() {
 
     try {
       setLoading(true);
+      setError(null);
+
       const response = await fetch(
         `/api/norma3100/questionnaires/${selectedService.code}/${assessmentVersion}`
       );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al cargar el cuestionario');
+      }
+
       const data = await response.json();
+
+      if (!data.questionnaire || !data.questionnaire.criteria) {
+        throw new Error('Cuestionario sin criterios');
+      }
+
       setQuestionnaire(data.questionnaire);
 
       // Initialize responses
@@ -101,7 +139,9 @@ export function AssessmentGeneratorPage() {
 
       setStep('assessment');
     } catch (err: any) {
-      setError('Error cargando cuestionario: ' + err.message);
+      const errorMessage = err.message || 'Error desconocido al cargar el cuestionario';
+      setError(errorMessage);
+      console.error('Error loading questionnaire:', err);
     } finally {
       setLoading(false);
     }
@@ -147,22 +187,56 @@ export function AssessmentGeneratorPage() {
 
     try {
       setLoading(true);
+      const assessmentId = 'assess-' + Date.now();
+
+      // Convertir responses de Record a array
+      const responsesArray = questionnaire.criteria.map(criterion => ({
+        criterionId: criterion.id,
+        status: responses[criterion.id] || 'NA',
+        description: '',
+        comments: '',
+      }));
+
       const assessment = {
-        id: 'mock-' + Date.now(),
-        serviceName: selectedService?.name,
-        version: assessmentVersion,
-        responses,
-        metrics,
-        submittedDate: new Date(),
+        id: assessmentId,
+        provider_id: 'prov-' + Date.now(),
+        service_id: selectedService?.code,
+        questionnaire_id: questionnaire.id,
+        assessment_version: assessmentVersion,
+        status: 'in_progress',
+        compliance_percent: metrics.compliancePercent,
+        semaforo: metrics.semaforo,
+        started_date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        title: `Evaluación ${selectedService?.name} - ${assessmentVersion}`,
+        questionnaire: questionnaire,
+        responses: responsesArray,
+        metrics: metrics,
       };
 
-      // Save to localStorage for persistence
+      // Guardar en localStorage (para persistencia entre navegación)
       localStorage.setItem(
-        'lastAssessment',
+        `assessment-${assessmentId}`,
         JSON.stringify(assessment)
       );
 
-      navigate(`/assessments/result/${assessment.id}`, {
+      // También guardar en lastAssessment para compatibilidad
+      localStorage.setItem('lastAssessment', JSON.stringify(assessment));
+
+      // Guardar lista de evaluaciones
+      const existingAssessments = JSON.parse(localStorage.getItem('assessments') || '[]');
+      existingAssessments.push({
+        id: assessmentId,
+        title: assessment.title,
+        status: 'in_progress',
+        service_id: selectedService?.code,
+        compliance_percent: metrics.compliancePercent,
+        updated_at: new Date().toISOString(),
+      });
+      localStorage.setItem('assessments', JSON.stringify(existingAssessments));
+
+      navigate(`/assessments/${assessmentId}`, {
         state: { assessment },
       });
     } catch (err: any) {
@@ -198,25 +272,51 @@ export function AssessmentGeneratorPage() {
           <div className={styles.alert + ' ' + styles.alertError}>{error}</div>
         )}
 
+        <input
+          type="text"
+          placeholder="🔍 Buscar servicio..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            marginBottom: '20px',
+            border: '2px solid #e5e7eb',
+            borderRadius: '8px',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+          }}
+        />
+
         <div className={styles.servicesGrid}>
           {loading ? (
             <p>Cargando servicios...</p>
-          ) : services.length === 0 ? (
-            <p>No hay servicios disponibles</p>
+          ) : services.filter((s) =>
+              s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              s.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              s.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+            ).length === 0 ? (
+            <p>{searchQuery ? `No se encontraron servicios para "${searchQuery}"` : 'No hay servicios disponibles'}</p>
           ) : (
-            services.map((service) => (
-              <div
-                key={service.code}
-                className={styles.serviceCard}
-                onClick={() => handleSelectService(service)}
-              >
-                <h3>{service.name}</h3>
-                <p className={styles.groupName}>{service.groupName}</p>
-                <p className={styles.criteriaCount}>
-                  {service.totalCriteria} criterios
-                </p>
-              </div>
-            ))
+            services
+              .filter((service) =>
+                service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                service.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                service.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((service) => (
+                <div
+                  key={service.code}
+                  className={styles.serviceCard}
+                  onClick={() => handleSelectService(service)}
+                >
+                  <h3>{service.name}</h3>
+                  <p className={styles.groupName}>{service.groupName}</p>
+                  <p className={styles.criteriaCount}>
+                    {service.totalCriteria} criterios
+                  </p>
+                </div>
+              ))
           )}
         </div>
       </div>

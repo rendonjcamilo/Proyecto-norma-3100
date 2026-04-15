@@ -7,7 +7,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AssessmentForm from '../components/Assessment/AssessmentForm';
 import {
   assessmentsApi,
@@ -84,15 +84,22 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
 
 /** Mapea respuestas del backend al formato del formulario */
 function mapBackendResponses(
-  backendResponses: AssessmentResponse[] | undefined
+  backendResponses: AssessmentResponse[] | Record<string, any> | undefined
 ): FormResponse[] {
   if (!backendResponses) return [];
-  return backendResponses.map((r) => ({
-    criterionId: r.criterionId,
-    status: r.status,
-    description: r.description,
-    comments: r.comments,
-  }));
+
+  // Si es un array, convertir directamente
+  if (Array.isArray(backendResponses)) {
+    return backendResponses.map((r) => ({
+      criterionId: r.criterionId,
+      status: r.status,
+      description: r.description,
+      comments: r.comments,
+    }));
+  }
+
+  // Si es un Record (objeto), está vacío
+  return [];
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
@@ -107,6 +114,7 @@ const VERSION_LABELS: Record<string, string> = {
 export const AssessmentExecutionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [standards, setStandards] = useState<Standard[]>([]);
@@ -123,17 +131,48 @@ export const AssessmentExecutionPage: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        // 1. Cargar assessment con respuestas existentes
-        const assessmentRes = await assessmentsApi.getById(id);
-        const assessmentData = assessmentRes.data;
+        // 1. Intentar cargar desde route state primero (datos pasados en navigate)
+        let assessmentData: any = (location.state as any)?.assessment;
+
+        // 2. Si no está en route state, intentar desde localStorage
+        if (!assessmentData) {
+          const storedAssessment = localStorage.getItem('lastAssessment');
+          if (storedAssessment) {
+            try {
+              const parsed = JSON.parse(storedAssessment);
+              if (parsed.id === id) {
+                assessmentData = parsed;
+              }
+            } catch (parseErr) {
+              // Si no se puede parsear, intenta desde backend
+            }
+          }
+        }
+
+        // Si no está en localStorage, intenta desde backend
+        if (!assessmentData) {
+          try {
+            const assessmentRes = await assessmentsApi.getById(id);
+            assessmentData = assessmentRes.data;
+          } catch (backendErr) {
+            // Si tampoco en backend, mostrar error
+            throw new Error('No se encontró la evaluación');
+          }
+        }
+
         setAssessment(assessmentData);
         setInitialResponses(mapBackendResponses(assessmentData.responses));
 
-        // 2. Cargar cuestionario con criterios agrupados por estándar
-        const questionnaireId = assessmentData.questionnaire_id;
-        const questionnaireRes = await questionnairesApi.getById(questionnaireId);
-        const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
-        setStandards(grouped);
+        // 2. Si viene del JSON model, construir standards desde criterios del questionnaire
+        if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
+          const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
+          setStandards(grouped);
+        } else if (assessmentData.questionnaire_id) {
+          // Si tiene questionnaire_id pero no los criterios, cargar desde backend
+          const questionnaireRes = await questionnairesApi.getById(assessmentData.questionnaire_id);
+          const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
+          setStandards(grouped);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cargar la evaluación';
         setError(msg);
@@ -143,26 +182,63 @@ export const AssessmentExecutionPage: React.FC = () => {
     };
 
     load();
-  }, [id]);
+  }, [id, location.state]);
 
   const handleSave = async (responses: FormResponse[]) => {
-    if (!id) return;
-    await assessmentsApi.saveResponses(
-      id,
-      responses.map((r) => ({
-        criterionId: r.criterionId,
-        status: r.status,
-        description: r.description,
-        comments: r.comments,
-      }))
-    );
+    if (!id || !assessment) return;
+
+    try {
+      // Actualizar assessment en localStorage
+      const updatedAssessment = {
+        ...assessment,
+        responses: responses.map((r) => ({
+          criterionId: r.criterionId,
+          status: r.status,
+          description: r.description,
+          comments: r.comments,
+        })),
+        updated_at: new Date().toISOString(),
+      };
+
+      localStorage.setItem(`assessment-${id}`, JSON.stringify(updatedAssessment));
+      setAssessment(updatedAssessment);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar';
+      setError(msg);
+    }
   };
 
   const handleSubmit = async () => {
-    if (!id) return;
-    await assessmentsApi.submit(id);
-    setSubmitSuccess(true);
-    setTimeout(() => navigate('/assessments'), 2000);
+    if (!id || !assessment) return;
+
+    try {
+      setError(null);
+
+      // Actualizar assessment a submitted en localStorage
+      const updatedAssessment = {
+        ...assessment,
+        status: 'submitted',
+        submitted_date: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      localStorage.setItem(`assessment-${id}`, JSON.stringify(updatedAssessment));
+
+      // Actualizar en lista de evaluaciones
+      const assessments = JSON.parse(localStorage.getItem('assessments') || '[]');
+      const idx = assessments.findIndex((a: any) => a.id === id);
+      if (idx >= 0) {
+        assessments[idx].status = 'submitted';
+        assessments[idx].updated_at = new Date().toISOString();
+        localStorage.setItem('assessments', JSON.stringify(assessments));
+      }
+
+      setSubmitSuccess(true);
+      setTimeout(() => navigate('/assessments'), 2000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al enviar evaluación';
+      setError(msg);
+    }
   };
 
   // ── Estados de carga / error ──────────────────────────────────────────────
@@ -178,11 +254,15 @@ export const AssessmentExecutionPage: React.FC = () => {
 
   if (error) {
     return (
-      <div style={styles.centered}>
-        <p style={{ color: '#de350b', marginBottom: 16 }}>Error: {error}</p>
-        <button style={styles.backBtn} onClick={() => navigate('/assessments')}>
-          ← Volver a Evaluaciones
-        </button>
+      <div style={styles.page}>
+        <div style={styles.errorContainer}>
+          <div style={styles.errorIcon}>⚠️</div>
+          <h2 style={styles.errorTitle}>Error al cargar</h2>
+          <p style={styles.errorMessage}>{error}</p>
+          <button style={styles.btnError} onClick={() => navigate('/assessments')}>
+            ← Volver a Evaluaciones
+          </button>
+        </div>
       </div>
     );
   }
@@ -254,6 +334,47 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 300,
+  },
+  errorContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    padding: '40px 24px',
+    background: '#fef2f2',
+    borderRadius: '8px',
+    border: '1px solid #fecaca',
+    marginTop: '24px',
+  },
+  errorIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+  },
+  errorTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#991b1b',
+    marginBottom: '8px',
+    textAlign: 'center' as const,
+  },
+  errorMessage: {
+    color: '#7f1d1d',
+    textAlign: 'center' as const,
+    marginBottom: '24px',
+    maxWidth: '500px',
+    lineHeight: '1.5',
+  },
+  btnError: {
+    padding: '8px 16px',
+    background: '#dc2626',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'background 0.2s ease',
   },
   spinner: {
     width: 36,

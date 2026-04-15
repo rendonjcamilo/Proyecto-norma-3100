@@ -87,6 +87,8 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [expandedStandards, setExpandedStandards] = useState<Set<string>>(
     new Set(questionnaiireData.standards.map((s) => s.id).slice(0, 1))
   );
@@ -111,7 +113,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       await onSave(responsesArray);
       setLastSaved(new Date());
       setSaveMessage('✓ Guardado correctamente');
-      setTimeout(() => setSaveMessage(''), 3000);
+      setTimeout(() => setSaveMessage(''), 5000);
     } catch (error) {
       setSaveMessage('✗ Error al guardar');
       console.error('Save error:', error);
@@ -134,27 +136,34 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     const unansweredCriteria = allStandardCriteria.filter((c) => !responses.has(c.id));
 
     if (unansweredCriteria.length > 0) {
-      alert(
+      setErrorMessage(
         `Por favor responda todos los criterios. Criterios sin responder: ${unansweredCriteria.length}`
       );
       return;
     }
 
-    if (
-      window.confirm(
-        '¿Está seguro de que desea enviar la evaluación? No podrá hacer cambios después.'
-      )
-    ) {
-      setIsSubmitting(true);
-      try {
-        await onSubmit();
-      } catch (error) {
-        alert('Error al enviar la evaluación');
-        console.error('Submit error:', error);
-      } finally {
-        setIsSubmitting(false);
-      }
+    // Mostrar modal de confirmación
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowConfirmModal(false);
+    if (!onSubmit) return;
+
+    setIsSubmitting(true);
+    setErrorMessage('');
+    try {
+      await onSubmit();
+    } catch (error) {
+      setErrorMessage('Error al enviar la evaluación');
+      console.error('Submit error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleCancelSubmit = () => {
+    setShowConfirmModal(false)
   };
 
   const toggleStandard = (standardId: string) => {
@@ -194,6 +203,21 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
             </span>
           </div>
         )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="error-banner">
+            <span>⚠️</span>
+            <span>{errorMessage}</span>
+            <button
+              className="error-close"
+              onClick={() => setErrorMessage('')}
+              type="button"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Assessment Form */}
@@ -203,9 +227,13 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
             onClick={handleSave}
             disabled={isSaving || responses.size === 0}
             className="btn btn-save"
+            title={responses.size === 0 ? 'Responde al menos un criterio para guardar' : 'Guardar respuestas'}
           >
             {isSaving ? 'Guardando...' : '💾 Guardar'}
           </button>
+          {responses.size === 0 && !saveMessage && (
+            <span className="save-hint">Responde criterios primero</span>
+          )}
           {saveMessage && <span className={`save-message ${saveMessage.includes('✓') ? 'success' : 'error'}`}>{saveMessage}</span>}
         </div>
       )}
@@ -253,13 +281,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       {!readOnly && (
         <div className="form-actions">
           <button
-            onClick={handleSave}
-            disabled={isSaving || responses.size === 0}
-            className="btn btn-save"
-          >
-            {isSaving ? 'Guardando...' : '💾 Guardar'}
-          </button>
-          <button
             onClick={handleSubmit}
             disabled={isSubmitting || answeredCriteria < totalCriteria}
             className="btn btn-submit"
@@ -271,6 +292,47 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
           >
             {isSubmitting ? 'Enviando...' : '✅ Enviar Evaluación'}
           </button>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="modal-overlay" onClick={handleCancelSubmit}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirmar envío</h2>
+              <button
+                className="modal-close"
+                onClick={handleCancelSubmit}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>¿Está seguro de que desea enviar la evaluación?</p>
+              <p className="modal-warning">
+                ⚠️ No podrá hacer cambios después de enviar.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={handleCancelSubmit}
+                type="button"
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleConfirmSubmit}
+                type="button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Enviando...' : 'Sí, enviar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

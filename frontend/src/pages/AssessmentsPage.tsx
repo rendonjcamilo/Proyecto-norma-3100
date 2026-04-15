@@ -95,6 +95,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [services, setServices] = useState<HealthService[]>([]);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     type: 'initial',
@@ -108,13 +109,26 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         setLoading(true);
 
         // Intentar cargar evaluaciones existentes
+        let loadedAssessments: Assessment[] = [];
+
         try {
           const assessRes = await assessmentsApi.listByProvider(providerId);
-          setAssessments((assessRes.data || []) as Assessment[]);
+          loadedAssessments = (assessRes.data || []) as Assessment[];
         } catch (err) {
-          console.warn('No se pudieron cargar evaluaciones existentes:', err);
-          setAssessments([]);
+          console.warn('No se pudieron cargar evaluaciones desde backend, intentando localStorage:', err);
+
+          // Fallback: cargar desde localStorage
+          try {
+            const storedAssessments = localStorage.getItem('assessments');
+            if (storedAssessments) {
+              loadedAssessments = JSON.parse(storedAssessments) as Assessment[];
+            }
+          } catch (parseErr) {
+            console.warn('No se pudieron cargar evaluaciones desde localStorage:', parseErr);
+          }
         }
+
+        setAssessments(loadedAssessments);
 
         // Cargar servicios de Norma 3100 desde el modelo JSON
         try {
@@ -170,7 +184,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           </p>
         </div>
         {can('assessments', 'create') && (
-          <button className="page-btn-primary" onClick={() => setShowCreateModal(true)}>
+          <button className="page-btn-primary" onClick={() => navigate('/assessments/new')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -262,18 +276,38 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           }} onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Nueva Evaluación</h2>
 
+            {modalError && (
+              <div style={{
+                padding: '12px 16px',
+                background: '#fee2e2',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                color: '#991b1b',
+                marginBottom: '16px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}>
+                <span>⚠️</span>
+                <span>{modalError}</span>
+              </div>
+            )}
+
             <form onSubmit={async (e) => {
               e.preventDefault();
 
               // Validación del formulario
               if (!formData.title.trim()) {
-                alert('Por favor ingresa un título para la evaluación');
+                setModalError('Por favor ingresa un título para la evaluación');
                 return;
               }
               if (!formData.serviceId) {
-                alert('Por favor selecciona un servicio de salud');
+                setModalError('Por favor selecciona un servicio de salud');
                 return;
               }
+
+              setModalError(null);
 
               try {
                 setIsSubmitting(true);
@@ -310,18 +344,18 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '' });
 
-                // Intentar recargar lista
+                // Recargar desde localStorage
                 try {
-                  const res = await assessmentsApi.listByProvider(providerId);
-                  if (res.data) {
-                    setAssessments((res.data || []) as Assessment[]);
+                  const storedAssessments = localStorage.getItem('assessments');
+                  if (storedAssessments) {
+                    setAssessments(JSON.parse(storedAssessments) as Assessment[]);
                   }
                 } catch (err) {
                   console.warn('No se pudo recargar lista de evaluaciones');
                 }
               } catch (error) {
                 console.error('Error creando evaluación:', error);
-                alert(`Error: ${error instanceof Error ? error.message : 'No se pudo crear la evaluación'}`);
+                setModalError(error instanceof Error ? error.message : 'No se pudo crear la evaluación');
               } finally {
                 setIsSubmitting(false);
               }
