@@ -1,5 +1,6 @@
 /**
- * Assessments Page — Evaluaciones de cumplimiento
+ * Assessments Page — Evaluaciones de cumplimiento Norma 3100
+ * Carga servicios dinámicamente desde el modelo JSON
  */
 
 import React, { useEffect, useState } from 'react';
@@ -12,6 +13,56 @@ interface AssessmentsPageProps {
   providerId: string;
 }
 
+interface Norma3100Service {
+  code: string;
+  name: string;
+  groupName: string;
+  totalCriteria: number;
+}
+
+// Servicios de Norma 3100 del modelo JSON
+const NORMA3100_SERVICES: Norma3100Service[] = [
+  // Consulta Externa
+  { code: 'CEG', name: 'Consulta Externa General', groupName: 'Consulta Externa', totalCriteria: 128 },
+  { code: 'CEE', name: 'Consulta Externa Especializada', groupName: 'Consulta Externa', totalCriteria: 64 },
+  { code: 'CEV', name: 'Consulta Externa Virtual', groupName: 'Consulta Externa', totalCriteria: 60 },
+  { code: 'CES', name: 'Consulta Externa Seguridad Social en el Trabajo', groupName: 'Consulta Externa', totalCriteria: 30 },
+  // Apoyo Diagnóstico
+  { code: 'TRF', name: 'Terapia Física', groupName: 'Apoyo Diagnóstico', totalCriteria: 59 },
+  { code: 'RXO', name: 'Rayos X Odontológicos', groupName: 'Apoyo Diagnóstico', totalCriteria: 48 },
+  { code: 'IDX', name: 'Imágenes Diagnósticas', groupName: 'Apoyo Diagnóstico', totalCriteria: 125 },
+  { code: 'RDT', name: 'Radioterapia', groupName: 'Apoyo Diagnóstico', totalCriteria: 94 },
+  { code: 'QMT', name: 'Quimioterapia', groupName: 'Apoyo Diagnóstico', totalCriteria: 86 },
+  { code: 'DVX', name: 'Diagnóstico Vascular', groupName: 'Apoyo Diagnóstico', totalCriteria: 35 },
+  { code: 'HTR', name: 'Hematología', groupName: 'Apoyo Diagnóstico', totalCriteria: 97 },
+  { code: 'GNT', name: 'Genética', groupName: 'Apoyo Diagnóstico', totalCriteria: 43 },
+  { code: 'TLC', name: 'Técnicas Mínimamente Invasivas Laparoscópicas', groupName: 'Apoyo Diagnóstico', totalCriteria: 32 },
+  { code: 'LAB', name: 'Laboratorio Clínico', groupName: 'Apoyo Diagnóstico', totalCriteria: 59 },
+  { code: 'LAC', name: 'Laboratorio Clínico Urgencias', groupName: 'Apoyo Diagnóstico', totalCriteria: 36 },
+  { code: 'LHT', name: 'Laboratorio de Hematología', groupName: 'Apoyo Diagnóstico', totalCriteria: 33 },
+  { code: 'LPT', name: 'Laboratorio de Patología', groupName: 'Apoyo Diagnóstico', totalCriteria: 57 },
+  { code: 'DLS', name: 'Diálisis', groupName: 'Apoyo Diagnóstico', totalCriteria: 104 },
+  // Internación
+  { code: 'HGP', name: 'Hospitalización General', groupName: 'Internación', totalCriteria: 228 },
+  { code: 'HPP', name: 'Hospitalización Pediatría', groupName: 'Internación', totalCriteria: 207 },
+  { code: 'OBN', name: 'Obstetricia Neonatal', groupName: 'Internación', totalCriteria: 70 },
+  { code: 'CII', name: 'Cuidado Intermedio Neonatal', groupName: 'Internación', totalCriteria: 123 },
+  { code: 'CIP', name: 'Cuidado Intensivo Pediátrico', groupName: 'Internación', totalCriteria: 90 },
+  { code: 'CIM', name: 'Cuidado Intermedio Pediátrico', groupName: 'Internación', totalCriteria: 116 },
+  { code: 'CIA', name: 'Cuidado Intensivo Adulto', groupName: 'Internación', totalCriteria: 86 },
+  { code: 'HSC', name: 'Hospitalización Salud Mental', groupName: 'Internación', totalCriteria: 111 },
+  { code: 'HSP', name: 'Hospitalización Psiquiátrica', groupName: 'Internación', totalCriteria: 134 },
+  { code: 'CPC', name: 'Cuidado Básico Psiquiátrico', groupName: 'Internación', totalCriteria: 89 },
+  // Quirúrgico
+  { code: 'QRG', name: 'Quirúrgico', groupName: 'Quirúrgico', totalCriteria: 205 },
+  // Atención Inmediata
+  { code: 'URG', name: 'Urgencias', groupName: 'Atención Inmediata', totalCriteria: 201 },
+  { code: 'TAS', name: 'Transporte Asistencial', groupName: 'Atención Inmediata', totalCriteria: 250 },
+  { code: 'APH', name: 'Atención Prehospitalaria', groupName: 'Atención Inmediata', totalCriteria: 74 },
+  { code: 'APR', name: 'Atención del Parto', groupName: 'Atención Inmediata', totalCriteria: 173 },
+];
+
+// Fallback a servicios antiguos si algo falla
 const MOCK_SERVICES = [
   { id: 'svc-cx-001', code: 'CX-001', name: 'Consulta por medicina general', category: 'Consulta Externa', status: 'available' },
   { id: 'svc-cx-002', code: 'CX-003', name: 'Consulta especializada cardiología', category: 'Consulta Externa', status: 'available' },
@@ -55,22 +106,44 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     const load = async () => {
       try {
         setLoading(true);
-        const assessRes = await assessmentsApi.listByProvider(providerId);
-        setAssessments((assessRes.data || []) as Assessment[]);
 
+        // Intentar cargar evaluaciones existentes
         try {
-          const svcRes = await servicesApi.getAll({ status: 'available' });
-          if (svcRes.data && svcRes.data.length > 0) {
-            setServices(svcRes.data);
+          const assessRes = await assessmentsApi.listByProvider(providerId);
+          setAssessments((assessRes.data || []) as Assessment[]);
+        } catch (err) {
+          console.warn('No se pudieron cargar evaluaciones existentes:', err);
+          setAssessments([]);
+        }
+
+        // Cargar servicios de Norma 3100 desde el modelo JSON
+        try {
+          const svcRes = await fetch('/api/norma3100/services');
+          if (svcRes.ok) {
+            const data = await svcRes.json();
+            if (data.services && data.services.length > 0) {
+              // Convertir al formato esperado
+              const formattedServices = data.services.map((s: Norma3100Service) => ({
+                id: `svc-${s.code}`,
+                code: s.code,
+                name: `${s.name} (${s.totalCriteria} criterios)`,
+                category: s.groupName,
+                status: 'available'
+              }));
+              setServices(formattedServices);
+            } else {
+              setServices(MOCK_SERVICES);
+            }
           } else {
-            // Fallback cuando la BD no está disponible
             setServices(MOCK_SERVICES);
           }
-        } catch {
+        } catch (err) {
+          console.warn('No se pudieron cargar servicios de Norma 3100, usando fallback:', err);
           setServices(MOCK_SERVICES);
         }
       } catch (err) {
-        console.error('Failed to load data:', err);
+        console.error('Error cargando datos:', err);
+        setServices(MOCK_SERVICES);
       } finally {
         setLoading(false);
       }
@@ -191,25 +264,64 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
             <form onSubmit={async (e) => {
               e.preventDefault();
-              if (!formData.serviceId) {
-                alert('Selecciona un servicio');
+
+              // Validación del formulario
+              if (!formData.title.trim()) {
+                alert('Por favor ingresa un título para la evaluación');
                 return;
               }
+              if (!formData.serviceId) {
+                alert('Por favor selecciona un servicio de salud');
+                return;
+              }
+
               try {
                 setIsSubmitting(true);
-                await assessmentsApi.create({
-                  providerId,
-                  serviceId: formData.serviceId,
-                  questionnaireId: formData.serviceId,
-                  assessmentVersion: formData.type,
-                });
+
+                // Intentar crear via API
+                try {
+                  await assessmentsApi.create({
+                    providerId,
+                    serviceId: formData.serviceId,
+                    questionnaireId: formData.serviceId,
+                    assessmentVersion: formData.type,
+                  });
+                } catch (apiError) {
+                  console.warn('No se pudo crear evaluación en BD, usando JSON model:', apiError);
+
+                  // Fallback: crear evaluación desde modelo JSON
+                  const response = await fetch(`/api/norma3100/questionnaires/${formData.serviceId}/${formData.type}`);
+                  if (response.ok) {
+                    const { questionnaire } = await response.json();
+                    const newAssessment = {
+                      id: `assess-${Date.now()}`,
+                      title: formData.title,
+                      status: 'in_progress',
+                      type: formData.type,
+                      service_id: formData.serviceId,
+                      questionnaire_id: questionnaire.id,
+                      compliance_percent: 0,
+                      updated_at: new Date().toISOString(),
+                    };
+                    setAssessments(prev => [newAssessment as any, ...prev]);
+                  }
+                }
+
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '' });
-                const res = await assessmentsApi.listByProvider(providerId);
-                setAssessments((res.data || []) as Assessment[]);
+
+                // Intentar recargar lista
+                try {
+                  const res = await assessmentsApi.listByProvider(providerId);
+                  if (res.data) {
+                    setAssessments((res.data || []) as Assessment[]);
+                  }
+                } catch (err) {
+                  console.warn('No se pudo recargar lista de evaluaciones');
+                }
               } catch (error) {
-                console.error('Error creating assessment:', error);
-                alert(`Error al crear la evaluación: ${error instanceof Error ? error.message : String(error)}`);
+                console.error('Error creando evaluación:', error);
+                alert(`Error: ${error instanceof Error ? error.message : 'No se pudo crear la evaluación'}`);
               } finally {
                 setIsSubmitting(false);
               }
@@ -234,7 +346,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Servicio</label>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  Servicio de Salud <span style={{ color: '#ef4444' }}>*</span>
+                </label>
                 <select
                   value={formData.serviceId}
                   onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
@@ -242,17 +356,33 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   style={{
                     width: '100%',
                     padding: '8px 12px',
-                    border: '1px solid #ddd',
+                    border: formData.serviceId ? '1px solid #ddd' : '2px solid #ef4444',
                     borderRadius: '4px',
                     fontSize: '14px',
                     boxSizing: 'border-box',
+                    backgroundColor: formData.serviceId ? 'white' : '#fee2e2',
                   }}
                 >
-                  <option value="">-- Seleccionar servicio --</option>
-                  {services.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
+                  <option value="">-- Selecciona un servicio de salud --</option>
+                  {/* Agrupar servicios por categoría */}
+                  {['Consulta Externa', 'Apoyo Diagnóstico', 'Internación', 'Quirúrgico', 'Atención Inmediata'].map(category => {
+                    const categoryServices = services.filter(s => s.category === category);
+                    return categoryServices.length > 0 ? (
+                      <optgroup key={category} label={`${category} (${categoryServices.length})`}>
+                        {categoryServices.map(s => (
+                          <option key={s.id} value={s.code}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null;
+                  })}
                 </select>
+                {!formData.serviceId && (
+                  <small style={{ color: '#ef4444', display: 'block', marginTop: '4px' }}>
+                    Debes seleccionar un servicio para continuar
+                  </small>
+                )}
               </div>
 
               <div style={{ marginBottom: '16px' }}>
