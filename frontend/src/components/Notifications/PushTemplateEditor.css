@@ -22,12 +22,10 @@
 }
 
 .back-button {
-  padding: 8px 16px;
   border: 1px solid #ddd;
   background: white;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
   font-weight: 500;
   color: #666;
   transition: all 0.3s ease;
@@ -180,7 +178,6 @@
 }
 
 .form-group label {
-  font-size: 14px;
   font-weight: 600;
   color: #333;
 }
@@ -190,7 +187,6 @@
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
   font-family: inherit;
   transition: border-color 0.3s ease;
 }
@@ -346,7 +342,6 @@
 
 .preview-header h3 {
   margin: 0;
-  font-size: 14px;
   font-weight: 600;
   color: #333;
 }
@@ -373,7 +368,6 @@
 }
 
 .mockup-status-bar {
-  padding: 8px 16px;
   background: #222;
   color: white;
   font-size: 12px;
@@ -461,7 +455,6 @@
   background: #fff;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-size: 14px;
   animation: slideUp 0.3s ease;
   z-index: 1000;
 }
@@ -481,7 +474,6 @@
 .template-loading {
   padding: 40px;
   text-align: center;
-  font-size: 14px;
   color: #666;
 }
 
