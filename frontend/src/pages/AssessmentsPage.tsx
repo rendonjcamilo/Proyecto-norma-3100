@@ -104,6 +104,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedAssessments, setSelectedAssessments] = useState<Set<string>>(new Set());
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const { can } = useRolePermission();
 
   useEffect(() => {
@@ -191,24 +192,20 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     setSelectedAssessments(new Set());
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (selectedAssessments.size === 0) return;
+    setShowConfirmDelete(true);
+  };
 
-    // Show confirmation for multiple deletes
-    const count = selectedAssessments.size;
-    if (!window.confirm(`¿Desea eliminar ${count} evaluación${count > 1 ? 'es' : ''}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
-
+  const handleConfirmDeleteModal = async () => {
+    setShowConfirmDelete(false);
     setIsDeleting(true);
     try {
-      // Delete all selected assessments
       const deletePromises = Array.from(selectedAssessments).map((id) =>
         assessmentsApi.delete(id)
       );
       await Promise.all(deletePromises);
 
-      // Update assessments list
       setAssessments((prev) =>
         prev.filter((a) => !selectedAssessments.has(a.id))
       );
@@ -221,6 +218,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleCancelDeleteModal = () => {
+    setShowConfirmDelete(false);
   };
 
   if (loading) {
@@ -600,6 +601,119 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {showConfirmDelete && (
+        <div className="delete-confirm-overlay" onClick={handleCancelDeleteModal}>
+          <div className="delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-confirm-icon">⚠️</div>
+            <h2 className="delete-confirm-title">Eliminar Evaluaciones</h2>
+            <p className="delete-confirm-message">
+              ¿Está seguro de que desea eliminar <strong>{selectedAssessments.size}</strong> evaluación{selectedAssessments.size > 1 ? 'es' : ''}?
+            </p>
+            <p className="delete-confirm-warning">Esta acción no se puede deshacer.</p>
+            <div className="delete-confirm-actions">
+              <button
+                className="delete-confirm-btn cancel"
+                onClick={handleCancelDeleteModal}
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                className="delete-confirm-btn danger"
+                onClick={handleConfirmDeleteModal}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Eliminando...' : '🗑️ Eliminar'}
+              </button>
+            </div>
+          </div>
+          <style>{`
+            .delete-confirm-overlay {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(0, 0, 0, 0.5);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 1001;
+            }
+            .delete-confirm-modal {
+              background: white;
+              border-radius: 12px;
+              padding: 32px 24px;
+              max-width: 400px;
+              width: 90%;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              text-align: center;
+            }
+            .delete-confirm-icon {
+              font-size: 48px;
+              margin-bottom: 16px;
+            }
+            .delete-confirm-title {
+              margin: 0 0 12px;
+              font-size: 20px;
+              font-weight: 700;
+              color: #172b4d;
+            }
+            .delete-confirm-message {
+              margin: 0 0 8px;
+              font-size: 14px;
+              color: #42526e;
+              line-height: 1.5;
+            }
+            .delete-confirm-warning {
+              margin: 16px 0;
+              padding: 12px 16px;
+              background: #fff3e0;
+              border: 1px solid #ffe0b2;
+              border-radius: 6px;
+              color: #e65100;
+              font-size: 13px;
+              font-weight: 500;
+            }
+            .delete-confirm-actions {
+              display: flex;
+              gap: 12px;
+              margin-top: 24px;
+            }
+            .delete-confirm-btn {
+              flex: 1;
+              padding: 10px 16px;
+              border: none;
+              border-radius: 6px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+            .delete-confirm-btn.cancel {
+              background: #f4f5f7;
+              color: #172b4d;
+              border: 1px solid #dfe1e6;
+            }
+            .delete-confirm-btn.cancel:hover:not(:disabled) {
+              background: #e9ebf0;
+            }
+            .delete-confirm-btn.danger {
+              background: #de350b;
+              color: white;
+            }
+            .delete-confirm-btn.danger:hover:not(:disabled) {
+              background: #c42107;
+              transform: translateY(-1px);
+            }
+            .delete-confirm-btn:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };
