@@ -124,7 +124,7 @@ export function UsersPage(): JSX.Element {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1>Gestión de Usuarios</h1>
+          <h1>Gestión de usuarios</h1>
           <p>Crear y administrar usuarios con diferentes roles</p>
         </div>
         <button onClick={() => setShowCreateModal(true)} className={styles.btnCreate}>
