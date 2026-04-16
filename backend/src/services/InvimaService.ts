@@ -292,7 +292,7 @@ export class InvimaService {
       for (const attempt of attempts) {
         try {
           const params = attempt.params(variation);
-          const url = `${DATOS_GOV_ENDPOINT}/${datasetId}.json?${params}`;
+          const url = `${DATOS_GOV_ENDPOINT}/${datasetId}.json?${params.toString()}`;
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -413,21 +413,41 @@ export class InvimaService {
 
   private inferCategoria(record: Record<string, string>): string {
     const tipo = (this.pick(record, 'tipo_registro', 'modalidad') || '').toLowerCase();
-    if (tipo.includes('medicamento') || tipo.includes('msa') || tipo.includes('rsa')) return 'medicamento';
-    if (tipo.includes('dispositivo') || tipo.includes('dme')) return 'dispositivo_medico';
-    if (tipo.includes('cosmet')) return 'cosmetico';
-    if (tipo.includes('aliment')) return 'alimento';
-    if (tipo.includes('reactivo')) return 'reactivo';
+    if (tipo.includes('medicamento') || tipo.includes('msa') || tipo.includes('rsa')) {
+      return 'medicamento';
+    }
+    if (tipo.includes('dispositivo') || tipo.includes('dme')) {
+      return 'dispositivo_medico';
+    }
+    if (tipo.includes('cosmet')) {
+      return 'cosmetico';
+    }
+    if (tipo.includes('aliment')) {
+      return 'alimento';
+    }
+    if (tipo.includes('reactivo')) {
+      return 'reactivo';
+    }
     return 'otro';
   }
 
   private mapEstado(estado: string): string {
     const lower = estado.toLowerCase();
-    if (lower.includes('vigente') || lower.includes('activo')) return 'vigente';
-    if (lower.includes('vencido') || lower.includes('expirado')) return 'vencido';
-    if (lower.includes('suspend')) return 'suspendido';
-    if (lower.includes('cancel')) return 'cancelado';
-    if (lower.includes('tramite') || lower.includes('trámite')) return 'en_tramite';
+    if (lower.includes('vigente') || lower.includes('activo')) {
+      return 'vigente';
+    }
+    if (lower.includes('vencido') || lower.includes('expirado')) {
+      return 'vencido';
+    }
+    if (lower.includes('suspend')) {
+      return 'suspendido';
+    }
+    if (lower.includes('cancel')) {
+      return 'cancelado';
+    }
+    if (lower.includes('tramite') || lower.includes('trámite')) {
+      return 'en_tramite';
+    }
     return 'desconocido';
   }
 
