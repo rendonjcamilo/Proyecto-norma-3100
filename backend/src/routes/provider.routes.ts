@@ -164,6 +164,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * GET /api/providers/:id
    * Get provider by ID
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
    */
   router.get(
     '/providers/:id',
@@ -178,8 +179,25 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC: provider_admin can only see own, auditor sees assigned
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
-          return res.status(403).json({ error: 'Access denied' });
+
+        if (user.role === 'provider_admin') {
+          if (user.provider_id !== provider.id) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        if (user.role === 'auditor') {
+          const result = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [user.user_id || user.id, provider.id]
+          );
+
+          if (result.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
         }
 
         // Get related data
@@ -199,6 +217,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * PUT /api/providers/:id
    * Update provider
+   * RBAC: provider_admin (own only), super_admin (any)
    */
   router.put(
     '/providers/:id',
@@ -214,7 +233,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
+        if (user.role === 'provider_admin' && user.provider_id !== provider.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
