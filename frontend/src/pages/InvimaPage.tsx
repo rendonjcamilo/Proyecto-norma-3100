@@ -4,13 +4,14 @@
  * Gestión de inventario de medicamentos/dispositivos por proveedor
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   invimaApi,
   type InvimaRegistro,
   type ProviderInvimaItem,
   type InvimaLookupResult,
   type InvimaSummary,
+  type InvimaAlerta,
 } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import './InvimaPage.css';
@@ -44,10 +45,22 @@ const ESTADO_COLORS: Record<string, string> = {
   desconocido: '#6b778c',
 };
 
+const ALERTA_TIPO_COLORS: Record<string, string> = {
+  farmacovigilancia: '#6554c0',
+  tecnovigilancia: '#0052cc',
+  retiro_mercado: '#de350b',
+  suspension: '#ff8b00',
+  otro: '#626f86',
+};
+
 export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
+  const [activeTab, setActiveTab] = useState<'inventario' | 'por-vencer' | 'alertas' | 'exportar'>('inventario');
   const [items, setItems] = useState<ProviderInvimaItem[]>([]);
+  const [porVencer, setPorVencer] = useState<ProviderInvimaItem[]>([]);
+  const [alertas, setAlertas] = useState<InvimaAlerta[]>([]);
   const [summary, setSummary] = useState<InvimaSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
   const [lookupNumber, setLookupNumber] = useState('');
   const [lookupResult, setLookupResult] = useState<InvimaLookupResult | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -62,6 +75,14 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
     fechaVencimientoLote: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNewAlertForm, setShowNewAlertForm] = useState(false);
+  const [newAlertForm, setNewAlertForm] = useState({
+    numeroRegistro: '',
+    tipoAlerta: '',
+    descripcion: '',
+  });
+  const [showMarcarRevisadaForm, setShowMarcarRevisadaForm] = useState<string | null>(null);
+  const [accionTomada, setAccionTomada] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [filterSemaforo, setFilterSemaforo] = useState<string>('');
   const { can } = useRolePermission();
@@ -71,25 +92,39 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const loadData = async () => {
+  const loadTabData = useCallback(async () => {
     try {
       setLoading(true);
-      const [itemsRes, summaryRes] = await Promise.all([
-        invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
-        invimaApi.getResumen(providerId),
-      ]);
-      setItems(itemsRes.data || []);
-      setSummary(summaryRes.data);
+      if (activeTab === 'inventario') {
+        const [itemsRes, summaryRes] = await Promise.all([
+          invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
+          invimaApi.getResumen(providerId),
+        ]);
+        setItems(itemsRes.data || []);
+        setSummary(summaryRes.data);
+      } else if (activeTab === 'por-vencer') {
+        const res = await invimaApi.getPorVencer(providerId, 90);
+        setPorVencer(res.data || []);
+      } else if (activeTab === 'alertas') {
+        const res = await invimaApi.listAlertas({ sinRevisar: false });
+        setAlertas(res.data || []);
+      } else if (activeTab === 'exportar') {
+        if (!summary) {
+          const res = await invimaApi.getResumen(providerId);
+          setSummary(res.data);
+        }
+      }
     } catch (err) {
-      console.error('Error loading INVIMA data:', err);
+      console.error('Error loading INVIMA tab:', err);
+      showToast('error', 'Error al cargar datos');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, filterSemaforo, providerId, summary]);
 
   useEffect(() => {
-    loadData();
-  }, [providerId, filterSemaforo]);
+    loadTabData();
+  }, [loadTabData]);
 
   // ─── LOOKUP ───
   const handleLookup = async (e: React.FormEvent) => {
@@ -141,7 +176,13 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
         condicionesAlmacenamiento: '',
         fechaVencimientoLote: '',
       });
-      await loadData();
+      // Reload inventory data
+      const [itemsRes, summaryRes] = await Promise.all([
+        invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
+        invimaApi.getResumen(providerId),
+      ]);
+      setItems(itemsRes.data || []);
+      setSummary(summaryRes.data);
     } catch (err) {
       showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -149,7 +190,99 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
     }
   };
 
-  if (loading) {
+  // ─── DELETE ITEM ───
+  const handleDeleteItem = async (itemId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este item?')) return;
+    try {
+      await invimaApi.deleteProviderItem(providerId, itemId);
+      showToast('success', 'Item eliminado del inventario');
+      // Reload inventory data
+      const [itemsRes, summaryRes] = await Promise.all([
+        invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
+        invimaApi.getResumen(providerId),
+      ]);
+      setItems(itemsRes.data || []);
+      setSummary(summaryRes.data);
+    } catch (err) {
+      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // ─── NEW ALERTA ───
+  const handleNewAlerta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAlertForm.numeroRegistro || !newAlertForm.tipoAlerta || !newAlertForm.descripcion) return;
+
+    try {
+      setIsSubmitting(true);
+      await invimaApi.createAlerta({
+        numeroRegistro: newAlertForm.numeroRegistro,
+        tipoAlerta: newAlertForm.tipoAlerta,
+        descripcion: newAlertForm.descripcion,
+      });
+      showToast('success', 'Alerta registrada');
+      setShowNewAlertForm(false);
+      setNewAlertForm({ numeroRegistro: '', tipoAlerta: '', descripcion: '' });
+      // Reload alertas
+      const res = await invimaApi.listAlertas({ sinRevisar: false });
+      setAlertas(res.data || []);
+    } catch (err) {
+      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── MARCAR ALERTA REVISADA ───
+  const handleMarcarRevisada = async (e: React.FormEvent, alertaId: string) => {
+    e.preventDefault();
+    if (!accionTomada.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      await invimaApi.marcarAlertaRevisada(alertaId, accionTomada);
+      showToast('success', 'Alerta marcada como revisada');
+      setShowMarcarRevisadaForm(null);
+      setAccionTomada('');
+      // Reload alertas
+      const res = await invimaApi.listAlertas({ sinRevisar: false });
+      setAlertas(res.data || []);
+    } catch (err) {
+      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── DOWNLOAD CSV ───
+  const handleDownloadCsv = async () => {
+    try {
+      const blob = await invimaApi.exportCsv(providerId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invima-${providerId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showToast('success', 'CSV descargado');
+    } catch (err) {
+      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // ─── SEARCH INVENTORY ───
+  const filteredItems = items.filter((item) => {
+    const query = searchText.toLowerCase();
+    return (
+      (item.nombre_producto?.toLowerCase().includes(query)) ||
+      (item.nombre_comercial?.toLowerCase().includes(query)) ||
+      (item.numero_registro?.toLowerCase().includes(query))
+    );
+  });
+
+  if (loading && !summary) {
     return (
       <div className="invima-page invima-loading">
         <div className="page-spinner" />
@@ -158,11 +291,11 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
     );
   }
 
+  const alertasSinRevisar = alertas.filter((a) => !a.revisada).length;
+
   return (
     <div className="invima-page">
-      {toast && (
-        <div className={`invima-toast invima-toast-${toast.type}`}>{toast.message}</div>
-      )}
+      {toast && <div className={`invima-toast invima-toast-${toast.type}`}>{toast.message}</div>}
 
       {/* HEADER */}
       <header className="invima-header">
@@ -203,75 +336,389 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
         </div>
       )}
 
-      {/* FILTROS */}
-      <div className="invima-filters">
-        <span className="filter-label">Filtrar por semáforo:</span>
-        {['', 'verde', 'amarillo', 'naranja', 'rojo'].map((s) => (
-          <button
-            key={s}
-            className={`filter-btn ${filterSemaforo === s ? 'active' : ''}`}
-            style={s ? { borderColor: SEMAFORO_COLORS[s], color: filterSemaforo === s ? '#fff' : SEMAFORO_COLORS[s], background: filterSemaforo === s ? SEMAFORO_COLORS[s] : 'transparent' } : undefined}
-            onClick={() => setFilterSemaforo(s)}
-          >
-            {s ? SEMAFORO_LABELS[s] : 'Todos'}
-          </button>
-        ))}
-      </div>
+      {/* TABS */}
+      <nav className="invima-tabs">
+        <button
+          className={`invima-tab ${activeTab === 'inventario' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventario')}
+        >
+          Inventario
+        </button>
+        <button
+          className={`invima-tab ${activeTab === 'por-vencer' ? 'active' : ''}`}
+          onClick={() => setActiveTab('por-vencer')}
+        >
+          Por Vencer
+        </button>
+        <button
+          className={`invima-tab ${activeTab === 'alertas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('alertas')}
+        >
+          Alertas {alertasSinRevisar > 0 && <span className="tab-badge">{alertasSinRevisar}</span>}
+        </button>
+        <button
+          className={`invima-tab ${activeTab === 'exportar' ? 'active' : ''}`}
+          onClick={() => setActiveTab('exportar')}
+        >
+          Exportar
+        </button>
+      </nav>
 
-      {/* TABLA DE ITEMS */}
-      {items.length === 0 ? (
-        <div className="invima-empty">
-          <h3>Sin registros INVIMA</h3>
-          <p>Agrega medicamentos o dispositivos médicos con su registro INVIMA para el control de cumplimiento TSMD</p>
+      {/* TAB: INVENTARIO */}
+      {activeTab === 'inventario' && (
+        <div className="invima-tab-content">
+          {/* FILTROS */}
+          <div className="invima-filters">
+            <span className="filter-label">Filtrar por semáforo:</span>
+            {['', 'verde', 'amarillo', 'naranja', 'rojo'].map((s) => (
+              <button
+                key={s}
+                className={`filter-btn ${filterSemaforo === s ? 'active' : ''}`}
+                style={
+                  s
+                    ? {
+                        borderColor: SEMAFORO_COLORS[s],
+                        color: filterSemaforo === s ? '#fff' : SEMAFORO_COLORS[s],
+                        background: filterSemaforo === s ? SEMAFORO_COLORS[s] : 'transparent',
+                      }
+                    : undefined
+                }
+                onClick={() => setFilterSemaforo(s)}
+              >
+                {s ? SEMAFORO_LABELS[s] : 'Todos'}
+              </button>
+            ))}
+          </div>
+
+          {/* BÚSQUEDA */}
+          <div className="search-section">
+            <input
+              type="text"
+              placeholder="Buscar por nombre de producto, nombre comercial o registro INVIMA..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="search-input"
+            />
+          </div>
+
+          {/* TABLA DE ITEMS */}
+          {filteredItems.length === 0 ? (
+            <div className="invima-empty">
+              <h3>{searchText ? 'Sin resultados' : 'Sin registros INVIMA'}</h3>
+              <p>
+                {searchText
+                  ? 'No hay medicamentos que coincidan con tu búsqueda'
+                  : 'Agrega medicamentos o dispositivos médicos con su registro INVIMA para el control de cumplimiento TSMD'}
+              </p>
+            </div>
+          ) : (
+            <div className="invima-table-wrapper">
+              <table className="invima-table">
+                <thead>
+                  <tr>
+                    <th>Semáforo</th>
+                    <th>Registro INVIMA</th>
+                    <th>Producto</th>
+                    <th>Nombre Comercial</th>
+                    <th>Lote</th>
+                    <th>Cantidad</th>
+                    <th>Vence Lote</th>
+                    <th>Venc. Registro</th>
+                    <th>Estado Registro</th>
+                    <th>Almacenamiento</th>
+                    {can('assessments', 'delete') && <th>Acciones</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.map((item) => (
+                    <tr key={item.id} className={item.semaforo === 'rojo' ? 'row-alert' : ''}>
+                      <td>
+                        <span
+                          className="semaforo-dot"
+                          style={{ background: SEMAFORO_COLORS[item.semaforo] || '#ccc' }}
+                          title={SEMAFORO_LABELS[item.semaforo]}
+                        />
+                      </td>
+                      <td className="mono">{item.numero_registro}</td>
+                      <td>{item.nombre_producto || '—'}</td>
+                      <td>{item.nombre_comercial || '—'}</td>
+                      <td className="mono">{item.lote_actual || '—'}</td>
+                      <td>{item.cantidad_disponible ?? '—'}</td>
+                      <td>{item.fecha_vencimiento_lote ? new Date(item.fecha_vencimiento_lote).toLocaleDateString('es-CO') : '—'}</td>
+                      <td>{item.vencimiento_registro ? new Date(item.vencimiento_registro).toLocaleDateString('es-CO') : '—'}</td>
+                      <td>
+                        <span
+                          className="estado-badge"
+                          style={{
+                            background: `${ESTADO_COLORS[item.estado_registro || 'desconocido']}15`,
+                            color: ESTADO_COLORS[item.estado_registro || 'desconocido'],
+                          }}
+                        >
+                          {item.estado_registro || 'N/D'}
+                        </span>
+                      </td>
+                      <td>{item.condiciones_almacenamiento || '—'}</td>
+                      {can('assessments', 'delete') && (
+                        <td>
+                          <button
+                            className="btn-action-delete"
+                            onClick={() => handleDeleteItem(item.id)}
+                            title="Eliminar item"
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="invima-table-wrapper">
-          <table className="invima-table">
-            <thead>
-              <tr>
-                <th>Semáforo</th>
-                <th>Registro INVIMA</th>
-                <th>Producto</th>
-                <th>Nombre Comercial</th>
-                <th>Lote</th>
-                <th>Cantidad</th>
-                <th>Vence Lote</th>
-                <th>Estado Registro</th>
-                <th>Almacenamiento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className={item.semaforo === 'rojo' ? 'row-alert' : ''}>
-                  <td>
+      )}
+
+      {/* TAB: POR VENCER */}
+      {activeTab === 'por-vencer' && (
+        <div className="invima-tab-content">
+          <div className="por-vencer-header">
+            <h2>{porVencer.length} medicamentos vencen en los próximos 90 días</h2>
+          </div>
+
+          {porVencer.length === 0 ? (
+            <div className="invima-empty">
+              <h3>Sin medicamentos por vencer</h3>
+              <p>Todos los medicamentos en el inventario tienen vigencia mayor a 90 días</p>
+            </div>
+          ) : (
+            <div className="invima-table-wrapper">
+              <table className="invima-table">
+                <thead>
+                  <tr>
+                    <th>Semáforo</th>
+                    <th>Producto</th>
+                    <th>Registro INVIMA</th>
+                    <th>Lote</th>
+                    <th>Fecha Venc. Lote</th>
+                    <th>Días Restantes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porVencer.map((item) => {
+                    const diasRestantes = item.fecha_vencimiento_lote
+                      ? Math.ceil((new Date(item.fecha_vencimiento_lote).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                      : 0;
+                    return (
+                      <tr key={item.id} className={diasRestantes <= 0 ? 'row-alert' : ''}>
+                        <td>
+                          <span
+                            className="semaforo-dot"
+                            style={{ background: SEMAFORO_COLORS[item.semaforo] || '#ccc' }}
+                            title={SEMAFORO_LABELS[item.semaforo]}
+                          />
+                        </td>
+                        <td>{item.nombre_producto || '—'}</td>
+                        <td className="mono">{item.numero_registro}</td>
+                        <td className="mono">{item.lote_actual || '—'}</td>
+                        <td>{item.fecha_vencimiento_lote ? new Date(item.fecha_vencimiento_lote).toLocaleDateString('es-CO') : '—'}</td>
+                        <td>
+                          <strong style={{ color: diasRestantes <= 0 ? SEMAFORO_COLORS.rojo : diasRestantes <= 30 ? SEMAFORO_COLORS.naranja : SEMAFORO_COLORS.verde }}>
+                            {diasRestantes} días
+                          </strong>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: ALERTAS */}
+      {activeTab === 'alertas' && (
+        <div className="invima-tab-content">
+          {can('assessments', 'create') && (
+            <div className="alertas-actions">
+              <button className="invima-btn-primary" onClick={() => setShowNewAlertForm(true)}>
+                + Nueva Alerta
+              </button>
+            </div>
+          )}
+
+          {alertas.length === 0 ? (
+            <div className="invima-empty">
+              <h3>Sin alertas INVIMA</h3>
+              <p>No hay alertas de farmacovigilancia o tecnovigilancia registradas</p>
+            </div>
+          ) : (
+            <div className="alertas-list">
+              {alertas.map((alerta) => (
+                <div key={alerta.id} className="alerta-item">
+                  <div className="alerta-header">
                     <span
-                      className="semaforo-dot"
-                      style={{ background: SEMAFORO_COLORS[item.semaforo] || '#ccc' }}
-                      title={SEMAFORO_LABELS[item.semaforo]}
-                    />
-                  </td>
-                  <td className="mono">{item.numero_registro}</td>
-                  <td>{item.nombre_producto || '—'}</td>
-                  <td>{item.nombre_comercial || '—'}</td>
-                  <td className="mono">{item.lote_actual || '—'}</td>
-                  <td>{item.cantidad_disponible ?? '—'}</td>
-                  <td>{item.fecha_vencimiento_lote ? new Date(item.fecha_vencimiento_lote).toLocaleDateString('es-CO') : '—'}</td>
-                  <td>
-                    <span
-                      className="estado-badge"
+                      className="alerta-tipo-badge"
                       style={{
-                        background: `${ESTADO_COLORS[item.estado_registro || 'desconocido']}15`,
-                        color: ESTADO_COLORS[item.estado_registro || 'desconocido'],
+                        background: `${ALERTA_TIPO_COLORS[alerta.tipo_alerta]}15`,
+                        color: ALERTA_TIPO_COLORS[alerta.tipo_alerta],
                       }}
                     >
-                      {item.estado_registro || 'N/D'}
+                      {alerta.tipo_alerta.replace(/_/g, ' ').toUpperCase()}
                     </span>
-                  </td>
-                  <td>{item.condiciones_almacenamiento || '—'}</td>
-                </tr>
+                    <span className={`alerta-status ${alerta.revisada ? 'revisada' : 'pendiente'}`}>
+                      {alerta.revisada ? '✓ Revisada' : '⊘ Pendiente'}
+                    </span>
+                  </div>
+                  <div className="alerta-content">
+                    <p className="alerta-numero">
+                      <strong>Registro:</strong> {alerta.numero_registro}
+                    </p>
+                    <p className="alerta-descripcion">{alerta.descripcion}</p>
+                    <p className="alerta-fecha">
+                      {new Date(alerta.fecha_alerta).toLocaleDateString('es-CO')}
+                    </p>
+                    {alerta.accion_tomada && <p className="alerta-accion"><strong>Acción:</strong> {alerta.accion_tomada}</p>}
+                  </div>
+                  {!alerta.revisada && can('assessments', 'create') && (
+                    <>
+                      {showMarcarRevisadaForm === alerta.id ? (
+                        <form onSubmit={(e) => handleMarcarRevisada(e, alerta.id)} className="alerta-form">
+                          <textarea
+                            placeholder="Describe la acción tomada..."
+                            value={accionTomada}
+                            onChange={(e) => setAccionTomada(e.target.value)}
+                            className="alerta-textarea"
+                            required
+                          />
+                          <div className="alerta-form-actions">
+                            <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
+                              {isSubmitting ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-cancel"
+                              onClick={() => {
+                                setShowMarcarRevisadaForm(null);
+                                setAccionTomada('');
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button className="btn-marcar-revisada" onClick={() => setShowMarcarRevisadaForm(alerta.id)}>
+                          Marcar revisada
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
+
+          {/* FORM: NUEVA ALERTA */}
+          {showNewAlertForm && (
+            <div className="invima-modal-overlay" onClick={() => setShowNewAlertForm(false)}>
+              <div className="invima-modal" onClick={(e) => e.stopPropagation()}>
+                <h2>Registrar Nueva Alerta INVIMA</h2>
+                <form onSubmit={handleNewAlerta}>
+                  <div className="form-field">
+                    <label>Número de Registro INVIMA</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: INVIMA 2020M-0012345"
+                      value={newAlertForm.numeroRegistro}
+                      onChange={(e) => setNewAlertForm({ ...newAlertForm, numeroRegistro: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label>Tipo de Alerta</label>
+                    <select
+                      value={newAlertForm.tipoAlerta}
+                      onChange={(e) => setNewAlertForm({ ...newAlertForm, tipoAlerta: e.target.value })}
+                      required
+                    >
+                      <option value="">Selecciona un tipo</option>
+                      <option value="farmacovigilancia">Farmacovigilancia</option>
+                      <option value="tecnovigilancia">Tecnovigilancia</option>
+                      <option value="retiro_mercado">Retiro de Mercado</option>
+                      <option value="suspension">Suspensión</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <label>Descripción</label>
+                    <textarea
+                      placeholder="Describe los detalles de la alerta..."
+                      value={newAlertForm.descripcion}
+                      onChange={(e) => setNewAlertForm({ ...newAlertForm, descripcion: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn-cancel" onClick={() => setShowNewAlertForm(false)}>
+                      Cancelar
+                    </button>
+                    <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
+                      {isSubmitting ? 'Registrando...' : 'Registrar Alerta'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB: EXPORTAR */}
+      {activeTab === 'exportar' && (
+        <div className="invima-tab-content">
+          <div className="export-section">
+            <h2>Exportar Cumplimiento TSMD</h2>
+            <p>Descarga el inventario completo de medicamentos y dispositivos en formato CSV para análisis en Excel.</p>
+
+            {summary && (
+              <div className="export-summary-grid">
+                <div className="export-card">
+                  <div className="export-number">{summary.totalItems}</div>
+                  <div className="export-label">Total de Items</div>
+                </div>
+                <div className="export-card">
+                  <div className="export-number">{summary.porcentajeCumplimientoTsmd}%</div>
+                  <div className="export-label">Cumplimiento TSMD</div>
+                </div>
+                <div className="export-card">
+                  <div className="export-number">{summary.registrosVigentes}</div>
+                  <div className="export-label">Registros Vigentes</div>
+                </div>
+              </div>
+            )}
+
+            <div className="export-actions">
+              <button className="invima-btn-primary invima-btn-large" onClick={handleDownloadCsv}>
+                ⬇️ Descargar CSV
+              </button>
+            </div>
+
+            <div className="export-info">
+              <h3>Contenido del archivo</h3>
+              <ul>
+                <li>Número de Registro INVIMA</li>
+                <li>Nombre del Producto</li>
+                <li>Nombre Comercial</li>
+                <li>Lote Actual</li>
+                <li>Cantidad Disponible</li>
+                <li>Fecha de Vencimiento del Lote</li>
+                <li>Fecha de Vencimiento del Registro</li>
+                <li>Estado del Registro</li>
+                <li>Semáforo de Cumplimiento</li>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
@@ -309,18 +756,34 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                         {lookupResult.cached && <span className="result-cached">Cache</span>}
                       </div>
                       <div className="result-grid">
-                        <div><strong>Producto:</strong> {lookupResult.data.nombre_producto || 'N/D'}</div>
-                        <div><strong>Categoría:</strong> {lookupResult.data.categoria || 'N/D'}</div>
-                        <div><strong>Estado:</strong>
+                        <div>
+                          <strong>Producto:</strong> {lookupResult.data.nombre_producto || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>Categoría:</strong> {lookupResult.data.categoria || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>Estado:</strong>
                           <span style={{ color: ESTADO_COLORS[lookupResult.data.estado || 'desconocido'] }}>
-                            {' '}{lookupResult.data.estado}
+                            {' '}
+                            {lookupResult.data.estado}
                           </span>
                         </div>
-                        <div><strong>Titular:</strong> {lookupResult.data.titular_registro || 'N/D'}</div>
-                        <div><strong>Fabricante:</strong> {lookupResult.data.titular_fabricante || 'N/D'}</div>
-                        <div><strong>Principios Activos:</strong> {lookupResult.data.principios_activos || 'N/D'}</div>
-                        <div><strong>Vencimiento Registro:</strong> {lookupResult.data.fecha_vencimiento || 'N/D'}</div>
-                        <div><strong>País:</strong> {lookupResult.data.pais_origen || 'N/D'}</div>
+                        <div>
+                          <strong>Titular:</strong> {lookupResult.data.titular_registro || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>Fabricante:</strong> {lookupResult.data.titular_fabricante || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>Principios Activos:</strong> {lookupResult.data.principios_activos || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>Vencimiento Registro:</strong> {lookupResult.data.fecha_vencimiento || 'N/D'}
+                        </div>
+                        <div>
+                          <strong>País:</strong> {lookupResult.data.pais_origen || 'N/D'}
+                        </div>
                       </div>
                     </>
                   ) : (

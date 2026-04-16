@@ -583,6 +583,7 @@ export interface ProviderInvimaItem {
   nombre_producto?: string;
   estado_registro?: string;
   categoria?: string;
+  vencimiento_registro?: string;
 }
 
 export interface InvimaSummary {
@@ -595,6 +596,18 @@ export interface InvimaSummary {
   registrosNoVigentes: number;
   proximoVencimiento: string | null;
   porcentajeCumplimientoTsmd: number;
+}
+
+export interface InvimaAlerta {
+  id: string;
+  numero_registro: string;
+  tipo_alerta: 'farmacovigilancia' | 'tecnovigilancia' | 'retiro_mercado' | 'suspension' | 'otro';
+  descripcion: string;
+  fecha_alerta: string;
+  revisada: boolean;
+  revisada_por?: string;
+  accion_tomada?: string;
+  created_at: string;
 }
 
 export const invimaApi = {
@@ -617,11 +630,66 @@ export const invimaApi = {
   addProviderItem: (providerId: string, payload: Record<string, unknown>) =>
     post<{ data: ProviderInvimaItem; message: string }>(`/api/providers/${providerId}/invima/items`, payload),
 
+  deleteProviderItem: (providerId: string, itemId: string) =>
+    del<{ message: string }>(`/api/providers/${providerId}/invima/items/${itemId}`),
+
   getResumen: (providerId: string) =>
     get<{ data: InvimaSummary }>(`/api/providers/${providerId}/invima/resumen`),
 
   getPorVencer: (providerId: string, dias = 90) =>
     get<{ data: ProviderInvimaItem[]; total: number }>(`/api/providers/${providerId}/invima/por-vencer?dias=${dias}`),
+
+  listAlertas: (filters?: { tipo?: string; sinRevisar?: boolean }) => {
+    const qs = filters ? '?' + new URLSearchParams(Object.entries(filters).filter(([, v]) => v).map(([k, v]) => [k, String(v)])).toString() : '';
+    return get<{ data: InvimaAlerta[]; total: number }>(`/api/invima/alertas${qs}`);
+  },
+
+  createAlerta: (payload: { numeroRegistro: string; tipoAlerta: string; descripcion: string }) =>
+    post<{ data: InvimaAlerta }>('/api/invima/alertas', payload),
+
+  marcarAlertaRevisada: (id: string, accionTomada: string) =>
+    put<{ data: InvimaAlerta }>(`/api/invima/alertas/${id}/revisar`, { accionTomada }),
+
+  exportCsv: (providerId: string) =>
+    blob(`/api/providers/${providerId}/invima/export.csv`),
+};
+
+// ─────────────────────────────────────────────
+// NOTIFICACIONES
+// ─────────────────────────────────────────────
+
+export interface EmailTemplate {
+  id: string;
+  template_name: string;
+  subject: string;
+  html_body: string;
+  variables?: string[];
+  is_active: boolean;
+}
+
+export interface SmsTemplate {
+  id: string;
+  template_name: string;
+  message_template: string;
+  max_length: number;
+  variables?: string[];
+  is_active: boolean;
+}
+
+export const notificationsApi = {
+  getEmailTemplates: () =>
+    get<{ templates: EmailTemplate[] }>('/api/multichannel/email/templates'),
+
+  getSmsTemplates: () =>
+    get<{ templates: SmsTemplate[] }>('/api/multichannel/sms/templates'),
+
+  sendToProvider: (payload: {
+    providerId: string;
+    templateName: string;
+    channel: 'email' | 'sms';
+    variables?: Record<string, string>;
+  }) =>
+    post<{ sent: number; deliveryIds: string[] }>('/api/multichannel/auditor/send', payload),
 };
 
 // ─────────────────────────────────────────────

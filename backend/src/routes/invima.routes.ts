@@ -343,5 +343,45 @@ export function createInvimaRouter(pool: Pool): Router {
     }
   );
 
+  // ─── EXPORTAR CSV ───
+
+  /**
+   * GET /api/providers/:providerId/invima/export.csv
+   * Exportar inventario INVIMA a CSV
+   */
+  router.get(
+    '/providers/:providerId/invima/export.csv',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { providerId } = req.params;
+        const items = await invimaService.listProviderItems(providerId, {});
+
+        const headers = ['Registro INVIMA', 'Producto', 'Nombre Comercial', 'Lote', 'Cantidad', 'Venc. Lote', 'Venc. Registro', 'Estado', 'Semáforo'];
+        const rows = items.map((i: any) => [
+          i.numero_registro || '',
+          i.nombre_producto || '',
+          i.nombre_comercial || '',
+          i.lote_actual || '',
+          i.cantidad_disponible || '',
+          i.fecha_vencimiento_lote || '',
+          i.vencimiento_registro || '',
+          i.estado_registro || '',
+          i.semaforo || '',
+        ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
+
+        const csv = [headers.join(','), ...rows].join('\n');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="invima-${providerId}.csv"`);
+        res.send('\uFEFF' + csv); // BOM para Excel
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error exporting INVIMA CSV', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
   return router;
 }
