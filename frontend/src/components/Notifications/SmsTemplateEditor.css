@@ -13,7 +13,7 @@
 
 /* Header */
 .editor-header {
-  display: flex;
+
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
@@ -52,7 +52,11 @@
 }
 
 .list-header {
-  display: flex;
+
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
@@ -122,7 +126,7 @@
 }
 
 .template-variables {
-  display: flex;
+
   flex-wrap: wrap;
   gap: 6px;
   margin: 12px 0;
@@ -139,7 +143,7 @@
 }
 
 .template-actions {
-  display: flex;
+
   gap: 8px;
   margin-top: 12px;
   padding-top: 12px;
@@ -161,13 +165,13 @@
 }
 
 .editor-form {
-  display: flex;
+
   flex-direction: column;
   gap: 20px;
 }
 
 .form-group {
-  display: flex;
+
   flex-direction: column;
   gap: 8px;
 }
@@ -204,7 +208,7 @@
 
 /* Variables Toolbar */
 .variables-toolbar {
-  display: flex;
+
   flex-wrap: wrap;
   gap: 8px;
   padding: 12px;
@@ -281,14 +285,14 @@
 }
 
 .variables-list {
-  display: flex;
+
   flex-wrap: wrap;
   gap: 6px;
 }
 
 /* Editor Actions */
 .editor-actions {
-  display: flex;
+
   gap: 12px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
@@ -342,7 +346,7 @@
 
 /* Editor Preview */
 .editor-preview {
-  display: flex;
+
   flex-direction: column;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -354,7 +358,7 @@
   padding: 16px;
   border-bottom: 1px solid #e0e0e0;
   background: white;
-  display: flex;
+
   justify-content: space-between;
   align-items: center;
 }
@@ -469,6 +473,10 @@
   }
 
   .list-header {
+
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
