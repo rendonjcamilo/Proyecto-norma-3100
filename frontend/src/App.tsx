@@ -46,28 +46,28 @@ function DashboardRouter(): JSX.Element {
 
 // Wrappers que extraen datos del contexto
 const AssessmentsWrapper = () => {
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <AssessmentsPage providerId={selectedProvider?.id || ""} />;
 };
 
 const FindingsWrapper = () => {
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <FindingsPage providerId={selectedProvider?.id || ""} />;
 };
 
 const ReportsWrapper = () => {
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <ReportsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
 };
 
 const DocumentsWrapper = () => {
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <DocumentsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
 };
 
 const NotificationCenterWrapper = () => {
   const { user } = useAuth();
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <NotificationCenter userId={user?.id || ""} providerId={selectedProvider?.id || ""} role={user?.role as 'auditor' | 'provider_admin' | 'provider' || 'provider'} />;
 };
 
@@ -102,14 +102,14 @@ const DeliveryStatusTrackerWrapper = () => {
 };
 
 const InvimaWrapper = () => {
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
   return <InvimaPage providerId={selectedProvider?.id || ""} />;
 };
 
 function AppContent(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isAuthenticated } = useAuth();
-  const { selectedProvider } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
 
   if (!isAuthenticated) {
     return <LoginPage />;
@@ -119,7 +119,7 @@ function AppContent(): JSX.Element {
     <div className="app-layout">
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
       <div className="app-main">
-        <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} providers={availableProviders} selectedProvider={selectedProvider} onSelectProvider={setSelectedProvider} />
         <main className="app-content">
           <Routes>
             {/* Dashboard */}

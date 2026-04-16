@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { providersApi, Provider as ApiProvider } from '@services/api';
+import { useAuth } from './AuthContext';
 
 export interface Provider {
   id: string;
@@ -10,6 +12,7 @@ export interface Provider {
 
 interface ProviderContextType {
   providers: Provider[];
+  availableProviders: Provider[];
   selectedProvider: Provider | null;
   setSelectedProvider: (provider: Provider) => void;
   isLoading: boolean;
@@ -17,7 +20,16 @@ interface ProviderContextType {
 
 const ProviderContext = createContext<ProviderContextType | undefined>(undefined);
 
-// Mock providers data
+// Transform API Provider to Context Provider
+const transformProvider = (apiProvider: ApiProvider): Provider => ({
+  id: apiProvider.id,
+  legalName: apiProvider.legal_name,
+  rut: apiProvider.rut,
+  city: apiProvider.city,
+  department: apiProvider.department,
+});
+
+// Mock providers data (fallback)
 const MOCK_PROVIDERS: Provider[] = [
   {
     id: 'prov-001',
@@ -57,24 +69,55 @@ const MOCK_PROVIDERS: Provider[] = [
 ];
 
 export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [availableProviders, setAvailableProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProviderState] = useState<Provider | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load selected provider from localStorage on mount
+  // Load providers based on user role
   useEffect(() => {
-    const savedProviderId = localStorage.getItem('selected_provider_id');
-    if (savedProviderId) {
-      const provider = MOCK_PROVIDERS.find(p => p.id === savedProviderId);
-      if (provider) {
-        setSelectedProviderState(provider);
-      } else {
-        setSelectedProviderState(MOCK_PROVIDERS[0]);
+    const loadProviders = async () => {
+      try {
+        setIsLoading(true);
+        let providersData: Provider[] = [];
+
+        // If auditor, load their assigned providers from API
+        if (user?.role === 'auditor') {
+          try {
+            const response = await providersApi.getMyProviders();
+            providersData = (response.providers || []).map(transformProvider);
+          } catch (err) {
+            console.warn('Failed to load auditor providers, using mock data:', err);
+            providersData = MOCK_PROVIDERS;
+          }
+        } else {
+          // For other roles, use mock data or set based on context
+          providersData = MOCK_PROVIDERS;
+        }
+
+        setAvailableProviders(providersData);
+
+        // Restore selected provider from localStorage
+        const savedProviderId = localStorage.getItem('selected_provider_id');
+        if (savedProviderId) {
+          const provider = providersData.find(p => p.id === savedProviderId);
+          if (provider) {
+            setSelectedProviderState(provider);
+          } else {
+            setSelectedProviderState(providersData[0] || null);
+          }
+        } else {
+          setSelectedProviderState(providersData[0] || null);
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      setSelectedProviderState(MOCK_PROVIDERS[0]);
+    };
+
+    if (user) {
+      loadProviders();
     }
-    setIsLoading(false);
-  }, []);
+  }, [user?.role, user?.id]);
 
   const setSelectedProvider = (provider: Provider) => {
     setSelectedProviderState(provider);
@@ -84,7 +127,8 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   return (
     <ProviderContext.Provider
       value={{
-        providers: MOCK_PROVIDERS,
+        providers: availableProviders,
+        availableProviders,
         selectedProvider,
         setSelectedProvider,
         isLoading,
