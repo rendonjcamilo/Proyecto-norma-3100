@@ -34,6 +34,7 @@ export interface InvimaRegistro {
   fecha_vencimiento: string | null;
   fuente_datos: string;
   ultima_consulta: string;
+  datos_crudos?: Record<string, string> | null;
   verificado_por: string | null;
   verificado_en: string | null;
   observaciones: string | null;
@@ -95,6 +96,30 @@ interface InvimaProviderSummary {
 }
 
 // ─────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────
+
+// Dataset IDs en datos.gov.co por tipo de producto
+// IMPORTANTE: Verificar vigencia en https://www.datos.gov.co/browse?q=INVIMA
+const DATASETS_POR_TIPO: Record<string, Array<{ id: string; campo: string }>> = {
+  medicamento: [
+    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+    { id: 'qhv6-en9v', campo: 'expediente' },
+  ],
+  dispositivo_medico: [
+    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+  ],
+  cosmetico: [
+    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+  ],
+  desconocido: [
+    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+  ],
+};
+
+const DATOS_GOV_ENDPOINT = 'https://www.datos.gov.co/resource';
+
+// ─────────────────────────────────────────────
 // SERVICIO
 // ─────────────────────────────────────────────
 
@@ -134,9 +159,12 @@ export class InvimaService {
       }
     }
 
-    // 2. Intentar consulta externa (datos.gov.co API abierta)
+    // 2. Detectar tipo de producto del número de registro
+    const { tipo } = this.parseNumeroRegistro(cleanNumber);
+
+    // 3. Intentar consulta externa (datos.gov.co API abierta)
     try {
-      const externalResult = await this.consultarFuenteExterna(cleanNumber);
+      const externalResult = await this.consultarFuenteExterna(cleanNumber, tipo);
 
       if (externalResult.found && externalResult.data) {
         // Upsert en cache local
@@ -144,6 +172,7 @@ export class InvimaService {
           ...externalResult.data,
           numero_registro: cleanNumber,
           fuente_datos: externalResult.source as any,
+          categoria: externalResult.data.categoria || tipo, // usar tipo como default
         });
 
         await this.logConsulta(cleanNumber, userId, externalResult.source, 'encontrado', Date.now() - startTime);
@@ -161,7 +190,7 @@ export class InvimaService {
       await this.logConsulta(cleanNumber, userId, 'externo', 'error', Date.now() - startTime, errorMsg);
     }
 
-    // 3. Si hay cache viejo, devolverlo con advertencia
+    // 4. Si hay cache viejo, devolverlo con advertencia
     if (cached.rows.length > 0) {
       return {
         found: true,
@@ -172,7 +201,7 @@ export class InvimaService {
       };
     }
 
-    // 4. No encontrado en ningún lado
+    // 5. No encontrado en ningún lado
     await this.logConsulta(cleanNumber, userId, 'ninguna', 'no_encontrado', Date.now() - startTime);
     return {
       found: false,
@@ -185,87 +214,184 @@ export class InvimaService {
   // ─── Consulta fuente externa ───
 
   private async consultarFuenteExterna(
-    numeroRegistro: string
-  ): Promise<{ found: boolean; source: string; data: Partial<InvimaRegistro> | null }> {
-    // Intento 1: datos.gov.co API REST (datos abiertos)
-    try {
-      const datosGovResult = await this.consultarDatosGov(numeroRegistro);
-      if (datosGovResult) {
-        return { found: true, source: 'datos_gov', data: datosGovResult };
+    numeroRegistro: string,
+    tipo: string
+  ): Promise<{ found: boolean; source: string; data: Partial<InvimaRegistro> | null; rawData?: Record<string, string> }> {
+    // Obtener lista de datasets para este tipo de producto
+    const datasets = DATASETS_POR_TIPO[tipo] || DATASETS_POR_TIPO.desconocido;
+
+    // Intentar cada dataset
+    for (const dataset of datasets) {
+      try {
+        const result = await this.consultarDataset(numeroRegistro, dataset.id, dataset.campo);
+        if (result) {
+          return {
+            found: true,
+            source: 'datos_gov',
+            data: result.mapped,
+            rawData: result.raw,
+          };
+        }
+      } catch (err) {
+        logger.debug({
+          msg: 'Dataset lookup failed',
+          datasetId: dataset.id,
+          numero: numeroRegistro,
+          error: String(err),
+        });
       }
-    } catch (err) {
-      logger.debug({ msg: 'datos.gov.co lookup failed', error: String(err) });
     }
 
-    // Intento 2: Portal INVIMA (futuro — cuando haya API oficial)
+    // Intento futuro: Portal INVIMA (cuando haya API oficial)
     // TODO: Implementar cuando INVIMA publique API REST oficial
-    // try {
-    //   const portalResult = await this.consultarPortalInvima(numeroRegistro);
-    //   if (portalResult) return { found: true, source: 'portal_invima', data: portalResult };
-    // } catch {}
 
     return { found: false, source: 'ninguna', data: null };
   }
 
-  // ─── datos.gov.co consulta ───
+  // ─── Consulta un dataset específico ───
 
-  private async consultarDatosGov(numeroRegistro: string): Promise<Partial<InvimaRegistro> | null> {
-    // Dataset de registros sanitarios INVIMA en datos.gov.co
-    // Endpoint Socrata Open Data API (SODA)
-    const DATOS_GOV_ENDPOINT = 'https://www.datos.gov.co/resource/i7cb-6bkz.json';
+  private async consultarDataset(
+    numeroRegistro: string,
+    datasetId: string,
+    campo: string
+  ): Promise<{ mapped: Partial<InvimaRegistro>; raw: Record<string, string> } | null> {
+    // Intento 1: $where con equality operator (más compatible)
+    const attempts = [
+      {
+        name: 'where_equality',
+        params: new URLSearchParams({
+          $where: `${campo} = '${numeroRegistro}'`,
+          $limit: '5',
+        }),
+      },
+      {
+        name: 'simple_field',
+        params: new URLSearchParams({
+          [campo]: numeroRegistro,
+          $limit: '5',
+        }),
+      },
+      {
+        name: 'fulltext_search',
+        params: new URLSearchParams({
+          $q: numeroRegistro,
+          $limit: '5',
+        }),
+      },
+    ];
 
-    const url = `${DATOS_GOV_ENDPOINT}?$where=numero_registro='${encodeURIComponent(numeroRegistro)}'&$limit=1`;
+    for (const attempt of attempts) {
+      try {
+        const url = `${DATOS_GOV_ENDPOINT}/${datasetId}.json?${attempt.params}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            Accept: 'application/json',
+            'User-Agent': 'Norma3100-ComplianceSystem/1.0',
+          },
+        });
 
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Norma3100-ComplianceSystem/1.0',
-        },
-      });
+        clearTimeout(timeout);
 
-      clearTimeout(timeout);
+        if (!response.ok) {
+          logger.debug({
+            msg: 'Dataset API returned non-200',
+            datasetId,
+            attempt: attempt.name,
+            status: response.status,
+          });
+          continue;
+        }
 
-      if (!response.ok) {
-        throw new Error(`datos.gov.co responded with ${response.status}`);
+        const results = (await response.json()) as Record<string, string>[];
+
+        if (results.length === 0) {
+          logger.debug({
+            msg: 'Dataset returned empty result',
+            datasetId,
+            attempt: attempt.name,
+          });
+          continue;
+        }
+
+        const record = results[0];
+        const mapped = this.mapDatosGovToRegistro(record);
+        return { mapped, raw: record };
+      } catch (err) {
+        logger.debug({
+          msg: 'Dataset query failed',
+          datasetId,
+          attempt: attempt.name,
+          error: String(err),
+        });
       }
-
-      const results = await response.json() as Record<string, string>[];
-
-      if (results.length === 0) return null;
-
-      const record = results[0];
-      return this.mapDatosGovToRegistro(record);
-    } catch (err) {
-      clearTimeout(timeout);
-      throw err;
     }
+
+    return null;
   }
+
+  // ─── Parser de número de registro ───
+
+  private parseNumeroRegistro(numero: string): { tipo: string; formato: string } {
+    // Patrones de registros INVIMA
+    if (/^INVIMA\s+\d{4}DM-\d+/.test(numero)) {
+      return { tipo: 'dispositivo_medico', formato: 'INVIMA_DM' };
+    }
+    if (/^INVIMA\s+\d{4}M-\d+/.test(numero)) {
+      return { tipo: 'medicamento', formato: 'INVIMA_M' };
+    }
+    if (/^INVIMA\s+\d{4}C-\d+/.test(numero)) {
+      return { tipo: 'cosmetico', formato: 'INVIMA_C' };
+    }
+    if (/^MSA-\d+/.test(numero)) {
+      return { tipo: 'medicamento', formato: 'MSA' };
+    }
+    if (/^RSA-\d+/.test(numero)) {
+      return { tipo: 'alimento', formato: 'RSA' };
+    }
+    if (/^CCG-\d+/.test(numero)) {
+      return { tipo: 'cosmetico', formato: 'CCG' };
+    }
+    return { tipo: 'desconocido', formato: 'OTRO' };
+  }
+
+  // ─── Mapeo de datos desde datos.gov.co ───
 
   private mapDatosGovToRegistro(record: Record<string, string>): Partial<InvimaRegistro> {
     return {
-      numero_registro: record.numero_registro || record.expediente || '',
-      nombre_producto: record.producto || record.nombre_producto || record.nombre_generico || null,
+      numero_registro: this.pick(record, 'numero_registro', 'expediente') || '',
+      nombre_producto: this.pick(record, 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre') || null,
       categoria: this.inferCategoria(record),
-      tipo_registro: record.tipo_registro || record.modalidad || null,
-      estado: this.mapEstado(record.estado || record.estado_registro || ''),
-      titular_registro: record.titular || record.interesado || null,
-      titular_fabricante: record.fabricante || null,
-      titular_importador: record.importador || null,
-      pais_origen: record.pais_fabricante || record.pais || null,
-      principios_activos: record.principio_activo || record.composicion || null,
-      presentaciones_autorizadas: record.presentacion || record.presentaciones || null,
-      fecha_emision: record.fecha_expedicion || record.fecha_emision || null,
-      fecha_vencimiento: record.fecha_vencimiento || record.vigencia_hasta || null,
+      tipo_registro: this.pick(record, 'tipo_registro', 'modalidad') || null,
+      estado: this.mapEstado(this.pick(record, 'estado', 'estado_registro') || ''),
+      titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social') || null,
+      titular_fabricante: this.pick(record, 'fabricante') || null,
+      titular_importador: this.pick(record, 'importador') || null,
+      pais_origen: this.pick(record, 'pais_fabricante', 'pais') || null,
+      principios_activos: this.pick(record, 'principio_activo', 'composicion', 'ingrediente_activo', 'sustancia_activa') || null,
+      presentaciones_autorizadas: this.pick(record, 'presentacion', 'presentaciones') || null,
+      fecha_emision: this.pick(record, 'fecha_expedicion', 'fecha_emision', 'fecha_otorgamiento') || null,
+      fecha_vencimiento: this.pick(record, 'fecha_vencimiento', 'vigencia_hasta', 'vence', 'fecha_expiracion') || null,
+      datos_crudos: record,
     };
   }
 
+  // ─── Helper para intentar múltiples nombres de campo ───
+
+  private pick(record: Record<string, string>, ...keys: string[]): string | null {
+    for (const k of keys) {
+      if (record[k]?.trim()) {
+        return record[k].trim();
+      }
+    }
+    return null;
+  }
+
   private inferCategoria(record: Record<string, string>): string {
-    const tipo = (record.tipo_registro || record.modalidad || '').toLowerCase();
+    const tipo = (this.pick(record, 'tipo_registro', 'modalidad') || '').toLowerCase();
     if (tipo.includes('medicamento') || tipo.includes('msa') || tipo.includes('rsa')) return 'medicamento';
     if (tipo.includes('dispositivo') || tipo.includes('dme')) return 'dispositivo_medico';
     if (tipo.includes('cosmet')) return 'cosmetico';
@@ -292,8 +418,8 @@ export class InvimaService {
         numero_registro, tipo_registro, estado, nombre_producto, categoria,
         principios_activos, presentaciones_autorizadas, clasificacion_riesgo,
         titular_registro, titular_fabricante, titular_importador, pais_origen,
-        fecha_emision, fecha_vencimiento, fuente_datos, ultima_consulta, observaciones
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW(),$16)
+        fecha_emision, fecha_vencimiento, fuente_datos, datos_crudos, ultima_consulta, observaciones
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),$17)
       ON CONFLICT (numero_registro) DO UPDATE SET
         tipo_registro = COALESCE(EXCLUDED.tipo_registro, invima_registros.tipo_registro),
         estado = COALESCE(EXCLUDED.estado, invima_registros.estado),
@@ -309,6 +435,7 @@ export class InvimaService {
         fecha_emision = COALESCE(EXCLUDED.fecha_emision, invima_registros.fecha_emision),
         fecha_vencimiento = COALESCE(EXCLUDED.fecha_vencimiento, invima_registros.fecha_vencimiento),
         fuente_datos = EXCLUDED.fuente_datos,
+        datos_crudos = EXCLUDED.datos_crudos,
         ultima_consulta = NOW(),
         updated_at = NOW()
       RETURNING *`,
@@ -328,6 +455,7 @@ export class InvimaService {
         data.fecha_emision || null,
         data.fecha_vencimiento || null,
         data.fuente_datos || 'manual',
+        data.datos_crudos ? JSON.stringify(data.datos_crudos) : null,
         data.observaciones || null,
       ]
     );
