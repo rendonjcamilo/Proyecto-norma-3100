@@ -105,6 +105,10 @@ export const ProvidersPage: React.FC = () => {
       setCreateError('Ciudad es obligatoria');
       return;
     }
+    if (!formData.auditor_id.trim()) {
+      setCreateError('Auditor es obligatorio');
+      return;
+    }
 
     setCreating(true);
     setCreateError(null);
@@ -121,10 +125,8 @@ export const ProvidersPage: React.FC = () => {
 
       const newProviderId = createRes.data.id;
 
-      // 2. Si se seleccionó un auditor, asignarlo
-      if (formData.auditor_id) {
-        await providersApi.assignAuditor(newProviderId, formData.auditor_id);
-      }
+      // 2. Asignar el auditor (obligatorio)
+      await providersApi.assignAuditor(newProviderId, formData.auditor_id);
 
       // 3. Recargar lista de prestadores
       const providersRes = await providersApi.list();
@@ -322,7 +324,7 @@ export const ProvidersPage: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="auditor_id">Asignar Auditor (opcional)</label>
+                <label htmlFor="auditor_id">Asignar Auditor *</label>
                 <select
                   id="auditor_id"
                   value={formData.auditor_id}
