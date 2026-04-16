@@ -120,7 +120,7 @@ export function SuperAdminDashboard(): JSX.Element {
       </div>
 
       <div className="dashboard-section">
-        <h2>Accesos Rápidos de Administración</h2>
+        <h2 className="section-title">Accesos rápidos de administración</h2>
         <div className="quick-access-grid">
           <button
             onClick={() => setShowCreateModal(true)}

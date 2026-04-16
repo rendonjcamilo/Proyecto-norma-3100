@@ -194,6 +194,10 @@
   font-weight: 600;
 }
 
+.section-title {
+  text-align: center !important;
+}
+
 /* Action Cards */
 .actions-grid, .quick-access-grid {
   display: grid;
