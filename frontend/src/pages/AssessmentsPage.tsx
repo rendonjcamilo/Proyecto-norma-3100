@@ -311,7 +311,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 >
                   {STATUS_LABELS[a.status]}
                 </span>
-                <span className="card-type">{ASSESSMENT_TYPES[a.type] || a.type}</span>
+                <span className="card-type">{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</span>
               </div>
               <h3 className="card-title">{a.title}</h3>
               <div className="compliance-bar-container">
