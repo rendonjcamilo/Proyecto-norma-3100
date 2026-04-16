@@ -9,6 +9,14 @@ import styles from './UsersPage.module.css';
 
 const VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: 'Administrador',
+  auditor: 'Auditor',
+  provider_admin: 'Prestador de Servicio',
+};
+
+const getRoleLabel = (role: UserRole): string => ROLE_LABELS[role] || role;
+
 export function UsersPage(): JSX.Element {
   const [users, setUsers] = useState<User[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -150,7 +158,7 @@ export function UsersPage(): JSX.Element {
                 <tr key={user.id}>
                   <td>{user.email}</td>
                   <td>{user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : '—'}</td>
-                  <td><span className={`${styles.badge} ${styles[`badge-${user.role}`]}`}>{user.role}</span></td>
+                  <td><span className={`${styles.badge} ${styles[`badge-${user.role}`]}`}>{getRoleLabel(user.role)}</span></td>
                   <td>
                     {user.provider_id
                       ? providers.find(p => p.id === user.provider_id)?.legal_name || user.provider_id
@@ -217,9 +225,9 @@ export function UsersPage(): JSX.Element {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole, provider_id: '' })}
                   disabled={creatingUser}
                 >
-                  <option value="provider_admin">Administrador de Prestador</option>
+                  <option value="provider_admin">Prestador de Servicio</option>
                   <option value="auditor">Auditor</option>
-                  <option value="super_admin">Super Administrador</option>
+                  <option value="super_admin">Administrador</option>
                 </select>
               </div>
 
