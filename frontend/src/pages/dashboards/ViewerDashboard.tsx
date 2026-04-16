@@ -30,7 +30,7 @@ export function ViewerDashboard(): JSX.Element {
       setLoading(true);
       // Mock data for demonstration
       const mockData: ComplianceData = {
-        provider_name: selectedProvider?.legal_name || '',
+        provider_name: selectedProvider?.legalName || '',
         rut: selectedProvider?.rut || '',
         compliance_rate: 72,
         last_assessment_date: new Date().toLocaleDateString('es-CO'),

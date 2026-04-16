@@ -44,15 +44,172 @@ function DashboardRouter(): JSX.Element {
   }
 }
 
+// Wrappers que extraen datos del contexto
+const AssessmentsWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <AssessmentsPage providerId={selectedProvider?.id || ""} />;
+};
+
+const FindingsWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <FindingsPage providerId={selectedProvider?.id || ""} />;
+};
+
+const ReportsWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <ReportsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
+};
+
+const DocumentsWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <DocumentsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
+};
+
+const NotificationCenterWrapper = () => {
+  const { user } = useAuth();
+  const { selectedProvider } = useProvider();
+  return <NotificationCenter userId={user?.id || ""} providerId={selectedProvider?.id || ""} role={user?.role as 'auditor' | 'provider_admin' | 'provider' || 'provider'} />;
+};
+
+const EmailTemplateEditorWrapper = () => {
+  const { user } = useAuth();
+  return <EmailTemplateEditor userId={user?.id || ""} />;
+};
+
+const SmsTemplateEditorWrapper = () => {
+  const { user } = useAuth();
+  return <SmsTemplateEditor userId={user?.id || ""} />;
+};
+
+const PushTemplateEditorWrapper = () => {
+  const { user } = useAuth();
+  return <PushTemplateEditor userId={user?.id || ""} />;
+};
+
+const MultiChannelPreferencesWrapper = () => {
+  const { user } = useAuth();
+  return <MultiChannelPreferences userId={user?.id || ""} />;
+};
+
+const NotificationAnalyticsDashboardWrapper = () => {
+  const { user } = useAuth();
+  return <NotificationAnalyticsDashboard userId={user?.id || ""} />;
+};
+
+const DeliveryStatusTrackerWrapper = () => {
+  const { user } = useAuth();
+  return <DeliveryStatusTracker userId={user?.id || ""} />;
+};
+
+const InvimaWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <InvimaPage providerId={selectedProvider?.id || ""} />;
+};
+
 function AppContent(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { isAuthenticated } = useAuth();
-  const { selectedProvider, setSelectedProvider } = useProvider();
-  const toggleSidebar = () => setSidebarOpen(prev => \!prev);
-  if (\!isAuthenticated) {
+  const { selectedProvider } = useProvider();
+
+  if (!isAuthenticated) {
     return <LoginPage />;
   }
-  return (<Routes><Route path="/" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} /></Routes>);
+
+  return (
+    <div className="app-layout">
+      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
+      <div className="app-main">
+        <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        <main className="app-content">
+          <Routes>
+            {/* Dashboard */}
+            <Route path="/" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
+
+            {/* Assessments */}
+            <Route
+              path="/assessments"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentsWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/assessments/new"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentGeneratorPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/assessments/:id"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentExecutionPage /></ProtectedRoute>}
+            />
+            <Route
+              path="/assessments/:id/results"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentResultPage /></ProtectedRoute>}
+            />
+
+            {/* Findings */}
+            <Route
+              path="/findings"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin", "viewer"]}><FindingsWrapper /></ProtectedRoute>}
+            />
+
+            {/* Providers */}
+            <Route
+              path="/providers"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><ProvidersPage /></ProtectedRoute>}
+            />
+
+            {/* Reports */}
+            <Route
+              path="/reports"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin", "viewer"]}><ReportsWrapper /></ProtectedRoute>}
+            />
+
+            {/* Documents */}
+            <Route
+              path="/documents"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><DocumentsWrapper /></ProtectedRoute>}
+            />
+
+            {/* Notifications */}
+            <Route
+              path="/notifications"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/email-templates"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/sms-templates"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><SmsTemplateEditorWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/push-templates"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><PushTemplateEditorWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/preferences"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><MultiChannelPreferencesWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/analytics"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><NotificationAnalyticsDashboardWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/delivery-status"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><DeliveryStatusTrackerWrapper /></ProtectedRoute>}
+            />
+
+            {/* INVIMA */}
+            <Route
+              path="/invima"
+              element={<ProtectedRoute requiredRoles={["super_admin", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
+            />
+
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
 }
 
 function App(): JSX.Element {

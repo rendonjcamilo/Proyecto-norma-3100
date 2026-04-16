@@ -250,6 +250,9 @@ export const providersApi = {
   list: () =>
     get<{ data: Provider[]; total: number }>('/api/providers'),
 
+  getMyProviders: () =>
+    get<{ providers: Provider[] }>('/api/providers'),
+
   getById: (id: string) =>
     get<{ data: Provider }>(`/api/providers/${id}`),
 
@@ -390,6 +393,11 @@ export const documentsApi = {
 export const reportsApi = {
   getSummary: (providerId: string) =>
     get<{ data: ComplianceSummary }>(`/api/providers/${providerId}/reports/summary`),
+
+  getGlobalSummary: () =>
+    get<{ totalProviders: number; totalAuditors: number; assessmentsInProgress: number; criticalFindings: number; avgComplianceRate: number }>(
+      '/api/reports/global-summary'
+    ),
 
   downloadCompliancePdf: (providerId: string) =>
     blob(`/api/providers/${providerId}/reports/compliance.pdf`),

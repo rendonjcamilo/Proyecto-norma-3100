@@ -69,7 +69,7 @@ export function ProviderDashboard(): JSX.Element {
     <div className="dashboard provider-dashboard">
       <div className="dashboard-header">
         <div>
-          <h1>{selectedProvider.legal_name}</h1>
+          <h1>{selectedProvider.legalName}</h1>
           <p className="subtitle">RUT: {selectedProvider.rut}</p>
         </div>
       </div>
