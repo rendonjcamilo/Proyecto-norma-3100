@@ -35,6 +35,7 @@ export interface Provider {
   id: string;
   rut: string;
   legal_name: string;
+  address?: string;
   city: string;
   department: string;
   status: string;
@@ -286,6 +287,9 @@ export const providersApi = {
 
   update: (id: string, payload: Partial<Provider>) =>
     put<{ data: Provider }>(`/api/providers/${id}`, payload),
+
+  assignAuditor: (providerId: string, auditorId: string) =>
+    post<{ message: string }>(`/api/providers/${providerId}/assign-auditor`, { auditorId }),
 };
 
 // ─────────────────────────────────────────────

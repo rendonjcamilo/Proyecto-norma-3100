@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { providersApi } from '../services/api';
+import { providersApi, usersApi, User } from '../services/api';
 import './Pages.css';
 
 interface Provider {
@@ -28,19 +28,48 @@ const STATUS_COLORS: Record<string, string> = {
   suspended: '#de350b',
 };
 
+interface FormData {
+  rut: string;
+  legal_name: string;
+  address: string;
+  city: string;
+  department: string;
+  auditor_id: string;
+}
+
+const INITIAL_FORM: FormData = {
+  rut: '',
+  legal_name: '',
+  address: '',
+  city: '',
+  department: '',
+  auditor_id: '',
+};
+
 export const ProvidersPage: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [auditors, setAuditors] = useState<User[]>([]);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await providersApi.list();
-        setProviders((res.data || []) as Provider[]);
+        const [providersRes, usersRes] = await Promise.all([
+          providersApi.list(),
+          usersApi.list(),
+        ]);
+        setProviders((providersRes.data || []) as Provider[]);
+        // Filtrar solo auditores
+        const auditorsList = (usersRes.data || []).filter((u) => u.role === 'auditor');
+        setAuditors(auditorsList);
       } catch {
-        console.error('Failed to load providers');
+        console.error('Failed to load providers or auditors');
       } finally {
         setLoading(false);
       }
@@ -57,6 +86,60 @@ export const ProvidersPage: React.FC = () => {
       p.city.toLowerCase().includes(q)
     );
   });
+
+  const handleCreate = async () => {
+    // Validar campos obligatorios
+    if (!formData.rut.trim()) {
+      setCreateError('RUT es obligatorio');
+      return;
+    }
+    if (!formData.legal_name.trim()) {
+      setCreateError('Nombre legal es obligatorio');
+      return;
+    }
+    if (!formData.address.trim()) {
+      setCreateError('Dirección es obligatoria');
+      return;
+    }
+    if (!formData.city.trim()) {
+      setCreateError('Ciudad es obligatoria');
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      // 1. Crear el prestador
+      const createRes = await providersApi.create({
+        rut: formData.rut.trim(),
+        legal_name: formData.legal_name.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        department: formData.department.trim(),
+      });
+
+      const newProviderId = createRes.data.id;
+
+      // 2. Si se seleccionó un auditor, asignarlo
+      if (formData.auditor_id) {
+        await providersApi.assignAuditor(newProviderId, formData.auditor_id);
+      }
+
+      // 3. Recargar lista de prestadores
+      const providersRes = await providersApi.list();
+      setProviders((providersRes.data || []) as Provider[]);
+
+      // 4. Cerrar modal y limpiar form
+      setShowModal(false);
+      setFormData(INITIAL_FORM);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al crear prestador';
+      setCreateError(message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -76,7 +159,14 @@ export const ProvidersPage: React.FC = () => {
             Gestión de prestadores de servicios de salud registrados
           </p>
         </div>
-        <button className="page-btn-primary">
+        <button
+          className="page-btn-primary"
+          onClick={() => {
+            setFormData(INITIAL_FORM);
+            setCreateError(null);
+            setShowModal(true);
+          }}
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -149,6 +239,132 @@ export const ProvidersPage: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => !creating && setShowModal(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Crear nuevo prestador</h2>
+              <button
+                className="modal-close"
+                onClick={() => !creating && setShowModal(false)}
+                disabled={creating}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {createError && <div className="modal-error">{createError}</div>}
+
+              <div className="form-group">
+                <label htmlFor="rut">RUT *</label>
+                <input
+                  id="rut"
+                  type="text"
+                  placeholder="Ej: 900123456-7"
+                  value={formData.rut}
+                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                  disabled={creating}
+                />
+                <small style={{ color: '#6b778c', marginTop: '4px' }}>
+                  Formato: 10-11 dígitos + guion + 1 dígito de verificación
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="legal_name">Nombre Legal *</label>
+                <input
+                  id="legal_name"
+                  type="text"
+                  placeholder="Ej: Hospital Central de Medellín"
+                  value={formData.legal_name}
+                  onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="address">Dirección *</label>
+                <input
+                  id="address"
+                  type="text"
+                  placeholder="Ej: Carrera 50 # 50-60"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="city">Ciudad *</label>
+                <input
+                  id="city"
+                  type="text"
+                  placeholder="Ej: Medellín"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="department">Departamento</label>
+                <input
+                  id="department"
+                  type="text"
+                  placeholder="Ej: Antioquia"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="auditor_id">Asignar Auditor (opcional)</label>
+                <select
+                  id="auditor_id"
+                  value={formData.auditor_id}
+                  onChange={(e) => setFormData({ ...formData, auditor_id: e.target.value })}
+                  disabled={creating}
+                >
+                  <option value="">-- Seleccionar auditor --</option>
+                  {auditors.map((auditor) => (
+                    <option key={auditor.id} value={auditor.id}>
+                      {auditor.first_name} {auditor.last_name} ({auditor.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="modal-btn-cancel"
+                onClick={() => setShowModal(false)}
+                disabled={creating}
+              >
+                Cancelar
+              </button>
+              <button
+                className="modal-btn-primary"
+                onClick={handleCreate}
+                disabled={creating}
+              >
+                {creating ? (
+                  <>
+                    <span className="spinner-small" />
+                    Creando...
+                  </>
+                ) : (
+                  'Crear Prestador'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
