@@ -12,58 +12,88 @@ interface PermissionConfig {
   canEdit: UserRole[];
   canDelete: UserRole[];
   canView: UserRole[];
+  canManage: UserRole[];
 }
 
 // Define permissions for each resource type
+// Based on the role hierarchy: super_admin > auditor > provider_admin / viewer
 const PERMISSIONS: Record<string, PermissionConfig> = {
-  findings: {
-    canCreate: ['super_admin', 'auditor', 'provider_admin'],
-    canEdit: ['super_admin', 'auditor', 'provider_admin'],
-    canDelete: ['super_admin', 'auditor'],
+  providers: {
+    canCreate: ['super_admin', 'auditor'],
+    canEdit: ['super_admin', 'auditor'],
+    canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canManage: ['super_admin'],
   },
   assessments: {
     canCreate: ['super_admin', 'auditor', 'provider_admin'],
     canEdit: ['super_admin', 'auditor', 'provider_admin'],
     canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canManage: ['super_admin', 'auditor'],
+  },
+  findings: {
+    canCreate: ['super_admin', 'auditor', 'provider_admin'],
+    canEdit: ['super_admin', 'auditor', 'provider_admin'],
+    canDelete: ['super_admin', 'auditor'],
+    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canManage: ['super_admin', 'auditor'],
   },
   documents: {
     canCreate: ['super_admin', 'auditor', 'provider_admin'],
     canEdit: ['super_admin', 'auditor', 'provider_admin'],
     canDelete: ['super_admin', 'auditor'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin', 'auditor', 'provider_admin'],
   },
   reports: {
     canCreate: ['super_admin', 'auditor'],
     canEdit: ['super_admin'],
     canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor'],
+    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canManage: ['super_admin', 'auditor'],
   },
-  providers: {
+  users: {
+    canCreate: ['super_admin', 'provider_admin'],
+    canEdit: ['super_admin', 'provider_admin'],
+    canDelete: ['super_admin'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin', 'provider_admin'],
+  },
+  questionnaires: {
     canCreate: ['super_admin'],
     canEdit: ['super_admin'],
     canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin'],
   },
   notifications: {
     canCreate: ['super_admin', 'auditor'],
     canEdit: ['super_admin'],
     canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin', 'auditor'],
   },
   templates: {
     canCreate: ['super_admin'],
     canEdit: ['super_admin'],
     canDelete: ['super_admin'],
     canView: ['super_admin'],
+    canManage: ['super_admin'],
+  },
+  invima: {
+    canCreate: ['super_admin', 'provider_admin'],
+    canEdit: ['super_admin', 'provider_admin'],
+    canDelete: ['super_admin'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin', 'provider_admin'],
   },
 };
 
 export const useRolePermission = () => {
   const { user } = useAuth();
 
-  const can = (resource: string, action: 'create' | 'edit' | 'delete' | 'view'): boolean => {
+  const can = (resource: string, action: 'create' | 'edit' | 'delete' | 'view' | 'manage'): boolean => {
     if (!user) return false;
 
     const config = PERMISSIONS[resource];
@@ -75,13 +105,29 @@ export const useRolePermission = () => {
     return allowedRoles.includes(user.role);
   };
 
-  const hasPermission = (resource: string, action: 'create' | 'edit' | 'delete' | 'view'): boolean => {
+  const hasPermission = (resource: string, action: 'create' | 'edit' | 'delete' | 'view' | 'manage'): boolean => {
     return can(resource, action);
   };
+
+  // Helper methods for common checks
+  const canViewResource = (resource: string): boolean => can(resource, 'view');
+  const canCreateResource = (resource: string): boolean => can(resource, 'create');
+  const canEditResource = (resource: string): boolean => can(resource, 'edit');
+  const canDeleteResource = (resource: string): boolean => can(resource, 'delete');
+  const canManageResource = (resource: string): boolean => can(resource, 'manage');
 
   return {
     can,
     hasPermission,
+    canViewResource,
+    canCreateResource,
+    canEditResource,
+    canDeleteResource,
+    canManageResource,
     userRole: user?.role,
+    isAdmin: user?.role === 'super_admin',
+    isAuditor: user?.role === 'auditor',
+    isProviderAdmin: user?.role === 'provider_admin',
+    isViewer: user?.role === 'viewer',
   };
 };
