@@ -20,13 +20,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * POST /api/providers
    * Create a new provider
-   * super_admin and auditor can create providers
-   * If auditor creates, they are automatically assigned to it
+   * Only super_admin can create providers
    */
   router.post(
     '/providers',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { rut, legal_name, trade_name, legal_entity_type, address, city, department, country, status } =
@@ -63,16 +62,6 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           status: status || 'active',
           created_by: user?.user_id,
         });
-
-        // If auditor creates a provider, auto-assign themselves to it
-        if (user?.role === 'auditor') {
-          await pool.query(
-            `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
-             VALUES ($1, $2, $3)
-             ON CONFLICT DO NOTHING`,
-            [user.user_id, provider.id, user.user_id]
-          );
-        }
 
         // Emit event
         await eventStore.append({
