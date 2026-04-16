@@ -7,7 +7,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assessmentsApi, servicesApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
-import DeleteConfirmationModal from '../components/Assessment/DeleteConfirmationModal';
 import './Pages.css';
 
 interface AssessmentsPageProps {
@@ -102,9 +101,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     type: 'initial',
     serviceId: ''
   });
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedAssessments, setSelectedAssessments] = useState<Set<string>>(new Set());
   const { can } = useRolePermission();
 
   useEffect(() => {
@@ -169,33 +168,59 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     load();
   }, [providerId]);
 
-  const handleDeleteClick = (assessment: Assessment, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setAssessmentToDelete(assessment);
-    setShowDeleteModal(true);
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedAssessments(new Set()); // Clear selection when toggling mode
   };
 
-  const handleConfirmDelete = async () => {
-    if (!assessmentToDelete) return;
+  const toggleAssessmentSelection = (assessmentId: string) => {
+    const newSelected = new Set(selectedAssessments);
+    if (newSelected.has(assessmentId)) {
+      newSelected.delete(assessmentId);
+    } else {
+      newSelected.add(assessmentId);
+    }
+    setSelectedAssessments(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedAssessments(new Set(assessments.map((a) => a.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedAssessments(new Set());
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedAssessments.size === 0) return;
+
+    // Show confirmation for multiple deletes
+    const count = selectedAssessments.size;
+    if (!window.confirm(`¿Desea eliminar ${count} evaluación${count > 1 ? 'es' : ''}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
 
     setIsDeleting(true);
     try {
-      await assessmentsApi.delete(assessmentToDelete.id);
-      setAssessments((prev) => prev.filter((a) => a.id !== assessmentToDelete.id));
-      setShowDeleteModal(false);
-      setAssessmentToDelete(null);
+      // Delete all selected assessments
+      const deletePromises = Array.from(selectedAssessments).map((id) =>
+        assessmentsApi.delete(id)
+      );
+      await Promise.all(deletePromises);
+
+      // Update assessments list
+      setAssessments((prev) =>
+        prev.filter((a) => !selectedAssessments.has(a.id))
+      );
+      setSelectedAssessments(new Set());
+      setSelectionMode(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error al eliminar la evaluación';
+      const msg = err instanceof Error ? err.message : 'Error al eliminar las evaluaciones';
       console.error('Delete error:', msg);
       alert(`Error: ${msg}`);
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteModal(false);
-    setAssessmentToDelete(null);
   };
 
   if (loading) {
@@ -216,15 +241,29 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             Autoevaluaciones de cumplimiento según Norma 3100 de 2019
           </p>
         </div>
-        {can('assessments', 'create') && (
-          <button className="page-btn-primary" onClick={() => navigate('/assessments/new')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Nueva Evaluación
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {can('assessments', 'delete') && assessments.length > 0 && (
+            <button
+              className={`page-btn-primary ${selectionMode ? 'active' : ''}`}
+              onClick={toggleSelectionMode}
+              style={{
+                background: selectionMode ? '#de350b' : '#0052cc',
+                borderColor: selectionMode ? '#de350b' : 'transparent',
+              }}
+            >
+              {selectionMode ? '✕ Cancelar Selección' : '✓ Seleccionar'}
+            </button>
+          )}
+          {can('assessments', 'create') && (
+            <button className="page-btn-primary" onClick={() => navigate('/assessments/new')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Nueva Evaluación
+            </button>
+          )}
+        </div>
       </header>
 
       {assessments.length === 0 ? (
@@ -240,10 +279,20 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           {assessments.map((a) => (
             <div
               key={a.id}
-              className="assessment-card"
-              onClick={() => navigate(`/assessments/${a.id}`)}
-              style={{ cursor: 'pointer' }}
+              className={`assessment-card ${selectionMode && selectedAssessments.has(a.id) ? 'selected' : ''}`}
+              onClick={() => !selectionMode && navigate(`/assessments/${a.id}`)}
+              style={{ cursor: selectionMode ? 'pointer' : 'pointer' }}
             >
+              {selectionMode && (
+                <div className="assessment-card-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedAssessments.has(a.id)}
+                    onChange={() => toggleAssessmentSelection(a.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
               <div className="assessment-card-header">
                 <span
                   className="status-badge"
@@ -255,16 +304,6 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   {STATUS_LABELS[a.status]}
                 </span>
                 <span className="card-type">{a.type}</span>
-                {can('assessments', 'delete') && (
-                  <button
-                    className="card-delete-btn"
-                    onClick={(e) => handleDeleteClick(a, e)}
-                    title="Eliminar evaluación"
-                    type="button"
-                  >
-                    🗑️
-                  </button>
-                )}
               </div>
               <h3 className="card-title">{a.title}</h3>
               <div className="compliance-bar-container">
@@ -292,6 +331,47 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Selection Control Panel */}
+      {selectionMode && (
+        <div className="selection-control-panel">
+          <div className="selection-control-info">
+            <span className="selection-count">
+              {selectedAssessments.size} de {assessments.length} evaluaciones seleccionadas
+            </span>
+          </div>
+          <div className="selection-control-actions">
+            {selectedAssessments.size > 0 && (
+              <button
+                className="btn-text"
+                onClick={deselectAll}
+                type="button"
+              >
+                Deseleccionar todo
+              </button>
+            )}
+            {selectedAssessments.size < assessments.length && (
+              <button
+                className="btn-text"
+                onClick={selectAll}
+                type="button"
+              >
+                Seleccionar todo
+              </button>
+            )}
+            {selectedAssessments.size > 0 && (
+              <button
+                className="btn-danger-action"
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                type="button"
+              >
+                {isDeleting ? 'Eliminando...' : `🗑️ Eliminar ${selectedAssessments.size}`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -520,17 +600,6 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && assessmentToDelete && (
-        <DeleteConfirmationModal
-          title="Eliminar evaluación"
-          message="¿Está seguro de que desea eliminar esta evaluación?"
-          itemName={assessmentToDelete.title || 'Evaluación sin título'}
-          isLoading={isDeleting}
-          onConfirm={handleConfirmDelete}
-          onCancel={handleCancelDelete}
-        />
-      )}
     </div>
   );
 };
