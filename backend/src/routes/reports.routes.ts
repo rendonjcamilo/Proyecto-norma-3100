@@ -237,7 +237,7 @@ export function createReportsRouter(pool: Pool): Router {
       try {
         // Total providers
         const providersResult = await pool.query<{ total: string }>(
-          'SELECT COUNT(*) as total FROM providers WHERE archived_at IS NULL'
+          "SELECT COUNT(*) as total FROM providers WHERE status = 'active'"
         );
         const totalProviders = parseInt(providersResult.rows[0]?.total || '0', 10);
 
