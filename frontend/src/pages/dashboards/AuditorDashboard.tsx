@@ -20,6 +20,14 @@ export function AuditorDashboard(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddProvider, setShowAddProvider] = useState(false);
+  const [creatingProvider, setCreatingProvider] = useState(false);
+  const [formData, setFormData] = useState({
+    rut: '',
+    legal_name: '',
+    address: '',
+    city: '',
+    department: '',
+  });
 
   useEffect(() => {
     loadProviders();
@@ -35,6 +43,21 @@ export function AuditorDashboard(): JSX.Element {
       setError(err instanceof Error ? err.message : 'Error loading providers');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setCreatingProvider(true);
+      await providersApi.create(formData);
+      setFormData({ rut: '', legal_name: '', address: '', city: '', department: '' });
+      setShowAddProvider(false);
+      loadProviders();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error creating provider');
+    } finally {
+      setCreatingProvider(false);
     }
   };
 
@@ -76,8 +99,65 @@ export function AuditorDashboard(): JSX.Element {
         <div className="modal-backdrop" onClick={() => setShowAddProvider(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h2>Crear Nuevo Prestador</h2>
-            <p>Funcionalidad en desarrollo</p>
-            <button onClick={() => setShowAddProvider(false)}>Cerrar</button>
+            <form onSubmit={handleCreateProvider} className="provider-form">
+              <div className="form-group">
+                <label>RUT *</label>
+                <input
+                  type="text"
+                  placeholder="Ej: 860.123.456-7"
+                  value={formData.rut}
+                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Nombre Legal *</label>
+                <input
+                  type="text"
+                  placeholder="Nombre completo del prestador"
+                  value={formData.legal_name}
+                  onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Dirección *</label>
+                <input
+                  type="text"
+                  placeholder="Dirección completa"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Ciudad *</label>
+                <input
+                  type="text"
+                  placeholder="Ciudad"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Departamento</label>
+                <input
+                  type="text"
+                  placeholder="Departamento"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                />
+              </div>
+              <div className="form-actions">
+                <button type="button" onClick={() => setShowAddProvider(false)} className="btn btn-outline">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={creatingProvider} className="btn btn-primary">
+                  {creatingProvider ? 'Creando...' : 'Crear Prestador'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -46,28 +46,28 @@ function DashboardRouter(): JSX.Element {
 
 // Wrappers que extraen datos del contexto
 const AssessmentsWrapper = () => {
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <AssessmentsPage providerId={selectedProvider?.id || ""} />;
 };
 
 const FindingsWrapper = () => {
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <FindingsPage providerId={selectedProvider?.id || ""} />;
 };
 
 const ReportsWrapper = () => {
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <ReportsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
 };
 
 const DocumentsWrapper = () => {
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <DocumentsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
 };
 
 const NotificationCenterWrapper = () => {
   const { user } = useAuth();
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <NotificationCenter userId={user?.id || ""} providerId={selectedProvider?.id || ""} role={user?.role as 'auditor' | 'provider_admin' | 'provider' || 'provider'} />;
 };
 
@@ -102,7 +102,7 @@ const DeliveryStatusTrackerWrapper = () => {
 };
 
 const InvimaWrapper = () => {
-  const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+  const { selectedProvider } = useProvider();
   return <InvimaPage providerId={selectedProvider?.id || ""} />;
 };
 

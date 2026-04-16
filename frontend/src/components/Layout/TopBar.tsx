@@ -74,7 +74,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const location = useLocation();
   const meta = routeTitles[location.pathname] || routeTitles['/'];
-  const breadcrumbs = location.pathname.split('/').filter(Boolean);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const { theme, setTheme } = useTheme();

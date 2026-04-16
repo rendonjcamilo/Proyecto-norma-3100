@@ -4,9 +4,9 @@
  */
 
 import './dashboards.css';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useProvider } from '@context/ProviderContext';
-import { assessmentsApi } from '@services/api';
+import { assessmentsApi, findingsApi, reportsApi } from '@services/api';
 
 interface ComplianceMetrics {
   compliance_rate: number;
@@ -28,25 +28,34 @@ export function ProviderDashboard(): JSX.Element {
     }
   }, [selectedProvider]);
 
-  const loadMetrics = async () => {
+  const loadMetrics = useCallback(async () => {
+    if (!selectedProvider) return;
     try {
       setLoading(true);
       setError(null);
-      // TODO: Replace with actual API call
-      const mockMetrics: ComplianceMetrics = {
-        compliance_rate: 72.5,
-        open_findings: 12,
-        in_progress_findings: 8,
-        resolved_findings: 15,
-        pending_actions: 5,
-      };
-      setMetrics(mockMetrics);
+
+      const assessmentsRes = await assessmentsApi.listByProvider(selectedProvider.id);
+      const findingsRes = await findingsApi.listByProvider(selectedProvider.id);
+
+      const openFindings = findingsRes.data?.filter((f: any) => f.status === 'open' || f.status === 'abierta').length || 0;
+      const inProgressFindings = findingsRes.data?.filter((f: any) => f.status === 'in_progress' || f.status === 'en_proceso').length || 0;
+      const resolvedFindings = findingsRes.data?.filter((f: any) => f.status === 'resolved' || f.status === 'cerrada').length || 0;
+
+      const complianceRate = assessmentsRes.data?.[0]?.compliance_percentage || assessmentsRes.data?.[0]?.compliance_percent || 0;
+
+      setMetrics({
+        compliance_rate: complianceRate,
+        open_findings: openFindings,
+        in_progress_findings: inProgressFindings,
+        resolved_findings: resolvedFindings,
+        pending_actions: Math.max(0, openFindings - inProgressFindings),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading metrics');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProvider]);
 
   const getTrafficLightColor = (rate: number) => {
     if (rate >= 80) return 'green';
