@@ -385,9 +385,37 @@ export interface QuestionnaireDetail {
   criteria: QuestionnaireCriterion[];
 }
 
+export interface Questionnaire {
+  id: string;
+  service_id: string;
+  service_name?: string;
+  version_type: 'initial' | 'year4' | 'annual' | 'pre-novelty';
+  name?: string;
+  status: 'draft' | 'published' | 'archived';
+  total_criteria: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export const questionnairesApi = {
+  list: (params?: { serviceId?: string; status?: string; versionType?: string }) => {
+    const qs = params
+      ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
+      : '';
+    return get<{ data: Questionnaire[]; count: number }>(`/api/questions${qs}`);
+  },
+
   getById: (id: string) =>
     get<{ data: QuestionnaireDetail }>(`/api/questions/${id}`),
+
+  create: (payload: { serviceId: string; versionType: 'initial' | 'year4' | 'annual' | 'pre-novelty'; name?: string }) =>
+    post<{ data: Questionnaire }>('/api/questions', payload),
+
+  update: (id: string, payload: { name?: string; status?: string }) =>
+    put<{ data: Questionnaire }>(`/api/questions/${id}`, payload),
+
+  delete: (id: string) =>
+    request<{ message: string }>('DELETE', `/api/questions/${id}`),
 };
 
 // ─────────────────────────────────────────────

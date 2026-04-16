@@ -14,6 +14,7 @@ import { AssessmentGeneratorPage } from "./pages/AssessmentGeneratorPage";
 import { AssessmentResultPage } from "./pages/AssessmentResultPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { UsersPage } from "./pages/UsersPage";
+import { QuestionnairesPage } from "./pages/QuestionnairesPage";
 import { InvimaPage } from "./pages/InvimaPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
@@ -160,6 +161,12 @@ function AppContent(): JSX.Element {
             <Route
               path="/users"
               element={<ProtectedRoute requiredRoles={["super_admin"]}><UsersPage /></ProtectedRoute>}
+            />
+
+            {/* Questionnaires */}
+            <Route
+              path="/questionnaires"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><QuestionnairesPage /></ProtectedRoute>}
             />
 
             {/* Reports */}
