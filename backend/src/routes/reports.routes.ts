@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { rbacMiddleware } from '../middleware/role.middleware.js';
+import { rbacMiddleware, providerAccessMiddleware } from '../middleware/role.middleware.js';
 import { reportLimiter } from '../middleware/rate-limit.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';
 import { ReportService } from '../services/ReportService.js';
