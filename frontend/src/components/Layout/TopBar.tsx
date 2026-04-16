@@ -95,23 +95,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </svg>
         </button>
 
-        <div className="topbar-titles">
-          <nav className="breadcrumbs" aria-label="Ruta de navegación">
-            <span className="crumb">Norma 3100</span>
-            {breadcrumbs.length > 0 && (
-              <>
-                <span className="crumb-separator">/</span>
-                {breadcrumbs.map((crumb, idx) => (
-                  <React.Fragment key={idx}>
-                    <span className="crumb">{crumb.charAt(0).toUpperCase() + crumb.slice(1)}</span>
-                    {idx < breadcrumbs.length - 1 && <span className="crumb-separator">/</span>}
-                  </React.Fragment>
-                ))}
-              </>
-            )}
-          </nav>
-          <h1 className="topbar-title">{meta.title}</h1>
-        </div>
+        <h1 className="topbar-title">{meta.title}</h1>
 
         {providers.length > 0 && (
           <ProviderSelector
