@@ -286,6 +286,9 @@
 .btn-primary {
   background-color: #2196f3;
   color: white;
+}
+
+.editor-actions .btn-primary {
   flex: 1;
 }
 
