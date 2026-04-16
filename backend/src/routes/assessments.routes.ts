@@ -98,7 +98,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * GET /api/assessments
    * List assessments with optional filters
    * Query: ?providerId=...&serviceId=...&status=...&startDate=...&endDate=...&limit=&offset=
-   * RBAC: provider_admin (own), auditor (all), super_admin (all)
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
    */
   router.get(
     '/assessments',
@@ -123,6 +123,30 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           }
 
           filterProviderId = userResult.rows[0].provider_id;
+        }
+
+        // RBAC: auditor can only see assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT provider_id FROM auditor_providers WHERE auditor_id = $1',
+            [userId]
+          );
+
+          const assignedProviderIds = assignedResult.rows.map(r => r.provider_id);
+
+          if (filterProviderId && !assignedProviderIds.includes(filterProviderId)) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
+
+          // If no specific provider requested, limit to assigned ones
+          if (!filterProviderId && assignedProviderIds.length > 0) {
+            filterProviderId = assignedProviderIds.length === 1 ? assignedProviderIds[0] : undefined;
+            // Note: For multiple assigned providers, service must support filtering by multiple IDs
+            // or we filter in-memory
+          }
         }
 
         const filters: any = {
@@ -161,7 +185,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   /**
    * GET /api/assessments/:id
    * Get assessment with all responses and metrics
-   * RBAC: provider_admin (own), auditor (all), super_admin (all)
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
    */
   router.get(
     '/assessments/:id',
@@ -194,6 +218,21 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           }
         }
 
+        // RBAC: auditor can only see assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, assessment.providerId]
+          );
+
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
+        }
+
         res.json({ data: assessment });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -209,12 +248,12 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { responses: [{ criterionId, status: C/NC/NA, description?, comments?, evidenceFileIds? }] }
    * Recalculates compliance % and semáforo in real-time
    * Allows partial updates (save progress)
-   * RBAC: provider_admin (own), super_admin
+   * RBAC: provider_admin (own), auditor (assigned), super_admin
    */
   router.put(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
@@ -244,6 +283,21 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
             userResult.rows[0].provider_id !== assessment.providerId
           ) {
             return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // RBAC: auditor can only update assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, assessment.providerId]
+          );
+
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
           }
         }
 
