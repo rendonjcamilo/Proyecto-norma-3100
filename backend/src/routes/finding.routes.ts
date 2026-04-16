@@ -84,14 +84,56 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
   /**
    * GET /api/findings
    * List findings
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
    */
   router.get(
     '/findings',
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
+        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.id || (req as any).userId;
+        let { provider_id } = req.query;
+
+        // RBAC: provider_admin can only see own provider
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId]
+          );
+
+          if (userResult.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+
+          provider_id = userResult.rows[0].provider_id;
+        }
+
+        // RBAC: auditor can only see assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT provider_id FROM auditor_providers WHERE auditor_id = $1',
+            [userId]
+          );
+
+          const assignedProviderIds = assignedResult.rows.map(r => r.provider_id);
+
+          if (provider_id && !assignedProviderIds.includes(provider_id as string)) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
+
+          // If no specific provider requested, limit to assigned ones
+          // (filtering logic in findingModel.getFindings must support array of provider IDs)
+          if (!provider_id && assignedProviderIds.length > 0) {
+            provider_id = assignedProviderIds.length === 1 ? assignedProviderIds[0] : undefined;
+          }
+        }
+
         const filters = {
-          provider_id: req.query.provider_id as string,
+          provider_id: provider_id as string,
           severity: req.query.severity as string,
           status: req.query.status as string,
           category_id: req.query.category_id as string,
@@ -117,16 +159,46 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
   /**
    * GET /api/findings/:id
    * Get finding with actions and history
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
    */
   router.get(
     '/findings/:id',
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
+        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.id || (req as any).userId;
         const finding = await findingModel.getFindingById(req.params.id);
 
         if (!finding) {
           return res.status(404).json({ error: 'Finding not found' });
+        }
+
+        // RBAC: provider_admin can only see own provider
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId]
+          );
+
+          if (userResult.rows.length === 0 || userResult.rows[0].provider_id !== finding.provider_id) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // RBAC: auditor can only see assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, finding.provider_id]
+          );
+
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
         }
 
         // Get related actions
