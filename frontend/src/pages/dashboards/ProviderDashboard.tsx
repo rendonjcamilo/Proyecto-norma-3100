@@ -1,9 +1,9 @@
 /**
-import './dashboards.css';
  * Provider Admin Dashboard
  * Compliance metrics and management for a single provider
  */
 
+import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { useProvider } from '@context/ProviderContext';
 import { assessmentsApi } from '@services/api';

@@ -1,9 +1,9 @@
 /**
-import './dashboards.css';
  * Auditor Dashboard
  * Manage assigned providers and review pending evaluations
  */
 
+import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { providersApi, assessmentsApi } from '@services/api';
 

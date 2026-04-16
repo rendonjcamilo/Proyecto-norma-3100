@@ -1,9 +1,9 @@
 /**
-import './dashboards.css';
  * Viewer Dashboard
  * Read-only compliance view for external inspectors
  */
 
+import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { useProvider } from '@context/ProviderContext';
 

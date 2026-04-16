@@ -1,9 +1,9 @@
 /**
-import './dashboards.css';
  * Super Admin Dashboard
  * Global metrics and quick access for system administration
  */
 
+import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { reportsApi } from '@services/api';
 
