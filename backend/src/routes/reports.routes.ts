@@ -236,34 +236,34 @@ export function createReportsRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         // Total providers
-        const providersResult = await pool.query<{ count: string }>(
-          'SELECT COUNT(*) FROM providers WHERE archived_at IS NULL'
+        const providersResult = await pool.query<{ total: string }>(
+          'SELECT COUNT(*) as total FROM providers WHERE archived_at IS NULL'
         );
-        const totalProviders = parseInt(providersResult.rows[0]?.count || '0', 10);
+        const totalProviders = parseInt(providersResult.rows[0]?.total || '0', 10);
 
         // Total auditors
-        const auditorsResult = await pool.query<{ count: string }>(
-          "SELECT COUNT(DISTINCT id) FROM users WHERE role = 'auditor'"
+        const auditorsResult = await pool.query<{ total: string }>(
+          "SELECT COUNT(DISTINCT id) as total FROM users WHERE role = 'auditor'"
         );
-        const totalAuditors = parseInt(auditorsResult.rows[0]?.count || '0', 10);
+        const totalAuditors = parseInt(auditorsResult.rows[0]?.total || '0', 10);
 
         // Assessments in progress
-        const assessmentsResult = await pool.query<{ count: string }>(
-          "SELECT COUNT(*) FROM assessments WHERE status IN ('draft', 'in_progress')"
+        const assessmentsResult = await pool.query<{ total: string }>(
+          "SELECT COUNT(*) as total FROM assessments WHERE status IN ('draft', 'in_progress')"
         );
-        const assessmentsInProgress = parseInt(assessmentsResult.rows[0]?.count || '0', 10);
+        const assessmentsInProgress = parseInt(assessmentsResult.rows[0]?.total || '0', 10);
 
         // Critical findings
-        const criticalFindingsResult = await pool.query<{ count: string }>(
-          "SELECT COUNT(*) FROM findings WHERE severity IN ('critical', 'critica') AND status IN ('open', 'abierta', 'in_progress', 'en_proceso')"
+        const criticalFindingsResult = await pool.query<{ total: string }>(
+          "SELECT COUNT(*) as total FROM findings WHERE severity IN ('critical', 'critica') AND status IN ('open', 'abierta', 'in_progress', 'en_proceso')"
         );
-        const criticalFindings = parseInt(criticalFindingsResult.rows[0]?.count || '0', 10);
+        const criticalFindings = parseInt(criticalFindingsResult.rows[0]?.total || '0', 10);
 
         // Average compliance rate (across all assessments)
-        const complianceResult = await pool.query<{ avg: string }>(
+        const complianceResult = await pool.query<{ avg: string | null }>(
           'SELECT AVG(COALESCE(compliance_percent, compliance_percentage)) as avg FROM assessments WHERE compliance_percent IS NOT NULL OR compliance_percentage IS NOT NULL'
         );
-        const avgComplianceRate = parseFloat(complianceResult.rows[0]?.avg || '0');
+        const avgComplianceRate = complianceResult.rows[0]?.avg ? parseFloat(complianceResult.rows[0].avg) : 0;
 
         res.json({
           totalProviders,
