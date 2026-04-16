@@ -303,7 +303,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
           <h1>Registros INVIMA</h1>
           <p>Estándar TSMD — Medicamentos, Dispositivos Médicos e Insumos</p>
         </div>
-        {can('assessments', 'create') && (
+        {can('invima', 'create') && (
           <button className="invima-btn-primary" onClick={() => setShowAddModal(true)}>
             + Agregar Medicamento/Dispositivo
           </button>
@@ -426,7 +426,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                     <th>Venc. Registro</th>
                     <th>Estado Registro</th>
                     <th>Almacenamiento</th>
-                    {can('assessments', 'delete') && <th>Acciones</th>}
+                    {can('invima', 'delete') && <th>Acciones</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -458,7 +458,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                         </span>
                       </td>
                       <td>{item.condiciones_almacenamiento || '—'}</td>
-                      {can('assessments', 'delete') && (
+                      {can('invima', 'delete') && (
                         <td>
                           <button
                             className="btn-action-delete"
@@ -539,7 +539,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
       {/* TAB: ALERTAS */}
       {activeTab === 'alertas' && (
         <div className="invima-tab-content">
-          {can('assessments', 'create') && (
+          {can('invima', 'create') && (
             <div className="alertas-actions">
               <button className="invima-btn-primary" onClick={() => setShowNewAlertForm(true)}>
                 + Nueva Alerta
@@ -580,7 +580,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                     </p>
                     {alerta.accion_tomada && <p className="alerta-accion"><strong>Acción:</strong> {alerta.accion_tomada}</p>}
                   </div>
-                  {!alerta.revisada && can('assessments', 'create') && (
+                  {!alerta.revisada && can('invima', 'create') && (
                     <>
                       {showMarcarRevisadaForm === alerta.id ? (
                         <form onSubmit={(e) => handleMarcarRevisada(e, alerta.id)} className="alerta-form">

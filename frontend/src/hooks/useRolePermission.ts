@@ -84,9 +84,9 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
   invima: {
     canCreate: ['super_admin', 'auditor', 'provider_admin'],
     canEdit: ['super_admin', 'auditor', 'provider_admin'],
-    canDelete: ['super_admin'],
+    canDelete: ['super_admin', 'auditor'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
-    canManage: ['super_admin', 'provider_admin'],
+    canManage: ['super_admin', 'auditor', 'provider_admin'],
   },
 };
 
