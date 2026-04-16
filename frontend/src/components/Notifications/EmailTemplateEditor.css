@@ -286,10 +286,19 @@
 .btn-primary {
   background-color: #2196f3;
   color: white;
+  padding: 8px 16px;
+  width: auto;
+}
+
+.list-header .btn-primary {
+  padding: 8px 16px;
+  font-size: 14px;
+  min-width: 150px;
 }
 
 .editor-actions .btn-primary {
   flex: 1;
+  width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
