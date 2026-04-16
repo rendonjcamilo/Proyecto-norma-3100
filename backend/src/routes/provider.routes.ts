@@ -20,11 +20,13 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * POST /api/providers
    * Create a new provider
+   * super_admin and auditor can create providers
+   * If auditor creates, they are automatically assigned to it
    */
   router.post(
     '/providers',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin', 'auditor']),
     async (req: Request, res: Response) => {
       try {
         const { rut, legal_name, trade_name, legal_entity_type, address, city, department, country, status } =
@@ -46,6 +48,8 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(400).json({ error: 'Invalid RUT format' });
         }
 
+        const user = (req as any).user;
+
         // Create provider
         const provider = await providerModel.createProvider({
           rut,
@@ -57,8 +61,18 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           department,
           country: country || 'Colombia',
           status: status || 'active',
-          created_by: (req as any).user?.id,
+          created_by: user?.user_id,
         });
+
+        // If auditor creates a provider, auto-assign themselves to it
+        if (user?.role === 'auditor') {
+          await pool.query(
+            `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT DO NOTHING`,
+            [user.user_id, provider.id, user.user_id]
+          );
+        }
 
         // Emit event
         await eventStore.append({
@@ -66,14 +80,15 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'provider',
           eventType: 'provider.created',
           payload: provider as any,
-          userId: (req as any).user?.id,
+          userId: user?.user_id,
         });
 
         logger.info({
           msg: 'Provider created',
           provider_id: provider.id,
           rut: provider.rut,
-          userId: (req as any).user?.id,
+          userId: user?.user_id,
+          role: user?.role,
         });
 
         res.status(201).json(provider);
@@ -87,6 +102,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * GET /api/providers
    * List providers with filters
+   * super_admin sees all, auditor sees their assigned, provider_admin sees only their own
    */
   router.get(
     '/providers',
@@ -104,7 +120,35 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           created_before: req.query.created_before ? new Date(req.query.created_before as string) : undefined,
         };
 
-        const providers = await providerModel.getProviders(role, user?.id, filters);
+        let providers: any[] = [];
+
+        if (role === 'super_admin') {
+          // Super admin sees all providers
+          providers = await providerModel.getProviders(role, user?.user_id, filters);
+        } else if (role === 'auditor') {
+          // Auditor sees only their assigned providers
+          const result = await pool.query(
+            `SELECT p.* FROM providers p
+             INNER JOIN auditor_providers ap ON p.id = ap.provider_id
+             WHERE ap.auditor_id = $1`,
+            [user?.user_id]
+          );
+          providers = result.rows;
+        } else if (role === 'provider_admin') {
+          // Provider admin sees only their own provider
+          const result = await pool.query(
+            `SELECT * FROM providers WHERE id = $1`,
+            [user?.provider_id]
+          );
+          providers = result.rows;
+        } else if (role === 'viewer') {
+          // Viewer sees only their assigned provider
+          const result = await pool.query(
+            `SELECT * FROM providers WHERE id = $1`,
+            [user?.provider_id]
+          );
+          providers = result.rows;
+        }
 
         res.json({
           count: providers.length,
@@ -134,7 +178,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC: provider_admin can only see own, auditor sees assigned
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.id) {
+        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -170,7 +214,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.id) {
+        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -179,7 +223,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         // Update provider
         const updated = await providerModel.updateProvider(req.params.id, {
           ...req.body,
-          updated_by: user.id,
+          updated_by: user.user_id,
         });
 
         // Emit event
@@ -191,13 +235,13 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             before: oldProvider,
             after: updated,
           },
-          userId: user.id,
+          userId: user.user_id,
         });
 
         logger.info({
           msg: 'Provider updated',
           provider_id: updated.id,
-          userId: user.id,
+          userId: user.user_id,
         });
 
         res.json(updated);
@@ -226,12 +270,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.id) {
+        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
         // Archive provider
-        const archived = await providerModel.archiveProvider(req.params.id, user.id);
+        const archived = await providerModel.archiveProvider(req.params.id, user.user_id);
 
         // Emit event
         await eventStore.append({
@@ -239,13 +283,13 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'provider',
           eventType: 'provider.archived',
           payload: archived as any,
-          userId: user.id,
+          userId: user.user_id,
         });
 
         logger.info({
           msg: 'Provider archived',
           provider_id: archived.id,
-          userId: user.id,
+          userId: user.user_id,
         });
 
         res.json({ success: true, provider: archived });
@@ -277,7 +321,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(404).json({ error: 'Provider not found' });
         }
 
-        const updated = await providerModel.updateProviderStatus(req.params.id, status, (req as any).user?.id);
+        const updated = await providerModel.updateProviderStatus(req.params.id, status, (req as any).user?.user_id);
 
         // Emit event
         await eventStore.append({
@@ -288,7 +332,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             old_status: provider.status,
             new_status: status,
           },
-          userId: (req as any).user?.id,
+          userId: (req as any).user?.user_id,
         });
 
         logger.info({
@@ -330,7 +374,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.id) {
+        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -342,7 +386,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           country: provider.country,
           location_type: location_type || 'branch',
           status: 'active',
-          created_by: user.id,
+          created_by: user.user_id,
         });
 
         // Emit event
@@ -351,7 +395,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'location',
           eventType: 'location.created',
           payload: location as any,
-          userId: user.id,
+          userId: user.user_id,
         });
 
         logger.info({
@@ -418,13 +462,13 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         // Check RBAC
         const user = (req as any).user;
-        if (user.role === 'provider_admin' && provider.created_by !== user.id) {
+        if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
         const updated = await providerModel.updateLocation(req.params.location_id, {
           ...req.body,
-          updated_by: user.id,
+          updated_by: user.user_id,
         });
 
         // Emit event
@@ -433,13 +477,161 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'location',
           eventType: 'location.updated',
           payload: updated as any,
-          userId: user.id,
+          userId: user.user_id,
         });
 
         res.json(updated);
       } catch (err) {
         logger.error({ msg: 'Error updating location', error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ error: 'Failed to update location' });
+      }
+    }
+  );
+
+  // ===== AUDITOR-PROVIDER MANAGEMENT =====
+
+  /**
+   * POST /api/providers/:providerId/assign-auditor
+   * Assign an auditor to a provider (super_admin only)
+   */
+  router.post(
+    '/providers/:providerId/assign-auditor',
+    authMiddleware,
+    rbacMiddleware(['super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { auditorId } = req.body;
+
+        if (!auditorId) {
+          return res.status(400).json({ error: 'auditorId is required' });
+        }
+
+        const user = (req as any).user;
+
+        // Verify provider exists
+        const provider = await providerModel.getProviderById(req.params.providerId);
+        if (!provider) {
+          return res.status(404).json({ error: 'Provider not found' });
+        }
+
+        // Verify auditor exists
+        const auditorResult = await pool.query(
+          `SELECT id FROM users WHERE id = $1 AND role = 'auditor'`,
+          [auditorId]
+        );
+        if (auditorResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Auditor not found' });
+        }
+
+        // Assign auditor to provider
+        await pool.query(
+          `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (auditor_id, provider_id) DO NOTHING`,
+          [auditorId, req.params.providerId, user?.user_id]
+        );
+
+        logger.info({
+          msg: 'Auditor assigned to provider',
+          provider_id: req.params.providerId,
+          auditor_id: auditorId,
+          assigned_by: user?.user_id,
+        });
+
+        res.json({ success: true, message: 'Auditor assigned to provider' });
+      } catch (err) {
+        logger.error({
+          msg: 'Error assigning auditor to provider',
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(500).json({ error: 'Failed to assign auditor' });
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/providers/:providerId/auditors/:auditorId
+   * Remove auditor from provider (super_admin only)
+   */
+  router.delete(
+    '/providers/:providerId/auditors/:auditorId',
+    authMiddleware,
+    rbacMiddleware(['super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const user = (req as any).user;
+
+        // Verify provider exists
+        const provider = await providerModel.getProviderById(req.params.providerId);
+        if (!provider) {
+          return res.status(404).json({ error: 'Provider not found' });
+        }
+
+        // Remove auditor from provider
+        const result = await pool.query(
+          `DELETE FROM auditor_providers
+           WHERE auditor_id = $1 AND provider_id = $2
+           RETURNING *`,
+          [req.params.auditorId, req.params.providerId]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Auditor not assigned to this provider' });
+        }
+
+        logger.info({
+          msg: 'Auditor removed from provider',
+          provider_id: req.params.providerId,
+          auditor_id: req.params.auditorId,
+          removed_by: user?.user_id,
+        });
+
+        res.json({ success: true, message: 'Auditor removed from provider' });
+      } catch (err) {
+        logger.error({
+          msg: 'Error removing auditor from provider',
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(500).json({ error: 'Failed to remove auditor' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/providers/:providerId/auditors
+   * List auditors assigned to a provider
+   */
+  router.get(
+    '/providers/:providerId/auditors',
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        // Verify provider exists
+        const provider = await providerModel.getProviderById(req.params.providerId);
+        if (!provider) {
+          return res.status(404).json({ error: 'Provider not found' });
+        }
+
+        const result = await pool.query(
+          `SELECT u.id, u.email, u.first_name, u.last_name, ap.assigned_at, ap.assigned_by
+           FROM users u
+           INNER JOIN auditor_providers ap ON u.id = ap.auditor_id
+           WHERE ap.provider_id = $1
+           ORDER BY ap.assigned_at DESC`,
+          [req.params.providerId]
+        );
+
+        res.json({
+          provider_id: req.params.providerId,
+          count: result.rows.length,
+          auditors: result.rows,
+        });
+      } catch (err) {
+        logger.error({
+          msg: 'Error fetching auditors for provider',
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(500).json({ error: 'Failed to fetch auditors' });
       }
     }
   );
