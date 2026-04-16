@@ -255,78 +255,98 @@ export class InvimaService {
     datasetId: string,
     campo: string
   ): Promise<{ mapped: Partial<InvimaRegistro>; raw: Record<string, string> } | null> {
+    // Generar variaciones del número (ej: "2022M-0014024-R1" → también intenta "2022M-0014024")
+    const variations = [numeroRegistro];
+    const withoutRevision = numeroRegistro.replace(/-R\d+$/i, '');
+    if (withoutRevision !== numeroRegistro) {
+      variations.push(withoutRevision);
+    }
+
     // Intento 1: $where con equality operator (más compatible)
     const attempts = [
       {
         name: 'where_equality',
-        params: new URLSearchParams({
-          $where: `${campo} = '${numeroRegistro}'`,
+        params: (num: string) => new URLSearchParams({
+          $where: `${campo} = '${num}'`,
           $limit: '5',
         }),
       },
       {
         name: 'simple_field',
-        params: new URLSearchParams({
-          [campo]: numeroRegistro,
+        params: (num: string) => new URLSearchParams({
+          [campo]: num,
           $limit: '5',
         }),
       },
       {
         name: 'fulltext_search',
-        params: new URLSearchParams({
-          $q: numeroRegistro,
+        params: (num: string) => new URLSearchParams({
+          $q: num,
           $limit: '5',
         }),
       },
     ];
 
-    for (const attempt of attempts) {
-      try {
-        const url = `${DATOS_GOV_ENDPOINT}/${datasetId}.json?${attempt.params}`;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
+    // Intentar con cada variación del número
+    for (const variation of variations) {
+      for (const attempt of attempts) {
+        try {
+          const params = attempt.params(variation);
+          const url = `${DATOS_GOV_ENDPOINT}/${datasetId}.json?${params}`;
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch(url, {
-          signal: controller.signal,
-          headers: {
-            Accept: 'application/json',
-            'User-Agent': 'Norma3100-ComplianceSystem/1.0',
-          },
-        });
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+              Accept: 'application/json',
+              'User-Agent': 'Norma3100-ComplianceSystem/1.0',
+            },
+          });
 
-        clearTimeout(timeout);
+          clearTimeout(timeout);
 
-        if (!response.ok) {
+          if (!response.ok) {
+            logger.debug({
+              msg: 'Dataset API returned non-200',
+              datasetId,
+              attempt: attempt.name,
+              variation,
+              status: response.status,
+            });
+            continue;
+          }
+
+          const results = (await response.json()) as Record<string, string>[];
+
+          if (results.length === 0) {
+            logger.debug({
+              msg: 'Dataset returned empty result',
+              datasetId,
+              attempt: attempt.name,
+              variation,
+            });
+            continue;
+          }
+
+          const record = results[0];
+          const mapped = this.mapDatosGovToRegistro(record);
           logger.debug({
-            msg: 'Dataset API returned non-200',
+            msg: 'Dataset query successful',
             datasetId,
             attempt: attempt.name,
-            status: response.status,
+            variation,
           });
-          continue;
-        }
-
-        const results = (await response.json()) as Record<string, string>[];
-
-        if (results.length === 0) {
+          return { mapped, raw: record };
+        } catch (err) {
           logger.debug({
-            msg: 'Dataset returned empty result',
+            msg: 'Dataset query failed',
             datasetId,
             attempt: attempt.name,
+            variation,
+            error: String(err),
           });
-          continue;
         }
-
-        const record = results[0];
-        const mapped = this.mapDatosGovToRegistro(record);
-        return { mapped, raw: record };
-      } catch (err) {
-        logger.debug({
-          msg: 'Dataset query failed',
-          datasetId,
-          attempt: attempt.name,
-          error: String(err),
-        });
       }
     }
 
@@ -337,13 +357,14 @@ export class InvimaService {
 
   private parseNumeroRegistro(numero: string): { tipo: string; formato: string } {
     // Patrones de registros INVIMA
-    if (/^INVIMA\s+\d{4}DM-\d+/.test(numero)) {
+    // Con o sin prefijo "INVIMA "
+    if (/^(?:INVIMA\s+)?\d{4}DM-\d+/.test(numero)) {
       return { tipo: 'dispositivo_medico', formato: 'INVIMA_DM' };
     }
-    if (/^INVIMA\s+\d{4}M-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?\d{4}M-\d+/.test(numero)) {
       return { tipo: 'medicamento', formato: 'INVIMA_M' };
     }
-    if (/^INVIMA\s+\d{4}C-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?\d{4}C-\d+/.test(numero)) {
       return { tipo: 'cosmetico', formato: 'INVIMA_C' };
     }
     if (/^MSA-\d+/.test(numero)) {
