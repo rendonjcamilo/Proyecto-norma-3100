@@ -167,28 +167,13 @@ export function AuditorDashboard(): JSX.Element {
 
       {/* Providers Section */}
       <div className="dashboard-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>Mis Prestadores</h2>
-          <button
-            onClick={() => setShowAddProvider(true)}
-            className="btn btn-primary"
-            style={{ padding: '8px 16px', fontSize: '14px' }}
-          >
-            + Agregar Prestador
-          </button>
-        </div>
+        <h2>Mis Prestadores</h2>
 
         {providers.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🏥</div>
             <h2>Sin prestadores asignados</h2>
-            <p>Cree o solicite que le asignen prestadores para comenzar</p>
-            <button
-              onClick={() => setShowAddProvider(true)}
-              className="btn btn-primary"
-            >
-              Crear Prestador
-            </button>
+            <p>Solicite que le asignen prestadores para comenzar a auditar</p>
           </div>
         ) : (
           <div className="providers-grid">
