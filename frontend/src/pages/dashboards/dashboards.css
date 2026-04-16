@@ -196,6 +196,8 @@
 
 .section-title {
   text-align: center !important;
+  color: #0052cc;
+  font-weight: 600;
 }
 
 /* Action Cards */
