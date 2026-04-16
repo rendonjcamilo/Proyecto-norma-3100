@@ -388,5 +388,121 @@ export function createMultiChannelRouter(pool: Pool): Router {
     }
   });
 
+  /**
+   * GET /api/multichannel/email/templates
+   * Get active email templates
+   */
+  router.get('/email/templates', async (req: Request, res: Response) => {
+    try {
+      const templates = await emailService.getActiveTemplates();
+      res.json({ templates });
+    } catch (error) {
+      logger.error('Failed to get email templates', {
+        error: (error as Error).message,
+      });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
+   * GET /api/multichannel/sms/templates
+   * Get active SMS templates
+   */
+  router.get('/sms/templates', async (req: Request, res: Response) => {
+    try {
+      const templates = await smsService.getActiveTemplates();
+      res.json({ templates });
+    } catch (error) {
+      logger.error('Failed to get SMS templates', {
+        error: (error as Error).message,
+      });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
+   * POST /api/multichannel/auditor/send
+   * Send notification to provider users (auditor or super_admin only)
+   */
+  router.post('/auditor/send', async (req: Request, res: Response) => {
+    try {
+      const { providerId, templateName, channel, variables } = req.body;
+      const userId = (req as any).user?.user_id;
+      const role = (req as any).user?.role;
+
+      if (!providerId || !templateName || !channel) {
+        return res.status(400).json({
+          error: 'Missing required fields: providerId, templateName, channel',
+        });
+      }
+
+      // Validate auditor has access to this provider
+      if (role === 'auditor') {
+        const assigned = await pool.query(
+          'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+          [userId, providerId]
+        );
+        if (assigned.rowCount === 0) {
+          return res.status(403).json({ error: 'Provider not assigned to this auditor' });
+        }
+      }
+
+      // Get provider users
+      const usersResult = await pool.query(
+        `SELECT u.id, u.email, COALESCE(unc.phone_number, '') as phone_number
+         FROM users u
+         LEFT JOIN user_notification_channels unc ON unc.user_id = u.id AND unc.channel = $1
+         WHERE u.provider_id = $2 AND u.status = 'active'`,
+        [channel, providerId]
+      );
+
+      const deliveryIds: string[] = [];
+
+      for (const user of usersResult.rows) {
+        try {
+          if (channel === 'email' && user.email) {
+            const result = await emailService.sendEmail({
+              userId: user.id,
+              providerId,
+              email: user.email,
+              templateName,
+              variables: variables || {},
+            });
+            if (result.id) deliveryIds.push(result.id);
+          } else if (channel === 'sms' && user.phone_number) {
+            const result = await smsService.sendSMS({
+              userId: user.id,
+              providerId,
+              phoneNumber: user.phone_number,
+              templateName,
+              variables: variables || {},
+            });
+            if (result.id) deliveryIds.push(result.id);
+          }
+        } catch (err) {
+          logger.error('Failed to send notification to user', {
+            userId: user.id,
+            channel,
+            error: (err as Error).message,
+          });
+        }
+      }
+
+      logger.info('Auditor notifications sent', {
+        providerId,
+        channel,
+        sent: deliveryIds.length,
+        auditorId: userId,
+      });
+
+      res.json({ sent: deliveryIds.length, deliveryIds });
+    } catch (error) {
+      logger.error('Failed to send auditor notifications', {
+        error: (error as Error).message,
+      });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
   return router;
 }

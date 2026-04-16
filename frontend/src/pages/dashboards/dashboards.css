@@ -454,3 +454,332 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Provider Dashboard - New Sections */
+.compliance-hero {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.compliance-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--neutral-50);
+  border-radius: 6px;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.trend-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 250px;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: 0.5rem;
+}
+
+.chart-bar {
+  width: 30px;
+  border-radius: 4px 4px 0 0;
+  transition: opacity 0.2s;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+.chart-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.chart-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1rem;
+  border-top: 1px solid var(--border-default);
+  padding-top: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.standards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.standard-card {
+  padding: 1rem;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+}
+
+.standard-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.standard-code {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.standard-percentage {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.standard-name {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.standard-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--neutral-100);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.standard-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.assessments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.assessment-item {
+  display: grid;
+  grid-template-columns: 1fr 150px 80px 120px;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+}
+
+.assessment-service {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.assessment-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.assessment-status {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.assessment-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.document-item {
+  display: grid;
+  grid-template-columns: 40px 1fr 150px 50px;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  border-left: 4px solid #999;
+}
+
+.document-item.document-ok {
+  border-left-color: #00875a;
+}
+
+.document-item.document-warning {
+  border-left-color: #ff8b00;
+}
+
+.document-item.document-danger {
+  border-left-color: #de350b;
+}
+
+.doc-icon {
+  font-size: 1.5rem;
+}
+
+.doc-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.doc-days {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.doc-status {
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--surface-primary);
+  border: 2px solid var(--border-default);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+
+.action-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  font-size: 2rem;
+}
+
+.action-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.action-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+@media (max-width: 1024px) {
+  .compliance-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .compliance-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .assessment-item {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .document-item {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .chart-bars {
+    height: 150px;
+  }
+
+  .chart-bar {
+    width: 20px;
+  }
+
+  .compliance-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .standards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -48,6 +48,13 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    title: 'Comunicación',
+    roles: ['auditor', 'super_admin'],
+    items: [
+      { to: '/notifications/auditor-send', icon: 'email', label: 'Enviar Notificación', roles: ['auditor', 'super_admin'] },
+    ],
+  },
+  {
     title: 'Administración',
     roles: ['super_admin'],
     items: [
