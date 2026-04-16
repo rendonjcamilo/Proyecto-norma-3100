@@ -33,34 +33,29 @@ const navigation: NavSection[] = [
     roles: ALL_ROLES,
     items: [
       { to: '/', icon: 'dashboard', label: 'Dashboard', roles: ALL_ROLES },
-      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ALL_ROLES },
+      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin', 'viewer'] },
       { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['auditor', 'provider_admin'] },
-      { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ADMIN_ROLES },
+      { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ['super_admin'] },
     ],
   },
   {
     title: 'Cumplimiento',
-    roles: ['super_admin', 'auditor', 'provider_admin'],
+    roles: ['auditor', 'provider_admin'],
     items: [
-      { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['super_admin', 'auditor', 'provider_admin'] },
-      { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['super_admin', 'auditor', 'provider_admin'] },
-      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor'] },
+      { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
+      { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
+      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor', 'provider_admin', 'viewer'] },
     ],
   },
   {
-    title: 'Notificaciones',
-    roles: ADMIN_ROLES,
-    items: [
-      { to: '/notifications/delivery-status', icon: 'delivery', label: 'Entregas', roles: ADMIN_ROLES },
-    ],
-  },
-  {
-    title: 'Plantillas',
+    title: 'Administración',
     roles: ['super_admin'],
     items: [
-      { to: '/notifications/templates/email', icon: 'email', label: 'Email', roles: ['super_admin'] },
-      { to: '/notifications/templates/sms', icon: 'sms', label: 'SMS', roles: ['super_admin'] },
-      { to: '/notifications/templates/push', icon: 'push', label: 'Push', roles: ['super_admin'] },
+      { to: '/users', icon: 'users', label: 'Usuarios', roles: ['super_admin'] },
+      { to: '/questionnaires', icon: 'questionnaires', label: 'Cuestionarios', roles: ['super_admin'] },
+      { to: '/notifications/templates/email', icon: 'email', label: 'Plantillas Email', roles: ['super_admin'] },
+      { to: '/notifications/templates/sms', icon: 'sms', label: 'Plantillas SMS', roles: ['super_admin'] },
+      { to: '/notifications/templates/push', icon: 'push', label: 'Plantillas Push', roles: ['super_admin'] },
     ],
   },
 ];
@@ -157,6 +152,20 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         <line x1="9" y1="10" x2="15" y2="10" />
         <line x1="9" y1="13" x2="13" y2="13" />
+      </svg>
+    ),
+    users: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    questionnaires: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 11l3 3L22 4" />
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
     ),
   };
