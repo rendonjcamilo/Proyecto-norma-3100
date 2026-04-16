@@ -83,7 +83,7 @@ export const ProviderSelector: React.FC<ProviderSelectorProps> = ({
               right: `${dropdownPosition.right}px`,
             }}
           >
-            <div className="dropdown-header">Seleccionar Proveedor</div>
+            <div className="dropdown-header">Seleccionar Prestador</div>
             <ul className="provider-list">
               {providers.map(provider => (
                 <li key={provider.id}>

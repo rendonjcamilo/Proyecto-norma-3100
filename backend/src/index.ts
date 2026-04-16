@@ -23,6 +23,7 @@ import { createSuficienciaPatrimonialRouter } from './routes/suficiencia-patrimo
 import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js';
 import { createInvimaRouter } from './routes/invima.routes.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
+import { createUsersRouter } from './routes/users.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
@@ -139,6 +140,7 @@ app.get('/api', (_req: Request, res: Response) => {
 });
 
 // Phase 3 Routes (protected by standard API limiter)
+app.use('/api/users', apiLimiter, createUsersRouter(pool));
 app.use('/api', apiLimiter, createProviderRouter(pool, eventStore));
 app.use('/api', apiLimiter, createAssessmentsRouter(pool, eventStore));
 app.use('/api', apiLimiter, createFindingRouter(pool, eventStore));

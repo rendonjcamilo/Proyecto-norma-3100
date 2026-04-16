@@ -264,7 +264,7 @@ export function AssessmentGeneratorPage() {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1>Generar Nueva Evaluación</h1>
+          <h1>Generar nueva evaluación</h1>
           <p>Selecciona el servicio de salud a evaluar</p>
         </div>
 
@@ -328,7 +328,7 @@ export function AssessmentGeneratorPage() {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1>Seleccionar Versión de Evaluación</h1>
+          <h1>Seleccionar versión de evaluación</h1>
           <p>
             Servicio: <strong>{selectedService?.name}</strong>
           </p>

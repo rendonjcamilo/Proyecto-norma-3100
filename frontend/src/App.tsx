@@ -13,6 +13,7 @@ import { AssessmentExecutionPage } from "./pages/AssessmentExecutionPage";
 import { AssessmentGeneratorPage } from "./pages/AssessmentGeneratorPage";
 import { AssessmentResultPage } from "./pages/AssessmentResultPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
+import { UsersPage } from "./pages/UsersPage";
 import { InvimaPage } from "./pages/InvimaPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
@@ -155,6 +156,12 @@ function AppContent(): JSX.Element {
               element={<ProtectedRoute requiredRoles={["super_admin"]}><ProvidersPage /></ProtectedRoute>}
             />
 
+            {/* Users */}
+            <Route
+              path="/users"
+              element={<ProtectedRoute requiredRoles={["super_admin"]}><UsersPage /></ProtectedRoute>}
+            />
+
             {/* Reports */}
             <Route
               path="/reports"
@@ -167,11 +174,7 @@ function AppContent(): JSX.Element {
               element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><DocumentsWrapper /></ProtectedRoute>}
             />
 
-            {/* Notifications */}
-            <Route
-              path="/notifications"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
-            />
+            {/* Notifications — Subrutas específicas PRIMERO */}
             <Route
               path="/notifications/email-templates"
               element={<ProtectedRoute requiredRoles={["super_admin"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
@@ -195,6 +198,10 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/delivery-status"
               element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><DeliveryStatusTrackerWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
             />
 
             {/* INVIMA */}

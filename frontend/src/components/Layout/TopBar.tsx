@@ -36,8 +36,28 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
     subtitle: 'Estándar TSMD — Medicamentos, Dispositivos Médicos e Insumos',
   },
   '/providers': {
-    title: 'Proveedores',
+    title: 'Prestadores',
     subtitle: 'Administración de proveedores',
+  },
+  '/notifications': {
+    title: 'Centro de Notificaciones',
+    subtitle: 'Gestión de notificaciones y comunicaciones',
+  },
+  '/notifications/email-templates': {
+    title: 'Plantillas de Email',
+    subtitle: 'Crear y editar plantillas de correo electrónico',
+  },
+  '/notifications/sms-templates': {
+    title: 'Plantillas de SMS',
+    subtitle: 'Crear y editar plantillas de mensajes SMS',
+  },
+  '/notifications/push-templates': {
+    title: 'Plantillas Push',
+    subtitle: 'Crear y editar notificaciones push',
+  },
+  '/notifications/preferences': {
+    title: 'Preferencias',
+    subtitle: 'Configuración de canales multicanal',
   },
   '/notifications/analytics': {
     title: 'Analíticas de Notificaciones',
@@ -46,22 +66,6 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
   '/notifications/delivery-status': {
     title: 'Estado de Entregas',
     subtitle: 'Seguimiento en tiempo real de notificaciones',
-  },
-  '/notifications/preferences': {
-    title: 'Preferencias',
-    subtitle: 'Configuración de canales multicanal',
-  },
-  '/notifications/templates/email': {
-    title: 'Plantillas de Email',
-    subtitle: 'Editor de plantillas de correo electrónico',
-  },
-  '/notifications/templates/sms': {
-    title: 'Plantillas de SMS',
-    subtitle: 'Editor de plantillas SMS',
-  },
-  '/notifications/templates/push': {
-    title: 'Plantillas Push',
-    subtitle: 'Editor de notificaciones push',
   },
 };
 

@@ -19,6 +19,18 @@ export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'critica'
 export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'closed' | 'abierta' | 'en_proceso' | 'cerrada';
 export type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
 
+export interface User {
+  id: string;
+  email: string;
+  role: UserRole;
+  provider_id?: string;
+  first_name?: string;
+  last_name?: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Provider {
   id: string;
   rut: string;
@@ -240,6 +252,18 @@ export const authApi = {
     ),
 
   logout: () => post<void>('/auth/logout', {}),
+};
+
+// ─────────────────────────────────────────────
+// USUARIOS (USERS)
+// ─────────────────────────────────────────────
+
+export const usersApi = {
+  list: () =>
+    get<{ data: User[]; total: number }>('/api/users'),
+
+  create: (payload: { email: string; password: string; confirm_password: string; role?: UserRole; provider_id?: string; first_name?: string; last_name?: string }) =>
+    post<{ data: User }>('/api/users', payload),
 };
 
 // ─────────────────────────────────────────────
