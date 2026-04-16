@@ -239,6 +239,7 @@ async function request<T>(
 const get  = <T>(path: string)                       => request<T>('GET',    path);
 const post = <T>(path: string, body: unknown)        => request<T>('POST',   path, body);
 const put  = <T>(path: string, body: unknown)        => request<T>('PUT',    path, body);
+const del  = <T>(path: string)                       => request<T>('DELETE', path);
 const blob = (path: string)                          => request<Blob>('GET', path, undefined, { blob: true });
 
 // ─────────────────────────────────────────────
@@ -334,6 +335,9 @@ export const assessmentsApi = {
 
   getMetrics: (assessmentId: string) =>
     get<{ data: AssessmentMetrics }>(`/api/assessments/${assessmentId}/metrics`),
+
+  delete: (assessmentId: string) =>
+    del<{ message: string }>(`/api/assessments/${assessmentId}`),
 };
 
 // ─────────────────────────────────────────────

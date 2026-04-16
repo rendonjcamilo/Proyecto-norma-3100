@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { assessmentsApi, servicesApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
+import DeleteConfirmationModal from '../components/Assessment/DeleteConfirmationModal';
 import './Pages.css';
 
 interface AssessmentsPageProps {
@@ -101,6 +102,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     type: 'initial',
     serviceId: ''
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { can } = useRolePermission();
 
   useEffect(() => {
@@ -165,6 +169,35 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     load();
   }, [providerId]);
 
+  const handleDeleteClick = (assessment: Assessment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setAssessmentToDelete(assessment);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!assessmentToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await assessmentsApi.delete(assessmentToDelete.id);
+      setAssessments((prev) => prev.filter((a) => a.id !== assessmentToDelete.id));
+      setShowDeleteModal(false);
+      setAssessmentToDelete(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la evaluación';
+      console.error('Delete error:', msg);
+      alert(`Error: ${msg}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setAssessmentToDelete(null);
+  };
+
   if (loading) {
     return (
       <div className="page-container page-loading">
@@ -222,6 +255,16 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   {STATUS_LABELS[a.status]}
                 </span>
                 <span className="card-type">{a.type}</span>
+                {can('assessments', 'delete') && (
+                  <button
+                    className="card-delete-btn"
+                    onClick={(e) => handleDeleteClick(a, e)}
+                    title="Eliminar evaluación"
+                    type="button"
+                  >
+                    🗑️
+                  </button>
+                )}
               </div>
               <h3 className="card-title">{a.title}</h3>
               <div className="compliance-bar-container">
@@ -475,6 +518,18 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </form>
           </div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && assessmentToDelete && (
+        <DeleteConfirmationModal
+          title="Eliminar evaluación"
+          message="¿Está seguro de que desea eliminar esta evaluación?"
+          itemName={assessmentToDelete.title || 'Evaluación sin título'}
+          isLoading={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       )}
     </div>
   );
