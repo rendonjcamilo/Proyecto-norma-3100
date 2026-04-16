@@ -88,6 +88,13 @@ const STATUS_COLORS: Record<string, string> = {
   archived: '#42526e',
 };
 
+const ASSESSMENT_TYPES: Record<string, string> = {
+  initial: 'Autoevaluación Inicial',
+  year4: 'Evaluación a los 4 Años',
+  annual: 'Evaluación Anual',
+  'pre-novelty': 'Pre-Novedad',
+};
+
 export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) => {
   const navigate = useNavigate();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -304,7 +311,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 >
                   {STATUS_LABELS[a.status]}
                 </span>
-                <span className="card-type">{a.type}</span>
+                <span className="card-type">{ASSESSMENT_TYPES[a.type] || a.type}</span>
               </div>
               <h3 className="card-title">{a.title}</h3>
               <div className="compliance-bar-container">
