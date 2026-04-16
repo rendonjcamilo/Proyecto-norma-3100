@@ -53,7 +53,6 @@ const navigation: NavSection[] = [
     items: [
       { to: '/notifications/analytics', icon: 'analytics', label: 'Analíticas', roles: ADMIN_ROLES },
       { to: '/notifications/delivery-status', icon: 'delivery', label: 'Entregas', roles: ADMIN_ROLES },
-      { to: '/notifications/preferences', icon: 'settings', label: 'Preferencias', roles: ALL_ROLES },
     ],
   },
   {
