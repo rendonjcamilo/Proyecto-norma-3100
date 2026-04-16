@@ -656,5 +656,43 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     }
   );
 
+  // ===== DELETE ASSESSMENT =====
+
+  /**
+   * DELETE /api/assessments/:id
+   * Delete an assessment
+   * RBAC: super_admin, auditor
+   */
+  router.delete(
+    '/assessments/:id',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor']),
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+
+        // Check if assessment exists
+        const result = await pool.query(
+          'SELECT id FROM assessments WHERE id = $1',
+          [id]
+        );
+
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Assessment not found' });
+        }
+
+        // Delete assessment
+        await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
+
+        logger.info({ msg: 'Assessment deleted', assessment_id: id });
+        res.json({ message: 'Assessment deleted successfully' });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error deleting assessment', error: msg });
+        res.status(500).json({ error: 'Failed to delete assessment' });
+      }
+    }
+  );
+
   return router;
 }
