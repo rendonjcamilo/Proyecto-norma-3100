@@ -10,7 +10,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { rbacMiddleware } from '../middleware/role.middleware.js';
+import { rbacMiddleware, providerAccessMiddleware } from '../middleware/role.middleware.js';
 import { AssessmentService } from '../services/AssessmentService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
@@ -27,12 +27,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { providerId, locationId?, serviceId, assessmentVersion }
    * Output: { id, questionnaire, status, etc. }
    * Auto-loads published questionnaire for service
-   * RBAC: provider_admin (own provider), super_admin (any)
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (any)
    */
   router.post(
     '/assessments',
     authMiddleware,
     rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
         const { providerId, locationId, serviceId, assessmentVersion } = req.body;

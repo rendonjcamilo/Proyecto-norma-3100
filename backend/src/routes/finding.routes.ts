@@ -5,7 +5,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { rbacMiddleware } from '../middleware/role.middleware.js';
+import { rbacMiddleware, providerAccessMiddleware } from '../middleware/role.middleware.js';
 import { FindingModel } from '../models/finding.model.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
@@ -20,11 +20,13 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
   /**
    * POST /api/findings
    * Create finding
+   * RBAC: auditor can only create for assigned providers, super_admin can create for any
    */
   router.post(
     '/findings',
     authMiddleware,
     rbacMiddleware(['super_admin', 'auditor']),
+    providerAccessMiddleware(pool, ['provider_id']),
     async (req: Request, res: Response) => {
       try {
         const { provider_id, location_id, title, description, severity, category_id, service_id, source, found_date } =
