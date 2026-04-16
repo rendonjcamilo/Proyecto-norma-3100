@@ -167,7 +167,7 @@ export function AuditorDashboard(): JSX.Element {
 
       {/* Providers Section */}
       <div className="dashboard-section">
-        <h2>Mis Prestadores</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: '32px' }}>Mis Prestadores</h2>
 
         {providers.length === 0 ? (
           <div className="empty-state">
