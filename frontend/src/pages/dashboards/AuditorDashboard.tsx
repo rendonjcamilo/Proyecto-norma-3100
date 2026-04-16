@@ -130,8 +130,8 @@ export function AuditorDashboard(): JSX.Element {
 
   return (
     <div className="dashboard auditor-dashboard">
-      <div className="dashboard-header">
-        <h1>Panel de Auditoría</h1>
+      <div className="dashboard-header super-admin-header">
+        <h1>Panel de auditoria</h1>
         <button onClick={loadProviders} className="btn-refresh">
           Actualizar
         </button>
