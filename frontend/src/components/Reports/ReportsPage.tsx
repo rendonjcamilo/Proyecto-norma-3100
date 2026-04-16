@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { reportsApi, downloadBlob } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import './ReportsPage.css';
 
 interface ReportsPageProps {
@@ -47,6 +48,11 @@ interface ReportSummary {
 }
 
 export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerName }) => {
+  const { user } = useAuth();
+  const isAuditor = user?.role === 'auditor';
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canDownloadAuditReport = isAuditor || isSuperAdmin;
+
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<'pdf' | 'xlsx' | null>(null);
@@ -310,8 +316,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
             </button>
           </div>
 
-          {/* INFORME DE AUDITORÍA OFICIAL */}
-          <div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
+          {/* INFORME DE AUDITORÍA OFICIAL (solo para auditor/super_admin) */}
+          {canDownloadAuditReport && (<div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
             <div className="download-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -349,6 +355,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               )}
             </button>
           </div>
+          )}
 
           {/* EXCEL CARD */}
           <div className="download-card download-xlsx">

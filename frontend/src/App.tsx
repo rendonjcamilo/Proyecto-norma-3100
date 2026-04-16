@@ -23,6 +23,7 @@ import { PushTemplateEditor } from "./components/Notifications/PushTemplateEdito
 import { MultiChannelPreferences } from "./components/Notifications/MultiChannelPreferences";
 import { NotificationAnalyticsDashboard } from "./components/Notifications/NotificationAnalyticsDashboard";
 import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
+import { AuditorNotificationsPage } from "./pages/notifications/AuditorNotificationsPage";
 import { Sidebar, TopBar } from "./components/Layout";
 import { SuperAdminDashboard } from "./pages/dashboards/SuperAdminDashboard";
 import { AuditorDashboard } from "./pages/dashboards/AuditorDashboard";
@@ -100,6 +101,10 @@ const DeliveryStatusTrackerWrapper = () => {
   return <DeliveryStatusTracker userId={user?.id || ""} />;
 };
 
+const AuditorNotificationsWrapper = () => {
+  return <AuditorNotificationsPage />;
+};
+
 const InvimaWrapper = () => {
   const { selectedProvider } = useProvider();
   return <InvimaPage providerId={selectedProvider?.id || ""} />;
@@ -169,7 +174,7 @@ function AppContent(): JSX.Element {
             {/* Reports */}
             <Route
               path="/reports"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><ReportsWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><ReportsWrapper /></ProtectedRoute>}
             />
 
             {/* Documents */}
@@ -202,6 +207,10 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/delivery-status"
               element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><DeliveryStatusTrackerWrapper /></ProtectedRoute>}
+            />
+            <Route
+              path="/notifications/auditor-send"
+              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorNotificationsWrapper /></ProtectedRoute>}
             />
             <Route
               path="/notifications"
