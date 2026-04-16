@@ -111,23 +111,6 @@ export function SuperAdminDashboard(): JSX.Element {
         </div>
       </div>
 
-      <div className="dashboard-section">
-        <h2 className="section-title">⚠️ Hallazgos Críticos Recientes</h2>
-        <div style={{
-          padding: '16px',
-          background: '#fff3e0',
-          borderLeft: '4px solid #ff9800',
-          borderRadius: '4px'
-        }}>
-          <p style={{ margin: 0, color: '#e65100', fontSize: '14px' }}>
-            {summary?.criticalFindings || 0} hallazgos críticos en el sistema
-          </p>
-          <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
-            Requieren atención inmediata
-          </p>
-        </div>
-      </div>
-
     </div>
   );
 }
