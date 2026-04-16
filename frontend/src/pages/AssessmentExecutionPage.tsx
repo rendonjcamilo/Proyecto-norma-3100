@@ -188,20 +188,23 @@ export const AssessmentExecutionPage: React.FC = () => {
     if (!id || !assessment) return;
 
     try {
-      // Actualizar assessment en localStorage
-      const updatedAssessment = {
-        ...assessment,
-        responses: responses.map((r) => ({
-          criterionId: r.criterionId,
-          status: r.status,
-          description: r.description,
-          comments: r.comments,
-        })),
-        updated_at: new Date().toISOString(),
-      };
+      // Guardar en backend via API
+      const apiResponses = responses.map((r) => ({
+        criterionId: r.criterionId,
+        status: r.status,
+        description: r.description,
+        comments: r.comments,
+      }));
 
-      localStorage.setItem(`assessment-${id}`, JSON.stringify(updatedAssessment));
-      setAssessment(updatedAssessment);
+      const result = await assessmentsApi.saveResponses(id, apiResponses);
+
+      // Actualizar estado local con la respuesta del backend
+      setAssessment({
+        ...assessment,
+        compliance_percent: result.data.compliance_percent,
+        semaforo: result.data.semaforo,
+        updated_at: new Date().toISOString(),
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al guardar';
       setError(msg);
@@ -214,24 +217,16 @@ export const AssessmentExecutionPage: React.FC = () => {
     try {
       setError(null);
 
-      // Actualizar assessment a submitted en localStorage
-      const updatedAssessment = {
+      // Enviar al backend via API
+      await assessmentsApi.submit(id);
+
+      // Actualizar estado local con la respuesta del backend
+      setAssessment({
         ...assessment,
         status: 'submitted',
         submitted_date: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
-
-      localStorage.setItem(`assessment-${id}`, JSON.stringify(updatedAssessment));
-
-      // Actualizar en lista de evaluaciones
-      const assessments = JSON.parse(localStorage.getItem('assessments') || '[]');
-      const idx = assessments.findIndex((a: any) => a.id === id);
-      if (idx >= 0) {
-        assessments[idx].status = 'submitted';
-        assessments[idx].updated_at = new Date().toISOString();
-        localStorage.setItem('assessments', JSON.stringify(assessments));
-      }
+      });
 
       setSubmitSuccess(true);
       setTimeout(() => navigate('/assessments'), 2000);

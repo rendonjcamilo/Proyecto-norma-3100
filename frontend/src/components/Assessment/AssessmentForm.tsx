@@ -18,6 +18,7 @@ import './AssessmentForm.css';
 import CriterionInput from './CriterionInput';
 import ProgressBar from './ProgressBar';
 import ScoresDisplay from './ScoresDisplay';
+import NCReviewModal from './NCReviewModal';
 
 interface Assessment {
   id: string;
@@ -93,17 +94,6 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     new Set(questionnaiireData.standards.map((s) => s.id).slice(0, 1))
   );
 
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    const autoSaveInterval = setInterval(async () => {
-      if (responses.size > 0 && !readOnly) {
-        await handleSave();
-      }
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(autoSaveInterval);
-  }, [responses, readOnly]);
-
   const handleSave = useCallback(async () => {
     if (!onSave || responses.size === 0 || readOnly) return;
 
@@ -122,10 +112,30 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     }
   }, [responses, onSave, readOnly]);
 
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const autoSaveInterval = setInterval(async () => {
+      if (responses.size > 0 && !readOnly) {
+        await handleSave();
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [responses, readOnly, handleSave]);
+
   const handleResponseChange = (criterionId: string, response: Response) => {
     const newResponses = new Map(responses);
     newResponses.set(criterionId, response);
     setResponses(newResponses);
+  };
+
+  const handleDescriptionChange = (criterionId: string, description: string) => {
+    const response = responses.get(criterionId);
+    if (response) {
+      const newResponses = new Map(responses);
+      newResponses.set(criterionId, { ...response, description });
+      setResponses(newResponses);
+    }
   };
 
   const handleSubmit = async () => {
@@ -142,7 +152,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       return;
     }
 
-    // Mostrar modal de confirmación
+    // Mostrar modal de revisión NC
     setShowConfirmModal(true);
   };
 
@@ -295,45 +305,24 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
         </div>
       )}
 
-      {/* Confirmation Modal */}
+      {/* NC Review Modal */}
       {showConfirmModal && (
-        <div className="modal-overlay" onClick={handleCancelSubmit}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirmar envío</h2>
-              <button
-                className="modal-close"
-                onClick={handleCancelSubmit}
-                type="button"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>¿Está seguro de que desea enviar la evaluación?</p>
-              <p className="modal-warning">
-                ⚠️ No podrá hacer cambios después de enviar.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn btn-secondary"
-                onClick={handleCancelSubmit}
-                type="button"
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleConfirmSubmit}
-                type="button"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Enviando...' : 'Sí, enviar'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <NCReviewModal
+          criteria={questionnaiireData.standards.flatMap((s) =>
+            s.criteria.map((c) => ({
+              id: c.id,
+              code: c.code,
+              name: c.name,
+              standard_id: s.id,
+              standard_name: s.name,
+              is_transversal: s.isTransversal,
+            }))
+          )}
+          responses={responses}
+          onDescriptionChange={handleDescriptionChange}
+          onConfirm={handleConfirmSubmit}
+          onCancel={handleCancelSubmit}
+        />
       )}
     </div>
   );
