@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export interface User {
   id: string;
   email: string;
-  role: 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
+  role: 'super_admin' | 'auditor' | 'provider_admin';
   firstName: string;
   lastName: string;
   providerId: string;

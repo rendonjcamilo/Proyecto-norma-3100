@@ -229,11 +229,6 @@
   border-color: #ff9800;
 }
 
-.mock-btn.viewer:hover {
-  background-color: #e8f5e9;
-  border-color: #4caf50;
-}
-
 .login-footer {
   text-align: center;
   padding-top: 20px;

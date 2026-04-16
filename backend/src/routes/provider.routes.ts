@@ -141,13 +141,6 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             [user?.provider_id]
           );
           providers = result.rows;
-        } else if (role === 'viewer') {
-          // Viewer sees only their assigned provider
-          const result = await pool.query(
-            `SELECT * FROM providers WHERE id = $1`,
-            [user?.provider_id]
-          );
-          providers = result.rows;
         }
 
         res.json({

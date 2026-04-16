@@ -27,7 +27,6 @@ import { Sidebar, TopBar } from "./components/Layout";
 import { SuperAdminDashboard } from "./pages/dashboards/SuperAdminDashboard";
 import { AuditorDashboard } from "./pages/dashboards/AuditorDashboard";
 import { ProviderDashboard } from "./pages/dashboards/ProviderDashboard";
-import { ViewerDashboard } from "./pages/dashboards/ViewerDashboard";
 import "./App.css";
 
 function DashboardRouter(): JSX.Element {
@@ -38,8 +37,6 @@ function DashboardRouter(): JSX.Element {
       return <SuperAdminDashboard />;
     case "auditor":
       return <AuditorDashboard />;
-    case "viewer":
-      return <ViewerDashboard />;
     case "provider_admin":
     default:
       return <ProviderDashboard />;
@@ -148,7 +145,7 @@ function AppContent(): JSX.Element {
             {/* Findings */}
             <Route
               path="/findings"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin", "viewer"]}><FindingsWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><FindingsWrapper /></ProtectedRoute>}
             />
 
             {/* Providers */}
@@ -172,7 +169,7 @@ function AppContent(): JSX.Element {
             {/* Reports */}
             <Route
               path="/reports"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin", "viewer"]}><ReportsWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><ReportsWrapper /></ProtectedRoute>}
             />
 
             {/* Documents */}

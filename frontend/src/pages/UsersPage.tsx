@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { usersApi, providersApi, User, Provider, UserRole } from '@services/api';
 import styles from './UsersPage.module.css';
 
-const VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin', 'viewer'];
+const VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
 
 export function UsersPage(): JSX.Element {
   const [users, setUsers] = useState<User[]>([]);
@@ -72,7 +72,7 @@ export function UsersPage(): JSX.Element {
       return;
     }
 
-    if ((formData.role === 'provider_admin' || formData.role === 'viewer') && !formData.provider_id) {
+    if (formData.role === 'provider_admin' && !formData.provider_id) {
       setCreateError(`Provider is required for role '${formData.role}'`);
       return;
     }
@@ -220,11 +220,10 @@ export function UsersPage(): JSX.Element {
                   <option value="provider_admin">Administrador de Prestador</option>
                   <option value="auditor">Auditor</option>
                   <option value="super_admin">Super Administrador</option>
-                  <option value="viewer">Visualizador</option>
                 </select>
               </div>
 
-              {(formData.role === 'provider_admin' || formData.role === 'viewer') && (
+              {formData.role === 'provider_admin' && (
                 <div className={styles.formGroup}>
                   <label>Prestador *</label>
                   <select

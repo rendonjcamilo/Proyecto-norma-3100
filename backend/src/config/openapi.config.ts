@@ -133,7 +133,7 @@ Obtenga el token desde \`POST /auth/login\`.
               properties: {
                 id: { type: 'string', format: 'uuid' },
                 email: { type: 'string', format: 'email' },
-                role: { type: 'string', enum: ['super_admin', 'auditor', 'provider_admin', 'viewer'] },
+                role: { type: 'string', enum: ['super_admin', 'auditor', 'provider_admin'] },
               },
             },
           },

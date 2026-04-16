@@ -115,13 +115,6 @@ export const LoginPage: React.FC = () => {
                 >
                   📋 Auditor
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleMockLogin('viewer')}
-                  className="mock-btn viewer"
-                >
-                  👁️ Visualizador
-                </button>
               </div>
             )}
           </div>

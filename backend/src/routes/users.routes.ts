@@ -72,7 +72,7 @@ export function createUsersRouter(pool: Pool): Router {
       }
 
       // Validate role
-      const validRoles = ['super_admin', 'auditor', 'provider_admin', 'viewer'];
+      const validRoles = ['super_admin', 'auditor', 'provider_admin'];
       if (role && !validRoles.includes(role)) {
         res.status(400).json({
           error: 'Bad Request',
@@ -81,8 +81,8 @@ export function createUsersRouter(pool: Pool): Router {
         return;
       }
 
-      // If role is provider_admin or viewer, provider_id is required
-      if ((role === 'provider_admin' || role === 'viewer') && !provider_id) {
+      // If role is provider_admin, provider_id is required
+      if (role === 'provider_admin' && !provider_id) {
         res.status(400).json({
           error: 'Bad Request',
           message: `provider_id is required for role '${role}'`,

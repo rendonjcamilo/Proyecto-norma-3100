@@ -8,7 +8,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
-type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
+type UserRole = 'super_admin' | 'auditor' | 'provider_admin';
 
 interface NavItem {
   to: string;
@@ -24,7 +24,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const ALL_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin', 'viewer'];
+const ALL_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
 const ADMIN_ROLES: UserRole[] = ['super_admin', 'auditor'];
 
 const navigation: NavSection[] = [
@@ -33,7 +33,7 @@ const navigation: NavSection[] = [
     roles: ALL_ROLES,
     items: [
       { to: '/', icon: 'dashboard', label: 'Dashboard', roles: ALL_ROLES },
-      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin', 'viewer'] },
+      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin'] },
       { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['auditor', 'provider_admin'] },
       { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ['super_admin'] },
     ],
@@ -44,7 +44,7 @@ const navigation: NavSection[] = [
     items: [
       { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
       { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
-      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor', 'provider_admin', 'viewer'] },
+      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['super_admin', 'auditor', 'provider_admin'] },
     ],
   },
   {
@@ -274,7 +274,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 {user?.role === 'super_admin' && 'Super Administrador'}
                 {user?.role === 'auditor' && 'Auditor'}
                 {user?.role === 'provider_admin' && 'Admin Prestador'}
-                {user?.role === 'viewer' && 'Visualizador'}
               </div>
             </div>
             <div style={{ position: 'relative' }}>

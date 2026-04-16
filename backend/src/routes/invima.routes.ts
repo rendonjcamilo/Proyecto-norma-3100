@@ -219,7 +219,7 @@ export function createInvimaRouter(pool: Pool): Router {
   router.get(
     '/providers/:providerId/invima/resumen',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin', 'viewer']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;

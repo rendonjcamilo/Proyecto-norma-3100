@@ -5,7 +5,7 @@
 
 import { useAuth } from '../context/AuthContext';
 
-type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
+type UserRole = 'super_admin' | 'auditor' | 'provider_admin';
 
 interface PermissionConfig {
   canCreate: UserRole[];
@@ -16,49 +16,49 @@ interface PermissionConfig {
 }
 
 // Define permissions for each resource type
-// Based on the role hierarchy: super_admin > auditor > provider_admin / viewer
+// Based on the role hierarchy: super_admin > auditor > provider_admin
 const PERMISSIONS: Record<string, PermissionConfig> = {
   providers: {
     canCreate: ['super_admin', 'auditor'],
     canEdit: ['super_admin', 'auditor'],
     canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin'],
   },
   assessments: {
     canCreate: ['super_admin', 'auditor', 'provider_admin'],
     canEdit: ['super_admin', 'auditor', 'provider_admin'],
     canDelete: ['super_admin', 'auditor'],
-    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin', 'auditor'],
   },
   findings: {
     canCreate: ['super_admin', 'auditor', 'provider_admin'],
     canEdit: ['super_admin', 'auditor', 'provider_admin'],
     canDelete: ['super_admin', 'auditor'],
-    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin', 'auditor'],
   },
   documents: {
-    canCreate: ['super_admin', 'auditor', 'provider_admin'],
-    canEdit: ['super_admin', 'auditor', 'provider_admin'],
-    canDelete: ['super_admin', 'auditor'],
-    canView: ['super_admin', 'auditor', 'provider_admin'],
-    canManage: ['super_admin', 'auditor', 'provider_admin'],
-  },
-  reports: {
-    canCreate: ['super_admin', 'auditor'],
-    canEdit: ['super_admin'],
-    canDelete: ['super_admin'],
-    canView: ['super_admin', 'auditor', 'provider_admin', 'viewer'],
-    canManage: ['super_admin', 'auditor'],
-  },
-  users: {
     canCreate: ['super_admin', 'provider_admin'],
     canEdit: ['super_admin', 'provider_admin'],
     canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin', 'provider_admin'],
+  },
+  reports: {
+    canCreate: ['super_admin', 'auditor'],
+    canEdit: ['super_admin'],
+    canDelete: ['super_admin'],
+    canView: ['super_admin', 'auditor'],
+    canManage: ['super_admin', 'auditor'],
+  },
+  users: {
+    canCreate: ['super_admin'],
+    canEdit: ['super_admin'],
+    canDelete: ['super_admin'],
+    canView: ['super_admin', 'auditor', 'provider_admin'],
+    canManage: ['super_admin'],
   },
   questionnaires: {
     canCreate: ['super_admin'],
@@ -68,11 +68,11 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
     canManage: ['super_admin'],
   },
   notifications: {
-    canCreate: ['super_admin', 'auditor'],
+    canCreate: ['super_admin'],
     canEdit: ['super_admin'],
     canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
-    canManage: ['super_admin', 'auditor'],
+    canManage: ['super_admin'],
   },
   templates: {
     canCreate: ['super_admin'],
@@ -82,8 +82,8 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
     canManage: ['super_admin'],
   },
   invima: {
-    canCreate: ['super_admin', 'provider_admin'],
-    canEdit: ['super_admin', 'provider_admin'],
+    canCreate: ['super_admin', 'auditor', 'provider_admin'],
+    canEdit: ['super_admin', 'auditor', 'provider_admin'],
     canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin', 'provider_admin'],
@@ -128,6 +128,5 @@ export const useRolePermission = () => {
     isAdmin: user?.role === 'super_admin',
     isAuditor: user?.role === 'auditor',
     isProviderAdmin: user?.role === 'provider_admin',
-    isViewer: user?.role === 'viewer',
   };
 };

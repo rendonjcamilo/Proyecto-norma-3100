@@ -17,7 +17,7 @@ export type Semaforo = 'verde' | 'naranja' | 'rojo';
 // Normalizar a inglés en el backend y eliminar los valores en español de estos tipos.
 export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'critica' | 'alta' | 'media' | 'baja';
 export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'closed' | 'abierta' | 'en_proceso' | 'cerrada';
-export type UserRole = 'super_admin' | 'auditor' | 'provider_admin' | 'viewer';
+export type UserRole = 'super_admin' | 'auditor' | 'provider_admin';
 
 export interface User {
   id: string;
