@@ -1,4 +1,5 @@
 /**
+import './dashboards.css';
  * Super Admin Dashboard
  * Global metrics and quick access for system administration
  */

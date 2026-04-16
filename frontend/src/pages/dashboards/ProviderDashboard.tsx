@@ -1,4 +1,5 @@
 /**
+import './dashboards.css';
  * Provider Admin Dashboard
  * Compliance metrics and management for a single provider
  */

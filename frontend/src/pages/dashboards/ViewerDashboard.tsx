@@ -1,4 +1,5 @@
 /**
+import './dashboards.css';
  * Viewer Dashboard
  * Read-only compliance view for external inspectors
  */

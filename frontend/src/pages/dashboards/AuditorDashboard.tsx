@@ -1,4 +1,5 @@
 /**
+import './dashboards.css';
  * Auditor Dashboard
  * Manage assigned providers and review pending evaluations
  */
