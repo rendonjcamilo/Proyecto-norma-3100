@@ -99,14 +99,14 @@ export const LoginPage: React.FC = () => {
                   onClick={() => handleMockLogin('super_admin')}
                   className="mock-btn super-admin"
                 >
-                  👤 Super Administrador
+                  👤 Administrador
                 </button>
                 <button
                   type="button"
                   onClick={() => handleMockLogin('provider_admin')}
                   className="mock-btn provider-admin"
                 >
-                  🏥 Admin Prestador
+                  🏥 Prestador de Servicio
                 </button>
                 <button
                   type="button"
