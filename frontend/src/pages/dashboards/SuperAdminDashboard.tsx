@@ -15,15 +15,6 @@ interface GlobalSummary {
   avgComplianceRate: number;
 }
 
-interface NewProvider {
-  rut: string;
-  legal_name: string;
-  address: string;
-  city: string;
-  department: string;
-  auditor_id?: string;
-}
-
 export function SuperAdminDashboard(): JSX.Element {
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,21 +79,6 @@ export function SuperAdminDashboard(): JSX.Element {
           <div className="kpi-label">Cumplimiento Promedio</div>
           <div className="kpi-value">{summary?.avgComplianceRate || 0}%</div>
         </div>
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: '32px' }}>
-        <a href="/providers" className="btn btn-primary" style={{
-          display: 'inline-block',
-          padding: '12px 24px',
-          background: '#0052cc',
-          color: 'white',
-          textDecoration: 'none',
-          borderRadius: '4px',
-          fontSize: '14px',
-          fontWeight: '600'
-        }}>
-          ➕ Crear Nuevo Prestador
-        </a>
       </div>
 
       <div className="dashboard-section">
