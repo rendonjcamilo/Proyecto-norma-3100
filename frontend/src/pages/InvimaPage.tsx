@@ -300,7 +300,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
       {/* HEADER */}
       <header className="invima-header">
         <div>
-          <h1>Registros INVIMA</h1>
+          <h1 className="dashboard-title">Registros INVIMA</h1>
           <p>Estándar TSMD — Medicamentos, Dispositivos Médicos e Insumos</p>
         </div>
         {can('invima', 'create') && (

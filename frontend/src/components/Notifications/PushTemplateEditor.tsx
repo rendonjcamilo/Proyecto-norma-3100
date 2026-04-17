@@ -209,7 +209,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
   }
 
   return (
-    <div className="push-template-editor">
+    <div className="admin-dashboard">
       {/* Mode Navigation */}
       {mode !== 'list' && (
         <div className="editor-header">
@@ -232,7 +232,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
           <div className="list-header">
             <h2>🔔 Plantillas de Notificaciones Push</h2>
             <button
-              className="btn btn-primary"
+              className="btn-dashboard btn-dashboard-primary"
               onClick={() => {
                 setTemplate({ name: '', title: '', body: '', variables: [] });
                 setMode('new');
@@ -292,7 +292,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
       {(mode === 'new' || mode === 'edit') && (
         <div className="template-editor">
           <div className="editor-form">
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>Nombre de la Plantilla *</label>
               <input
                 type="text"
@@ -303,7 +303,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>Título de la Notificación *</label>
               <div className="variables-toolbar">
                 <span className="toolbar-label">Variables:</span>
@@ -330,7 +330,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
               <small className="field-hint">{template.title.length}/65 caracteres</small>
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>Cuerpo de la Notificación *</label>
               <div className="variables-toolbar">
                 <span className="toolbar-label">Variables:</span>
@@ -357,7 +357,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
               <small className="field-hint">{template.body.length}/240 caracteres</small>
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>URL de Acción (Opcional)</label>
               <input
                 type="url"
@@ -382,7 +382,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
 
             <div className="editor-actions">
               <button
-                className="btn btn-primary"
+                className="btn-dashboard btn-dashboard-primary"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -390,7 +390,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn-dashboard btn-dashboard-secondary"
                 onClick={() => setShowPreview(!showPreview)}
               >
                 {showPreview ? '👁️ Ocultar Vista Previa' : '👁️ Vista Previa'}
@@ -398,7 +398,7 @@ export const PushTemplateEditor: React.FC<PushTemplateEditorProps> = ({
               {template.id && (
                 <button
                   type="button"
-                  className="btn btn-danger"
+                  className="btn-dashboard btn-dashboard-danger"
                   onClick={() => template.id && handleDelete(template.id)}
                 >
                   🗑️ Eliminar

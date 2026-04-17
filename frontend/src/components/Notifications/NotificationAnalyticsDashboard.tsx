@@ -274,7 +274,7 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
       </div>
 
       <div className="analytics-footer">
-        <button className="btn btn-primary" onClick={fetchAnalytics}>
+        <button className="btn-dashboard btn-dashboard-primary" onClick={fetchAnalytics}>
           🔄 Actualizar
         </button>
         <small>Última actualización: {new Date().toLocaleTimeString('es-CO')}</small>

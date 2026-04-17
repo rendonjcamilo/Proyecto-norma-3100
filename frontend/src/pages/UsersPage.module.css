@@ -365,6 +365,28 @@
   cursor: not-allowed;
 }
 
+.btnDelete {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  opacity: 0.6;
+  transition: all 0.2s;
+  border-radius: 0.35rem;
+}
+
+.btnDelete:hover:not(:disabled) {
+  opacity: 1;
+  background-color: #fee2e2;
+  transform: scale(1.15);
+}
+
+.btnDelete:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {

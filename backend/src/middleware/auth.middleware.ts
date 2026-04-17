@@ -24,9 +24,9 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   // In development, bypass authentication
   if (process.env.NODE_ENV === 'development') {
     req.user = {
-      user_id: 'dev-user',
+      user_id: '550e8400-e29b-41d4-a716-446655440000',
       role: 'super_admin',
-      provider_id: 'prov-001',
+      provider_id: '550e8400-e29b-41d4-a716-446655440001',
       jti: 'dev-jti',
     };
     logger.debug({ path: req.path }, 'Development mode: auth bypassed');

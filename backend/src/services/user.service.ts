@@ -87,7 +87,7 @@ export class UserService {
           data.first_name || null,
           data.last_name || null,
           'active',
-          JSON.stringify([]), // Empty password history
+          null, // password_history - use DB default
           0,
           null,
           now,
@@ -304,6 +304,77 @@ export class UserService {
       logger.error({ error: err instanceof Error ? err.message : err }, 'Error locking user');
       throw err;
     }
+  }
+
+  /**
+   * Delete a user by ID
+   */
+  async deleteUser(userId: string): Promise<void> {
+    const result = await this.pool.query(
+      'DELETE FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (result.rowCount === 0) {
+      throw new Error('User not found');
+    }
+
+    logger.info({ userId }, 'User deleted');
+  }
+
+  /**
+   * Update a user by ID
+   */
+  async updateUser(userId: string, data: {
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+    provider_id?: string;
+  }): Promise<User> {
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+
+    if (data.first_name !== undefined) {
+      updates.push(`first_name = $${paramCount++}`);
+      values.push(data.first_name || null);
+    }
+    if (data.last_name !== undefined) {
+      updates.push(`last_name = $${paramCount++}`);
+      values.push(data.last_name || null);
+    }
+    if (data.role !== undefined) {
+      updates.push(`role = $${paramCount++}`);
+      values.push(data.role);
+    }
+    if (data.provider_id !== undefined) {
+      updates.push(`provider_id = $${paramCount++}`);
+      values.push(data.provider_id || null);
+    }
+
+    if (updates.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    updates.push(`updated_at = $${paramCount++}`);
+    values.push(new Date());
+    values.push(userId);
+
+    const query = `
+      UPDATE users
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING id, email, role, provider_id, first_name, last_name, status, created_at, updated_at
+    `;
+
+    const result = await this.pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new Error('User not found');
+    }
+
+    logger.info({ userId }, 'User updated');
+    return result.rows[0];
   }
 
   /**

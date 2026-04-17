@@ -266,6 +266,12 @@ export const usersApi = {
 
   create: (payload: { email: string; password: string; confirm_password: string; role?: UserRole; provider_id?: string; first_name?: string; last_name?: string }) =>
     post<{ data: User }>('/api/users', payload),
+
+  update: (id: string, payload: { first_name?: string; last_name?: string; role?: UserRole; provider_id?: string }) =>
+    request<{ data: User }>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+  delete: (id: string) =>
+    request<{ success: boolean; message: string }>(`/api/users/${id}`, { method: 'DELETE' }),
 };
 
 // ─────────────────────────────────────────────

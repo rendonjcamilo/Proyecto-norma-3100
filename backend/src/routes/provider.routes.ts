@@ -60,7 +60,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           department,
           country: country || 'Colombia',
           status: status || 'active',
-          created_by: user?.user_id,
+          created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
         });
 
         // Emit event
@@ -134,7 +134,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         res.json({
           count: providers.length,
-          providers,
+          data: providers,
         });
       } catch (err) {
         logger.error({ msg: 'Error fetching providers', error: err instanceof Error ? err.message : String(err) });

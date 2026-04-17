@@ -260,7 +260,7 @@ export const ProvidersPage: React.FC = () => {
             <div className="modal-body">
               {createError && <div className="modal-error">{createError}</div>}
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="rut">RUT *</label>
                 <input
                   id="rut"
@@ -275,7 +275,7 @@ export const ProvidersPage: React.FC = () => {
                 </small>
               </div>
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="legal_name">Nombre Legal *</label>
                 <input
                   id="legal_name"
@@ -287,7 +287,7 @@ export const ProvidersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="address">Dirección *</label>
                 <input
                   id="address"
@@ -299,7 +299,7 @@ export const ProvidersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="city">Ciudad *</label>
                 <input
                   id="city"
@@ -311,7 +311,7 @@ export const ProvidersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="department">Departamento</label>
                 <input
                   id="department"
@@ -323,7 +323,7 @@ export const ProvidersPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label htmlFor="auditor_id">Asignar Auditor *</label>
                 <select
                   id="auditor_id"

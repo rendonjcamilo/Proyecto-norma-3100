@@ -176,7 +176,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
         <div className="form-section">
           <h3>Información General</h3>
 
-          <div className="form-group">
+          <div className="dashboard-form-group">
             <label htmlFor="title">
               Título de la Acción <span className="required">*</span>
             </label>
@@ -191,7 +191,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
             {errors.title && <p className="error-text">{errors.title}</p>}
           </div>
 
-          <div className="form-group">
+          <div className="dashboard-form-group">
             <label htmlFor="description">
               Descripción Detallada <span className="required">*</span>
             </label>
@@ -207,7 +207,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
           </div>
 
           <div className="form-row">
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label htmlFor="responsible">
                 Responsable <span className="required">*</span>
               </label>
@@ -227,7 +227,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
               )}
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label htmlFor="deadline">
                 Fecha Límite <span className="required">*</span>
               </label>
@@ -241,7 +241,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
               {errors.deadline && <p className="error-text">{errors.deadline}</p>}
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label htmlFor="priority">Prioridad</label>
               <select
                 id="priority"
@@ -290,7 +290,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
 
                 {expandedSteps.has(step.step_number) && (
                   <div className="followup-content">
-                    <div className="form-group">
+                    <div className="dashboard-form-group">
                       <label htmlFor={`description-${step.step_number}`}>
                         Descripción del Paso
                       </label>
@@ -307,7 +307,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
                     </div>
 
                     <div className="form-row">
-                      <div className="form-group">
+                      <div className="dashboard-form-group">
                         <label htmlFor={`due-date-${step.step_number}`}>
                           Fecha Esperada
                         </label>
@@ -322,7 +322,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
                         />
                       </div>
 
-                      <div className="form-group">
+                      <div className="dashboard-form-group">
                         <label htmlFor={`completion-${step.step_number}`}>
                           Completitud (%)
                         </label>
@@ -344,7 +344,7 @@ export const CorrectiveActionForm: React.FC<CorrectiveActionFormProps> = ({
                       </div>
                     </div>
 
-                    <div className="form-group">
+                    <div className="dashboard-form-group">
                       <label htmlFor={`comments-${step.step_number}`}>
                         Notas
                       </label>

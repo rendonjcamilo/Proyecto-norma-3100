@@ -210,7 +210,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
   const charWarning = getCharacterWarning();
 
   return (
-    <div className="sms-template-editor">
+    <div className="admin-dashboard">
       {/* Mode Navigation */}
       {mode !== 'list' && (
         <div className="editor-header">
@@ -233,7 +233,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
           <div className="list-header">
             <h2>💬 Plantillas de SMS</h2>
             <button
-              className="btn btn-primary"
+              className="btn-dashboard btn-dashboard-primary"
               onClick={() => {
                 setTemplate({
                   name: '',
@@ -302,7 +302,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
       {(mode === 'new' || mode === 'edit') && (
         <div className="template-editor">
           <div className="editor-form">
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>Nombre de la Plantilla *</label>
               <input
                 type="text"
@@ -313,7 +313,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="dashboard-form-group">
               <label>Contenido del SMS *</label>
               <div className="variables-toolbar">
                 <span className="toolbar-label">Variables:</span>
@@ -356,7 +356,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
 
             <div className="editor-actions">
               <button
-                className="btn btn-primary"
+                className="btn-dashboard btn-dashboard-primary"
                 onClick={handleSave}
                 disabled={saving || template.content.length > MAX_SMS_LONG}
               >
@@ -364,7 +364,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn-dashboard btn-dashboard-secondary"
                 onClick={() => setShowPreview(!showPreview)}
               >
                 {showPreview ? '👁️ Ocultar Vista Previa' : '👁️ Vista Previa'}
@@ -372,7 +372,7 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
               {template.id && (
                 <button
                   type="button"
-                  className="btn btn-danger"
+                  className="btn-dashboard btn-dashboard-danger"
                   onClick={() => template.id && handleDelete(template.id)}
                 >
                   🗑️ Eliminar

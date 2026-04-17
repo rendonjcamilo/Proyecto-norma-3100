@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { UserService } from '../services/user.service.js';
 import { logger } from '../utils/logger.js';
+import ExcelJS from 'exceljs';
 
 export function createUsersRouter(pool: Pool): Router {
   const router = Router();
@@ -132,6 +133,167 @@ export function createUsersRouter(pool: Pool): Router {
         logger.error({ error: errorMessage }, 'Error creating user');
         res.status(500).json({ error: 'Internal Server Error' });
       }
+    }
+  });
+
+  /**
+   * PUT /api/users/:id
+   * Update a user (super_admin only)
+   */
+  router.put('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = (req as any).user;
+      const { id } = req.params;
+      const { first_name, last_name, role, provider_id } = req.body;
+
+      // Only super_admin can update users
+      if (user?.role !== 'super_admin') {
+        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can update users' });
+        return;
+      }
+
+      const updatedUser = await userService.updateUser(id, { first_name, last_name, role, provider_id });
+
+      logger.info({ updated_user_id: id, admin_id: user?.user_id }, 'User updated by super_admin');
+      res.json({
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          provider_id: updatedUser.provider_id,
+          first_name: updatedUser.first_name,
+          last_name: updatedUser.last_name,
+          status: updatedUser.status,
+          created_at: updatedUser.created_at,
+          updated_at: updatedUser.updated_at,
+        },
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      if (errorMessage.includes('User not found')) {
+        res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      } else {
+        logger.error({ error: errorMessage }, 'Error updating user');
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    }
+  });
+
+  /**
+   * DELETE /api/users/:id
+   * Delete a user (super_admin only)
+   */
+  router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = (req as any).user;
+      const { id } = req.params;
+
+      // Only super_admin can delete users
+      if (user?.role !== 'super_admin') {
+        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can delete users' });
+        return;
+      }
+
+      // Prevent deleting yourself
+      if (user?.user_id === id) {
+        res.status(400).json({ error: 'Bad Request', message: 'Cannot delete your own account' });
+        return;
+      }
+
+      await userService.deleteUser(id);
+
+      logger.info({ deleted_user_id: id, admin_id: user?.user_id }, 'User deleted by super_admin');
+      res.json({ success: true, message: 'User deleted successfully' });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      if (errorMessage.includes('User not found')) {
+        res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      } else {
+        logger.error({ error: errorMessage }, 'Error deleting user');
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    }
+  });
+
+  /**
+   * GET /api/users/export/excel
+   * Export all users to Excel (super_admin only)
+   */
+  /**
+   * GET /api/users/export/excel
+   * Export all users to Excel (super_admin only)
+   */
+  router.get('/export-excel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+    try {
+      const user = (req as any).user;
+
+      // Only super_admin can export
+      if (user?.role !== 'super_admin') {
+        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can export users' });
+        return;
+      }
+
+      // Fetch all users
+      const result = await pool.query(`
+        SELECT
+          id, email, role, provider_id, first_name, last_name,
+          status, created_at, updated_at
+        FROM users
+        ORDER BY created_at DESC
+      `);
+
+      // Create workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Usuarios');
+
+      // Add headers
+      worksheet.columns = [
+        { header: 'Email', key: 'email', width: 25 },
+        { header: 'Nombre', key: 'first_name', width: 15 },
+        { header: 'Apellido', key: 'last_name', width: 15 },
+        { header: 'Rol', key: 'role', width: 20 },
+        { header: 'Prestador ID', key: 'provider_id', width: 36 },
+        { header: 'Estado', key: 'status', width: 12 },
+        { header: 'Creado', key: 'created_at', width: 20 },
+        { header: 'Actualizado', key: 'updated_at', width: 20 },
+      ];
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0052CC' },
+      };
+
+      // Add data rows
+      result.rows.forEach((row) => {
+        worksheet.addRow({
+          email: row.email,
+          first_name: row.first_name || '—',
+          last_name: row.last_name || '—',
+          role: row.role,
+          provider_id: row.provider_id || '—',
+          status: row.status,
+          created_at: new Date(row.created_at).toLocaleDateString('es-CO'),
+          updated_at: row.updated_at ? new Date(row.updated_at).toLocaleDateString('es-CO') : '—',
+        });
+      });
+
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      // Send file
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="usuarios.xlsx"');
+      res.send(buffer);
+
+      logger.info({ admin_id: user?.user_id, total_users: result.rows.length }, 'Users exported to Excel');
+    } catch (err) {
+      logger.error({ error: err instanceof Error ? err.message : String(err) }, 'Error exporting users');
+      res.status(500).json({ error: 'Internal Server Error' });
     }
   });
 

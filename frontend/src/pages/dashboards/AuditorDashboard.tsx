@@ -226,7 +226,7 @@ export function AuditorDashboard(): JSX.Element {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h2>Crear Nuevo Prestador</h2>
             <form onSubmit={handleCreateProvider} className="provider-form">
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label>RUT *</label>
                 <input
                   type="text"
@@ -236,7 +236,7 @@ export function AuditorDashboard(): JSX.Element {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label>Nombre Legal *</label>
                 <input
                   type="text"
@@ -246,7 +246,7 @@ export function AuditorDashboard(): JSX.Element {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label>Dirección *</label>
                 <input
                   type="text"
@@ -256,7 +256,7 @@ export function AuditorDashboard(): JSX.Element {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label>Ciudad *</label>
                 <input
                   type="text"
@@ -266,7 +266,7 @@ export function AuditorDashboard(): JSX.Element {
                   required
                 />
               </div>
-              <div className="form-group">
+              <div className="dashboard-form-group">
                 <label>Departamento</label>
                 <input
                   type="text"
@@ -279,7 +279,7 @@ export function AuditorDashboard(): JSX.Element {
                 <button type="button" onClick={() => setShowAddProvider(false)} className="btn btn-outline">
                   Cancelar
                 </button>
-                <button type="submit" disabled={creatingProvider} className="btn btn-primary">
+                <button type="submit" disabled={creatingProvider} className="btn-dashboard btn-dashboard-primary">
                   {creatingProvider ? 'Creando...' : 'Crear Prestador'}
                 </button>
               </div>

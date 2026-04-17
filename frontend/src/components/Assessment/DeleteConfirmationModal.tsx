@@ -50,7 +50,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 
         <div className="delete-confirmation-modal-footer">
           <button
-            className="btn btn-secondary"
+            className="btn-dashboard btn-dashboard-secondary"
             onClick={onCancel}
             type="button"
             disabled={isLoading}
@@ -58,7 +58,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             Cancelar
           </button>
           <button
-            className="btn btn-danger"
+            className="btn-dashboard btn-dashboard-danger"
             onClick={onConfirm}
             type="button"
             disabled={isLoading}

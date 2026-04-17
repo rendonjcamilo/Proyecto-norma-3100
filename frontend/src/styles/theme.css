@@ -1,307 +1,125 @@
-/* ============================================
-   THEME VARIABLES - LIGHT & DARK MODE
-   Professional color system with CSS custom properties
-   ============================================ */
+/* ============================================================================
+   SISTEMA DE TEMAS GLOBAL - Admin Dashboards
+   Diseño profesional, moderno y elegante
+   ============================================================================ */
 
-/* Light Theme (Default) */
-:root,
-[data-theme="light"] {
-  /* Primary Colors */
+/* COLOR PALETTE */
+:root {
+  /* Primarios */
   --color-primary: #0052cc;
-  --color-primary-light: #e7f0ff;
-  --color-primary-dark: #003a99;
+  --color-primary-dark: #0043a6;
+  --color-primary-light: #deebff;
+  --color-primary-gradient: linear-gradient(135deg, #0052cc 0%, #3b82f6 100%);
 
-  /* Semantic Colors */
-  --color-success: #00875a;
-  --color-success-light: #e3fcef;
-  --color-warning: #ff8b00;
-  --color-warning-light: #fff7d6;
-  --color-error: #de350b;
-  --color-error-light: #ffeceb;
-  --color-info: #0052cc;
-  --color-info-light: #e7f0ff;
+  /* Secundarios (Accent) */
+  --color-accent: #0ea5e9;
+  --color-accent-light: #cffafe;
 
-  /* Neutral Colors */
-  --color-neutral-0: #ffffff;
-  --color-neutral-50: #fafbfc;
-  --color-neutral-100: #f4f5f7;
-  --color-neutral-200: #e8eaed;
-  --color-neutral-300: #dce0e5;
-  --color-neutral-400: #b3bac4;
-  --color-neutral-500: #8590a2;
-  --color-neutral-600: #626f86;
-  --color-neutral-700: #44546f;
-  --color-neutral-800: #2d333b;
-  --color-neutral-900: #161b22;
+  /* Neutrales - Escala profesional */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748b;
+  --color-text-light: #94a3b8;
+  --color-text-disabled: #cbd5e1;
 
-  /* Text Colors */
-  --text-primary: #161b22;
-  --text-secondary: #44546f;
-  --text-tertiary: #8590a2;
-  --text-inverse: #ffffff;
-  --text-muted: #b3bac4;
+  /* Fondos */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-hover: #f0f4f9;
 
-  /* Background Colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f4f5f7;
-  --bg-tertiary: #e8eaed;
-  --bg-overlay: rgba(255, 255, 255, 0.95);
-  --bg-surface: #fafbfc;
+  /* Bordes */
+  --color-border-light: #f1f5f9;
+  --color-border-primary: #e2e8f0;
+  --color-border-dark: #cbd5e1;
 
-  /* Border Colors */
-  --border-default: #dce0e5;
-  --border-subtle: #e8eaed;
-  --border-bold: #b3bac4;
+  /* Estados */
+  --color-success: #16a34a;
+  --color-warning: #ea580c;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
 
-  /* Surface Colors */
-  --surface-overlay: rgba(255, 255, 255, 0.95);
-  --surface-raised: #ffffff;
-  --surface-default: #fafbfc;
+  /* Sombras */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --shadow-xl: 0 12px 32px rgba(15, 23, 42, 0.15);
+  --shadow-2xl: 0 20px 60px rgba(15, 23, 42, 0.2);
 
-  /* Shadow Colors */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+  /* Tipografía */
+  --font-family-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Monaco', 'Courier New', monospace;
 
-  /* Z-indexes */
-  --z-dropdown: 100;
-  --z-sticky: 50;
-  --z-fixed: 60;
-  --z-modal: 999;
-  --z-toast: 1000;
+  /* Espaciado */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
 
-  /* Spacing (rem units) */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-8: 2.5rem;
+  /* Radios */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
-  /* Typography */
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-lg: 18px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
-
-  /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-
-  /* Transitions */
-  --transition-fast: 150ms ease-out;
-  --transition-normal: 200ms ease-out;
-  --transition-slow: 300ms ease-out;
-
-  /* Typography — monospace para datos numéricos */
-  --font-mono: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
-
-  /* Focus ring */
-  --focus-ring: 0 0 0 3px rgba(0, 82, 204, 0.35);
-  --focus-ring-error: 0 0 0 3px rgba(222, 53, 11, 0.35);
-
-  /* Semáforo */
-  --semaforo-verde: #00875a;
-  --semaforo-verde-light: #e3fcef;
-  --semaforo-naranja: #ff8b00;
-  --semaforo-naranja-light: #fff7d6;
-  --semaforo-rojo: #de350b;
-  --semaforo-rojo-light: #ffeceb;
-
-  /* Topbar */
-  --topbar-height: 60px;
-  --sidebar-width: 280px;
+  /* Transiciones */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark Theme */
-[data-theme="dark"] {
-  /* Primary Colors */
-  --color-primary: #4a9eff;
-  --color-primary-light: #1a3a52;
-  --color-primary-dark: #2a7ace;
+/* ============================================================================
+   ESTILOS GLOBALES
+   ============================================================================ */
 
-  /* Semantic Colors */
-  --color-success: #4ade80;
-  --color-success-light: #1e3a1f;
-  --color-warning: #fbbf24;
-  --color-warning-light: #3f3020;
-  --color-error: #f87171;
-  --color-error-light: #3f2020;
-  --color-info: #4a9eff;
-  --color-info-light: #1a3a52;
-
-  /* Neutral Colors */
-  --color-neutral-0: #0f1419;
-  --color-neutral-50: #1a1f26;
-  --color-neutral-100: #22272e;
-  --color-neutral-200: #2d333b;
-  --color-neutral-300: #3d444d;
-  --color-neutral-400: #535b63;
-  --color-neutral-500: #6e7681;
-  --color-neutral-600: #8b949e;
-  --color-neutral-700: #b0b9c3;
-  --color-neutral-800: #c9d1d9;
-  --color-neutral-900: #e6edf3;
-
-  /* Text Colors */
-  --text-primary: #e6edf3;
-  --text-secondary: #b0b9c3;
-  --text-tertiary: #8b949e;
-  --text-inverse: #0f1419;
-  --text-muted: #6e7681;
-
-  /* Background Colors */
-  --bg-primary: #0f1419;
-  --bg-secondary: #1a1f26;
-  --bg-tertiary: #22272e;
-  --bg-overlay: rgba(15, 20, 25, 0.95);
-  --bg-surface: #161b22;
-
-  /* Border Colors */
-  --border-default: #30363d;
-  --border-subtle: #21262d;
-  --border-bold: #444c56;
-
-  /* Surface Colors */
-  --surface-overlay: rgba(15, 20, 25, 0.95);
-  --surface-raised: #161b22;
-  --surface-default: #0f1419;
-
-  /* Shadow Colors */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-/* ============================================
-   GLOBAL STYLES WITH THEME SUPPORT
-   ============================================ */
-
-* {
-  color-scheme: light dark;
-}
-
-html,
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background-color 300ms ease-out, color 300ms ease-out;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-main);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-/* Smooth transitions for theme switching */
-body * {
-  transition: background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out;
+/* ============================================================================
+   BOTONES
+   ============================================================================ */
+
+.btn-primary {
+  background: var(--color-primary-gradient);
+  color: white;
+  box-shadow: 0 4px 12px rgba(5, 82, 204, 0.2);
 }
 
-/* Links */
-a {
-  color: var(--color-primary);
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, #2563eb 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 82, 204, 0.3);
 }
 
-a:hover {
-  color: var(--color-primary-dark);
+.btn-secondary {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
 }
 
-/* Input Fields */
-input,
-textarea,
-select {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border-color: var(--border-default);
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-dark);
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: var(--color-primary);
-  outline: none;
+.btn-danger {
+  background: var(--color-error);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
 }
 
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-tertiary);
-}
-
-/* Buttons */
-button {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border-color: var(--border-default);
-}
-
-button:hover {
-  background-color: var(--bg-tertiary);
-}
-
-button:active {
-  background-color: var(--neutral-300);
-}
-
-/* Cards & Containers */
-.card,
-.panel,
-.modal {
-  background-color: var(--bg-secondary);
-  border-color: var(--border-default);
-}
-
-/* Tables */
-table {
-  background-color: var(--bg-primary);
-  border-color: var(--border-default);
-}
-
-th {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-td {
-  border-color: var(--border-subtle);
-}
-
-/* Code blocks */
-code,
-pre {
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--border-default);
-}
-
-/* Scrollbar styling (Webkit browsers) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-bold);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--neutral-400);
-}
-
-/* Selection */
-::selection {
-  background-color: var(--color-primary);
-  color: var(--text-inverse);
-}
-
-/* Focus visible — usa --focus-ring para consistencia en sidebar oscuro */
-:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-2px);
 }

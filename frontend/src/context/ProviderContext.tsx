@@ -90,9 +90,25 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             console.warn('Failed to load auditor providers, using mock data:', err);
             providersData = MOCK_PROVIDERS;
           }
+        } else if (user?.role === 'provider_admin' && user?.provider_id) {
+          // For provider_admin, load only their assigned provider
+          try {
+            const allProviders = await providersApi.list();
+            const myProvider = (allProviders.data || []).find((p: ApiProvider) => p.id === user.provider_id);
+            providersData = myProvider ? [transformProvider(myProvider)] : [];
+          } catch (err) {
+            console.warn('Failed to load provider, using mock data:', err);
+            providersData = MOCK_PROVIDERS;
+          }
         } else {
-          // For other roles, use mock data or set based on context
-          providersData = MOCK_PROVIDERS;
+          // For super_admin or fallback, load all providers
+          try {
+            const allProviders = await providersApi.list();
+            providersData = (allProviders.data || []).map(transformProvider);
+          } catch (err) {
+            console.warn('Failed to load providers, using mock data:', err);
+            providersData = MOCK_PROVIDERS;
+          }
         }
 
         setAvailableProviders(providersData);

@@ -111,20 +111,23 @@ export function QuestionnairesPage(): JSX.Element {
   });
 
   if (loading) {
-    return <div className={styles.container}><div className={styles.loading}>Cargando cuestionarios...</div></div>;
+    return <div className="admin-dashboard"><div className={styles.loading}>Cargando cuestionarios...</div></div>;
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <h1>Gestión de Cuestionarios</h1>
-          <p>Crear y administrar plantillas de evaluación por servicio de salud</p>
+    <div className="admin-dashboard">
+      <div style={{ padding: "32px", maxWidth: "1600px", margin: "0 auto" }}>
+        <div className="dashboard-header">
+          <h1 className="dashboard-title">Gestión de Cuestionarios</h1>
+          <p className="dashboard-subtitle">Crear y administrar plantillas de evaluación por servicio de salud</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className={styles.btnCreate}>
-          + Crear Cuestionario
-        </button>
-      </div>
+
+        <div className="dashboard-toolbar">
+          <div style={{ flex: 1 }}></div>
+          <button onClick={() => setShowCreateModal(true)} className="btn-dashboard btn-dashboard-primary">
+            + Crear Cuestionario
+          </button>
+        </div>
 
       {error && <div className={styles.alert}>{error}</div>}
 
@@ -164,8 +167,8 @@ export function QuestionnairesPage(): JSX.Element {
         </div>
       </div>
 
-      <div className={styles.tableWrapper}>
-        <table className={styles.table}>
+      <div className="dashboard-table-container">
+        <table className="dashboard-table">
           <thead>
             <tr>
               <th>Servicio</th>
@@ -211,16 +214,15 @@ export function QuestionnairesPage(): JSX.Element {
 
       {/* Modal para crear cuestionario */}
       {showCreateModal && (
-        <>
-          <div className={styles.overlay} onClick={() => setShowCreateModal(false)} />
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
+        <div className="dashboard-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="dashboard-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="dashboard-modal-header">
               <h2>Crear nuevo cuestionario</h2>
-              <button className={styles.closeBtn} onClick={() => setShowCreateModal(false)}>×</button>
+              <button className="dashboard-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
 
-            <div className={styles.modalContent}>
-              <div className={styles.formGroup}>
+            <div className="dashboard-modal-body">
+              <div className="dashboard-form-group">
                 <label>Servicio de Salud *</label>
                 <select
                   value={formData.serviceId}
@@ -236,7 +238,7 @@ export function QuestionnairesPage(): JSX.Element {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
+              <div className="dashboard-form-group">
                 <label>Tipo de Versión *</label>
                 <select
                   value={formData.versionType}
@@ -250,7 +252,7 @@ export function QuestionnairesPage(): JSX.Element {
                 </select>
               </div>
 
-              <div className={styles.formGroup}>
+              <div className="dashboard-form-group">
                 <label>Nombre del Cuestionario (opcional)</label>
                 <input
                   type="text"
@@ -261,28 +263,29 @@ export function QuestionnairesPage(): JSX.Element {
                 />
               </div>
 
-              {createError && <div className={styles.formError}>{createError}</div>}
+              {createError && <div style={{ fontSize: "12px", color: "var(--color-danger)", marginTop: "var(--space-2)" }}>{createError}</div>}
             </div>
 
-            <div className={styles.modalActions}>
+            <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", padding: "var(--space-6)", borderTop: "1px solid var(--border-default)", background: "var(--neutral-50)" }}>
               <button
                 onClick={() => setShowCreateModal(false)}
                 disabled={creatingQuestionnaire}
-                className={styles.btnSecondary}
+                className="btn-dashboard btn-dashboard-secondary"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateQuestionnaire}
                 disabled={creatingQuestionnaire}
-                className={styles.btnPrimary}
+                className="btn-dashboard btn-dashboard-primary"
               >
                 {creatingQuestionnaire ? 'Creando...' : 'Crear Cuestionario'}
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
+      </div>
     </div>
   );
 }

@@ -318,13 +318,13 @@ export const MultiChannelPreferences: React.FC<MultiChannelPreferencesProps> = (
 
       <div className="preferences-actions">
         <button
-          className="btn btn-primary"
+          className="btn-dashboard btn-dashboard-primary"
           onClick={handleSave}
           disabled={saving}
         >
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
-        <button className="btn btn-secondary" onClick={fetchPreferences}>
+        <button className="btn-dashboard btn-dashboard-secondary" onClick={fetchPreferences}>
           Descartar Cambios
         </button>
       </div>
