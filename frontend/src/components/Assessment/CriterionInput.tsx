@@ -42,6 +42,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   onChange,
   readOnly = false,
 }) => {
+  console.log('CriterionInput rendered:', { code: criterion.code, name: criterion.name, description: criterion.description });
   const [localResponse, setLocalResponse] = useState<CriterionResponse>(
     response || { criterionId: criterion.id, status: 'C' }
   );
@@ -51,6 +52,10 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     // Clear description if not NC
     if (status !== 'NC') {
       newResponse.description = '';
+      newResponse.comments = '';
+    } else if (status === 'NC' && !localResponse.description) {
+      // Auto-generate negation when marking as NC in the required description field
+      newResponse.description = `NO se cumple que: ${criterion.name}`;
     }
     setLocalResponse(newResponse);
     onChange(newResponse);

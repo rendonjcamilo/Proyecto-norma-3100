@@ -131,6 +131,132 @@ La página de login incluye `loginWithMock` — ingresa cualquier email + selecc
 
 ---
 
+## 🐳 Desarrollo con Docker
+
+### Requisitos
+- Docker Desktop instalado y corriendo
+- 4GB RAM disponible (recomendado 8GB)
+
+### Stack completo en Docker
+
+**4 servicios orquestados por docker-compose:**
+1. **PostgreSQL 14** — BD principal (puerto 5432)
+2. **Redis 7** — Caché y sesiones (puerto 6379)
+3. **Backend** — Express + TypeScript (puerto 3001, hot-reload con `tsx watch`)
+4. **Frontend** — React + Vite (puerto 5173, hot-reload con HMR)
+
+### Configuración necesaria
+
+#### `backend/.env` (para Docker)
+```env
+DB_HOST=postgres          # ← Service name, NOT localhost
+DB_PORT=5432
+DB_NAME=norma3100
+DB_USER=postgres
+DB_PASSWORD=postgres_dev_password
+
+REDIS_URL=redis://redis:6379  # ← Service name, NOT localhost
+PORT=3001
+
+CORS_ORIGIN=http://localhost:5173
+JWT_SECRET=dev_jwt_secret_change_in_production_min_32_chars!!!!
+# ... resto de variables
+```
+
+**⚠️ Nota crítica:** Dentro de un contenedor Docker, `localhost` hace referencia al contenedor mismo, no al host. Usa los nombres de servicio del docker-compose: `postgres`, `redis`, `backend`, `frontend`.
+
+#### `docker-compose.yml` (ya configurado)
+Las siguientes líneas son críticas:
+- Backend servicio debe tener `PORT=3001` en `environment`
+- Backend y Frontend montados con volúmenes para hot-reload en desarrollo
+- Healthchecks en todos los servicios para esperar a que arranquen antes de conectar
+- Network `norma-network` bridge para comunicación inter-contenedor
+
+### Levantar el stack
+
+```bash
+# Inicia los 4 servicios en background
+docker-compose up -d
+
+# Espera a que todos alcancen "healthy" (30-60 seg)
+docker-compose ps
+
+# Ejecutar migraciones y cargar esquema
+docker-compose exec backend npm run migrate:up
+```
+
+### Acceder a la aplicación
+
+| Servicio | URL | Health |
+|----------|-----|--------|
+| **Frontend** | http://localhost:5173 | GET `/` |
+| **Backend API** | http://localhost:3001/api | GET `/health` |
+| **PostgreSQL** | localhost:5432 | psql user: `postgres` |
+| **Redis** | localhost:6379 | `redis-cli ping` |
+
+### Comandos útiles
+
+```bash
+# Ver logs de todos los servicios
+docker-compose logs -f
+
+# Ver logs de un servicio específico (últimas 30 líneas)
+docker-compose logs backend --tail=30
+docker-compose logs frontend --tail=30
+
+# Ejecutar comando dentro de un contenedor
+docker-compose exec backend npm run seed
+docker-compose exec backend npm run migrate:up
+docker-compose exec backend npm run lint
+
+# Detener todo
+docker-compose down
+
+# Detener y eliminar volúmenes de BD (reset total)
+docker-compose down -v
+
+# Rebuildar imágenes (después de cambiar Dockerfile o package.json)
+docker-compose up -d --build
+
+# Entrar a la shell del backend
+docker-compose exec backend sh
+
+# Acceder a PostgreSQL dentro del contenedor
+docker-compose exec postgres psql -U postgres -d norma3100
+```
+
+### Desarrollo con hot-reload
+
+**Backend:** El código en `backend/src/` está montado como volumen. Cambios se detectan automáticamente con `tsx watch`:
+```bash
+docker-compose logs backend --tail=5
+# Verás: "[tsx] restarting due to changes..." cuando guardas un archivo
+```
+
+**Frontend:** Vite hace HMR automáticamente. Los cambios en `frontend/src/` se reflejan en el navegador sin rebuild.
+
+### Troubleshooting
+
+**Error: "Cannot connect to Docker daemon"**
+→ Docker Desktop no está corriendo. Ábrelo.
+
+**Error: "Container exited with code 1"**
+→ Mira los logs: `docker-compose logs backend`
+
+**Error: "database "norma3100" does not exist"**
+→ Las migraciones no corrieron. Ejecuta: `docker-compose exec backend npm run migrate:up`
+
+**Error: "Port 5173 already in use"**
+→ Detén el proceso en ese puerto o cambia el puerto en `docker-compose.yml` línea 49.
+
+**Cambios en package.json no se aplicaron**
+→ Rebuild: `docker-compose down && docker-compose up -d --build`
+
+**BD datos obsoletos**
+→ Reset total: `docker-compose down -v && docker-compose up -d && docker-compose exec backend npm run migrate:up`
+
+---
+
 ## 📁 Estructura del proyecto
 
 ```

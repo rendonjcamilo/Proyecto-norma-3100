@@ -53,6 +53,22 @@ function extractStandardCode(criterionCode: string): string {
 
 /** Transforma la lista plana de criterios en estándares agrupados */
 function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[] {
+  console.log(`[groupCriteriaByStandard] Recibiendo ${criteria.length} criterios`);
+  const criteriaIds = criteria.map(c => c.id);
+  const duplicates = criteriaIds.filter((id, idx) => criteriaIds.indexOf(id) !== idx);
+  if (duplicates.length > 0) {
+    console.warn(`[groupCriteriaByStandard] Criterios duplicados encontrados:`, duplicates);
+  }
+
+  const standardIds = criteria.map(c => c.standard_id);
+  const uniqueStandardIds = new Set(standardIds);
+  console.log(`[groupCriteriaByStandard] Standards únicos: ${uniqueStandardIds.size}, Criterios por standard:`,
+    Array.from(uniqueStandardIds).map(sid => ({
+      standard_id: sid,
+      count: standardIds.filter(id => id === sid).length
+    }))
+  );
+
   const standardMap = new Map<string, Standard>();
 
   for (const c of criteria) {
@@ -65,11 +81,15 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
         criteria: [],
       });
     }
+    // Usar 'name' y 'description' del backend; si no existen (flujo mock), usar 'text' como fallback
+    const name = (c as any).name || (c as any).text || 'Sin nombre';
+    const description = (c as any).description || (c as any).text || '';
+
     standardMap.get(c.standard_id)!.criteria.push({
       id: c.id,
       code: c.code,
-      name: c.name,
-      description: c.description,
+      name,
+      description,
       evidenceRequirement: c.evidence_requirement || '',
       complexity: c.complexity,
     });

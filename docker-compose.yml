@@ -11,6 +11,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=development
+      - PORT=3001
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=norma3100
@@ -28,13 +29,14 @@ services:
       - norma-network
     volumes:
       - ./backend/src:/app/src
+      - ./backend/db:/app/db
       - /app/node_modules
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 30s
     command: npm run dev
 
   frontend:
