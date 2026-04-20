@@ -276,7 +276,7 @@ export const usersApi = {
     post<{ data: User }>('/api/users', payload),
 
   update: (id: string, payload: { first_name?: string; last_name?: string; role?: UserRole; provider_id?: string }) =>
-    request<{ data: User }>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    request<{ data: User }>('PUT', `/api/users/${id}`, payload),
 
   delete: (id: string) =>
     request<{ success: boolean; message: string }>('DELETE', `/api/users/${id}`),
