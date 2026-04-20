@@ -69,6 +69,17 @@ const INITIAL_FORM: FormData = {
   admin_password: '',
 };
 
+interface Department {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface Municipality {
+  id: number;
+  name: string;
+}
+
 export const ProvidersPage: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,19 +94,24 @@ export const ProvidersPage: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const [providersRes, usersRes] = await Promise.all([
+        const [providersRes, usersRes, deptsRes] = await Promise.all([
           providersApi.list(),
           usersApi.list(),
+          fetch('/api/departments').then((r) => r.json()),
         ]);
         setProviders((providersRes.data || []) as Provider[]);
         // Filtrar solo auditores
         const auditorsList = (usersRes.data || []).filter((u) => u.role === 'auditor');
         setAuditors(auditorsList);
+        // Cargar departamentos
+        setDepartments(deptsRes || []);
       } catch {
         console.error('Failed to load providers or auditors');
       } finally {
@@ -213,6 +229,11 @@ export const ProvidersPage: React.FC = () => {
         city: formData.city.trim(),
         department: formData.department.trim(),
       });
+
+      // Asignar el auditor si se seleccionó
+      if (formData.auditor_id) {
+        await providersApi.assignAuditor(editingId, formData.auditor_id);
+      }
 
       // Recargar lista
       const providersRes = await providersApi.list();
@@ -473,27 +494,47 @@ export const ProvidersPage: React.FC = () => {
               </div>
 
               <div className="dashboard-form-group">
-                <label htmlFor="city">Ciudad *</label>
-                <input
-                  id="city"
-                  type="text"
-                  placeholder="Ej: Medellín"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                <label htmlFor="department">Departamento *</label>
+                <select
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => {
+                    const newDept = e.target.value;
+                    setFormData({ ...formData, department: newDept, city: '' });
+                    // Fetch municipalities for selected department
+                    if (newDept) {
+                      fetch(`/api/municipalities?department=${encodeURIComponent(newDept)}`)
+                        .then((r) => r.json())
+                        .then(setMunicipalities)
+                        .catch((err) => console.error('Error loading municipalities:', err));
+                    }
+                  }}
                   disabled={creating}
-                />
+                >
+                  <option value="">-- Seleccionar departamento --</option>
+                  {departments.map((dept) => (
+                    <option key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="dashboard-form-group">
-                <label htmlFor="department">Departamento</label>
-                <input
-                  id="department"
-                  type="text"
-                  placeholder="Ej: Antioquia"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  disabled={creating}
-                />
+                <label htmlFor="city">Ciudad *</label>
+                <select
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  disabled={creating || !formData.department}
+                >
+                  <option value="">-- Seleccionar ciudad --</option>
+                  {municipalities.map((mun) => (
+                    <option key={mun.id} value={mun.name}>
+                      {mun.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="dashboard-form-group">
