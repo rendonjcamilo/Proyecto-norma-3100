@@ -25,7 +25,6 @@ interface NavSection {
 }
 
 const ALL_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
-const ADMIN_ROLES: UserRole[] = ['super_admin', 'auditor'];
 
 const navigation: NavSection[] = [
   {
