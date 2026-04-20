@@ -65,6 +65,11 @@ export function UsersPage(): JSX.Element {
     last_name: '',
   });
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   useEffect(() => {
     fetchUsers();
     fetchProviders();
@@ -119,19 +124,28 @@ export function UsersPage(): JSX.Element {
     }
   };
 
-  const handleDeleteUser = async (userId: string, email: string) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    setError(null);
 
     try {
-      setLoading(true);
-      await usersApi.delete(userId);
-      setUsers(users.filter(u => u.id !== userId));
+      await usersApi.delete(userToDelete.id);
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
+      setSuccessMessage('Usuario eliminado exitosamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar usuario');
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -289,10 +303,10 @@ export function UsersPage(): JSX.Element {
                       ✏️
                     </button>
                     <button
-                      onClick={() => handleDeleteUser(user.id, user.email)}
+                      onClick={() => handleDeleteUser(user)}
                       style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", opacity: 0.7, transition: "all 0.2s" }}
                       title="Eliminar usuario"
-                      disabled={loading}
+                      disabled={loading || deleting}
                     >
                       🗑️
                     </button>
@@ -533,6 +547,95 @@ export function UsersPage(): JSX.Element {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteConfirm && userToDelete && (
+        <div className="dashboard-modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div className="dashboard-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="dashboard-modal-header">
+              <h2>Eliminar usuario</h2>
+              <button
+                className="dashboard-modal-close"
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="dashboard-modal-body">
+              {error && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginBottom: '16px',
+                  color: '#991b1b',
+                  fontSize: '13px',
+                }}>
+                  {error}
+                </div>
+              )}
+              <p style={{ marginBottom: '16px', color: '#333' }}>
+                ¿Está seguro de que desea eliminar al usuario <strong>{userToDelete.email}</strong>?
+              </p>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '0' }}>
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", padding: "var(--space-6)", borderTop: "1px solid var(--border-default)", background: "var(--neutral-50)" }}>
+              <button
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="btn-dashboard btn-dashboard-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteUser}
+                disabled={deleting}
+                style={{
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.6 : 1,
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                {deleting ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast de éxito */}
+      {successMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#00875a',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          animation: 'slideIn 0.3s ease-out',
+        }}>
+          <span style={{ fontSize: '20px' }}>✅</span>
+          <span style={{ fontWeight: '500' }}>{successMessage}</span>
         </div>
       )}
       </div>
