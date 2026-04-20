@@ -213,6 +213,8 @@ export function UsersPage(): JSX.Element {
         first_name: '',
         last_name: '',
       });
+      setSuccessMessage('Usuario creado exitosamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Error creating user');
     } finally {
