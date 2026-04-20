@@ -139,6 +139,9 @@ export const ProvidersPage: React.FC = () => {
       // 4. Cerrar modal y limpiar form
       setShowModal(false);
       setFormData(INITIAL_FORM);
+
+      // Mensaje de éxito
+      alert('✅ Prestador creado correctamente');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear prestador';
       setCreateError(message);
@@ -171,6 +174,9 @@ export const ProvidersPage: React.FC = () => {
       setShowModal(false);
       setEditingId(null);
       setFormData(INITIAL_FORM);
+
+      // Mensaje de éxito
+      alert('✅ Prestador actualizado correctamente');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al actualizar prestador';
       setCreateError(message);

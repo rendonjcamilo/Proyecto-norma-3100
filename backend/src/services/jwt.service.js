@@ -1,0 +1,138 @@
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../utils/logger.js';
+// Token expiry times (in seconds)
+export const ACCESS_TOKEN_EXPIRY = 3600; // 1 hour
+export const REFRESH_TOKEN_EXPIRY = 1209600; // 14 days
+// HS256 algorithm
+const ALGORITHM = 'HS256';
+/**
+ * Generate an access token
+ * @param user_id - UUID of the user
+ * @param role - User's role (provider_admin, auditor, super_admin)
+ * @param provider_id - Provider UUID associated with the user
+ * @returns JWT access token as string
+ */
+export function generateAccessToken(user_id, role, provider_id) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret || secret.length < 32) {
+        throw new Error('JWT_SECRET not configured or too short (min 32 chars)');
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const jti = uuidv4();
+    const claims = {
+        sub: user_id,
+        user_id,
+        role,
+        provider_id,
+        iat: now,
+        exp: now + ACCESS_TOKEN_EXPIRY,
+        jti,
+    };
+    const token = jwt.sign(claims, secret, {
+        algorithm: ALGORITHM,
+    });
+    logger.debug({ user_id, role, provider_id, expiry: claims.exp }, 'Access token generated');
+    return token;
+}
+/**
+ * Generate a refresh token (single-use, 14-day expiry)
+ * @param user_id - UUID of the user
+ * @returns JWT refresh token as string
+ */
+export function generateRefreshToken(user_id) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret || secret.length < 32) {
+        throw new Error('JWT_SECRET not configured or too short (min 32 chars)');
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const jti = uuidv4();
+    const claims = {
+        sub: user_id,
+        user_id,
+        type: 'refresh',
+        iat: now,
+        exp: now + REFRESH_TOKEN_EXPIRY,
+        jti,
+    };
+    const token = jwt.sign(claims, secret, {
+        algorithm: ALGORITHM,
+    });
+    logger.debug({ user_id, expiry: claims.exp, jti }, 'Refresh token generated');
+    return token;
+}
+/**
+ * Validate a JWT token (access or refresh)
+ * @param token - JWT token string
+ * @returns { valid, claims, error }
+ */
+export function validateToken(token) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        return { valid: false, error: 'JWT_SECRET not configured' };
+    }
+    try {
+        // In development, accept mock tokens (format: header.payload.signature)
+        if (process.env.NODE_ENV === 'development' && token.split('.').length === 3) {
+            try {
+                const parts = token.split('.');
+                const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+                // Validate payload has required fields
+                if (payload.user_id && payload.jti) {
+                    logger.debug({ user_id: payload.user_id }, 'Mock token accepted in development');
+                    return { valid: true, claims: payload };
+                }
+            }
+            catch (parseErr) {
+                // Fall through to signature verification
+            }
+        }
+        const startTime = Date.now();
+        const decoded = jwt.verify(token, secret, {
+            algorithms: [ALGORITHM],
+        });
+        const duration = Date.now() - startTime;
+        logger.debug({ user_id: decoded.user_id, duration: `${duration}ms` }, 'Token validated');
+        return { valid: true, claims: decoded };
+    }
+    catch (err) {
+        const error = err instanceof Error ? err.message : 'Unknown error';
+        logger.debug({ error }, 'Token validation failed');
+        return { valid: false, error };
+    }
+}
+/**
+ * Decode token without verification (for debugging)
+ * @param token - JWT token string
+ * @returns Decoded claims or null
+ */
+export function decodeToken(token) {
+    try {
+        const decoded = jwt.decode(token);
+        return decoded;
+    }
+    catch (_err) {
+        return null;
+    }
+}
+/**
+ * Extract JWT ID (jti) from token for revocation tracking
+ * @param token - JWT token string
+ * @returns JWT ID or null
+ */
+export function getTokenJti(token) {
+    const decoded = decodeToken(token);
+    return decoded?.jti || null;
+}
+/**
+ * Check if token is expired
+ * @param token - JWT token string
+ * @returns true if expired, false otherwise
+ */
+export function isTokenExpired(token) {
+    const decoded = decodeToken(token);
+    if (!decoded)
+        return true;
+    const now = Math.floor(Date.now() / 1000);
+    return decoded.exp < now;
+}

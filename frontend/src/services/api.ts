@@ -294,6 +294,9 @@ export const providersApi = {
   update: (id: string, payload: Partial<Provider>) =>
     put<{ data: Provider }>(`/api/providers/${id}`, payload),
 
+  delete: (id: string) =>
+    request<{ success: boolean }>('DELETE', `/api/providers/${id}`),
+
   assignAuditor: (providerId: string, auditorId: string) =>
     post<{ message: string }>(`/api/providers/${providerId}/assign-auditor`, { auditorId }),
 };

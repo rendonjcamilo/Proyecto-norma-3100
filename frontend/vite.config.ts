@@ -10,12 +10,12 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://backend:3001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/auth': {
-        target: 'http://backend:3001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/auth/, '/auth'),
       },
