@@ -774,7 +774,9 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
       try {
         // Verify auditor exists
         const auditorResult = await pool.query(
-          `SELECT id FROM users WHERE id = $1 AND role = 'auditor'`,
+          `SELECT u.id FROM users u
+           JOIN roles r ON u.role_id = r.id
+           WHERE u.id = $1 AND r.name = 'AUDITOR'`,
           [req.params.auditorId]
         );
         if (auditorResult.rows.length === 0) {
