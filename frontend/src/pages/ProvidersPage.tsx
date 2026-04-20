@@ -55,6 +55,10 @@ export const ProvidersPage: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
   const [auditors, setAuditors] = useState<User[]>([]);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -143,6 +147,79 @@ export const ProvidersPage: React.FC = () => {
     }
   };
 
+  const handleEdit = async () => {
+    if (!editingId || !formData.legal_name.trim() || !formData.city.trim()) {
+      setCreateError('Por favor completa los campos obligatorios');
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+
+    try {
+      await providersApi.update(editingId, {
+        legal_name: formData.legal_name.trim(),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        department: formData.department.trim(),
+      });
+
+      // Recargar lista
+      const providersRes = await providersApi.list();
+      setProviders((providersRes.data || []) as Provider[]);
+
+      setShowModal(false);
+      setEditingId(null);
+      setFormData(INITIAL_FORM);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al actualizar prestador';
+      setCreateError(message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+
+    try {
+      await providersApi.delete(deleteTarget.id);
+
+      // Recargar lista
+      const providersRes = await providersApi.list();
+      setProviders((providersRes.data || []) as Provider[]);
+
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Error al eliminar prestador:', err);
+      // Mostrar error pero mantener el modal abierto para reintentar
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openEditModal = (provider: Provider) => {
+    setEditingId(provider.id);
+    setFormData({
+      rut: provider.rut,
+      legal_name: provider.legal_name,
+      address: provider.address || '',
+      city: provider.city,
+      department: provider.department,
+      auditor_id: '',
+    });
+    setCreateError(null);
+    setShowModal(true);
+  };
+
+  const openDeleteConfirm = (provider: Provider) => {
+    setDeleteTarget(provider);
+    setShowDeleteConfirm(true);
+  };
+
   if (loading) {
     return (
       <div className="page-container page-loading">
@@ -164,6 +241,7 @@ export const ProvidersPage: React.FC = () => {
         <button
           className="page-btn-primary"
           onClick={() => {
+            setEditingId(null);
             setFormData(INITIAL_FORM);
             setCreateError(null);
             setShowModal(true);
@@ -206,6 +284,7 @@ export const ProvidersPage: React.FC = () => {
               <th>Departamento</th>
               <th>Estado</th>
               <th>Registro</th>
+              <th style={{ textAlign: 'center', width: '140px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -229,11 +308,41 @@ export const ProvidersPage: React.FC = () => {
                 <td className="cell-muted">
                   {new Date(p.created_at).toLocaleDateString('es-CO')}
                 </td>
+                <td style={{ textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => openEditModal(p)}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      background: '#0066cc',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => openDeleteConfirm(p)}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '12px',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Eliminar
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="cell-empty">
+                <td colSpan={7} className="cell-empty">
                   Sin resultados
                 </td>
               </tr>
@@ -247,7 +356,7 @@ export const ProvidersPage: React.FC = () => {
         <div className="modal-overlay" onClick={() => !creating && setShowModal(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Crear nuevo prestador</h2>
+              <h2>{editingId ? 'Editar prestador' : 'Crear nuevo prestador'}</h2>
               <button
                 className="modal-close"
                 onClick={() => !creating && setShowModal(false)}
@@ -351,16 +460,70 @@ export const ProvidersPage: React.FC = () => {
               </button>
               <button
                 className="modal-btn-primary"
-                onClick={handleCreate}
+                onClick={editingId ? handleEdit : handleCreate}
                 disabled={creating}
               >
                 {creating ? (
                   <>
                     <span className="spinner-small" />
-                    Creando...
+                    {editingId ? 'Actualizando...' : 'Creando...'}
                   </>
+                ) : editingId ? (
+                  'Actualizar Prestador'
                 ) : (
                   'Crear Prestador'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && deleteTarget && (
+        <div className="modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2>Eliminar prestador</h2>
+              <button
+                className="modal-close"
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p style={{ marginBottom: '16px', color: '#333' }}>
+                ¿Está seguro de que desea eliminar a <strong>{deleteTarget.legal_name}</strong>?
+              </p>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '0' }}>
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="modal-btn-cancel"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                className="modal-btn-primary"
+                style={{ background: '#dc3545' }}
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <span className="spinner-small" />
+                    Eliminando...
+                  </>
+                ) : (
+                  'Eliminar'
                 )}
               </button>
             </div>

@@ -219,6 +219,17 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(403).json({ error: 'Access denied' });
         }
 
+        // Validate required fields if provided
+        if (req.body.address !== undefined && !req.body.address?.trim()) {
+          return res.status(400).json({ error: 'Address cannot be empty' });
+        }
+        if (req.body.city !== undefined && !req.body.city?.trim()) {
+          return res.status(400).json({ error: 'City cannot be empty' });
+        }
+        if (req.body.legal_name !== undefined && !req.body.legal_name?.trim()) {
+          return res.status(400).json({ error: 'Legal name cannot be empty' });
+        }
+
         const oldProvider = { ...provider };
 
         // Update provider
