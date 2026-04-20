@@ -814,6 +814,18 @@
   animation: page-spin 0.8s linear infinite;
 }
 
+/* Toast Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .page-container {

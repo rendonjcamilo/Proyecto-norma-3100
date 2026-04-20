@@ -56,6 +56,7 @@ export const ProvidersPage: React.FC = () => {
   const [auditors, setAuditors] = useState<User[]>([]);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -141,7 +142,8 @@ export const ProvidersPage: React.FC = () => {
       setFormData(INITIAL_FORM);
 
       // Mensaje de éxito
-      alert('✅ Prestador creado correctamente');
+      setSuccessMessage('Prestador creado correctamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear prestador';
       setCreateError(message);
@@ -534,6 +536,28 @@ export const ProvidersPage: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {successMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#00875a',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          animation: 'slideIn 0.3s ease-out',
+        }}>
+          <span style={{ fontSize: '20px' }}>✅</span>
+          <span style={{ fontWeight: '500' }}>{successMessage}</span>
         </div>
       )}
     </div>
