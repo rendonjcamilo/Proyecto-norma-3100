@@ -138,7 +138,7 @@ export const ProvidersPage: React.FC = () => {
         ]);
         setProviders((providersRes.data || []) as Provider[]);
         // Filtrar solo auditores
-        const auditorsList = (usersRes.data || []).filter((u) => u.role === 'auditor');
+        const auditorsList = (usersRes.data || []).filter((u) => u.role === 'AUDITOR');
         setAuditors(auditorsList);
         // Usar departamentos por defecto
         setDepartments(DEFAULT_DEPARTMENTS);

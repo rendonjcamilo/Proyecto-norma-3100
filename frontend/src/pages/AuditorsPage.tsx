@@ -57,7 +57,7 @@ export const AuditorsPage: React.FC = () => {
         ]);
 
         // Filter only auditors
-        const auditorsList = (usersRes.data || []).filter((u) => u.role === 'auditor');
+        const auditorsList = (usersRes.data || []).filter((u) => u.role === 'AUDITOR');
         setAuditors(auditorsList);
 
         // Filter active providers (exclude revoked)
