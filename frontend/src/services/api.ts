@@ -41,6 +41,14 @@ export interface Provider {
   status: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 export interface Finding {
   id: string;
   provider_id: string;
@@ -288,8 +296,13 @@ export const providersApi = {
   getById: (id: string) =>
     get<{ data: Provider }>(`/api/providers/${id}`),
 
-  create: (payload: Partial<Provider>) =>
-    post<{ data: Provider }>('/api/providers', payload),
+  create: (payload: Partial<Provider> & {
+    admin_email?: string;
+    admin_password?: string;
+    admin_first_name?: string;
+    admin_last_name?: string;
+  }) =>
+    post<{ data: { provider: Provider; admin: AdminUser } }>('/api/providers', payload),
 
   update: (id: string, payload: Partial<Provider>) =>
     put<{ data: Provider }>(`/api/providers/${id}`, payload),
@@ -299,6 +312,12 @@ export const providersApi = {
 
   assignAuditor: (providerId: string, auditorId: string) =>
     post<{ message: string }>(`/api/providers/${providerId}/assign-auditor`, { auditorId }),
+
+  getAuditorProviders: (auditorId: string) =>
+    get<{ auditor_id: string; count: number; providers: Provider[] }>(`/api/auditors/${auditorId}/providers`),
+
+  removeAuditorFromProvider: (providerId: string, auditorId: string) =>
+    request<{ success: boolean }>('DELETE', `/api/providers/${providerId}/auditors/${auditorId}`),
 };
 
 // ─────────────────────────────────────────────

@@ -5,10 +5,12 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
+import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { ProviderModel } from '../models/provider.model.js';
 import { EventStore } from '../modules/events/EventStore.js';
+import { validatePasswordPolicy, hashPassword } from '../services/password.service.js';
 import { logger } from '../utils/logger.js';
 
 export function createProviderRouter(pool: Pool, eventStore: EventStore): Router {
@@ -28,12 +30,35 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
     rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
-        const { rut, legal_name, trade_name, legal_entity_type, address, city, department, country, status } =
-          req.body;
+        const {
+          rut,
+          legal_name,
+          trade_name,
+          legal_entity_type,
+          address,
+          city,
+          department,
+          country,
+          status,
+          admin_email,
+          admin_password,
+          admin_first_name,
+          admin_last_name,
+        } = req.body;
 
-        // Validate required fields
+        // Validate required provider fields
         if (!rut || !legal_name || !address || !city) {
-          return res.status(400).json({ error: 'Missing required fields' });
+          return res.status(400).json({ error: 'Missing required provider fields' });
+        }
+
+        // Validate required admin fields
+        if (!admin_email || !admin_password || !admin_first_name || !admin_last_name) {
+          return res.status(400).json({ error: 'Admin data (email, password, first_name, last_name) is required' });
+        }
+
+        // Validate email format
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin_email)) {
+          return res.status(400).json({ error: 'Invalid admin email format' });
         }
 
         // Check for duplicate RUT
@@ -47,40 +72,110 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(400).json({ error: 'Invalid RUT format' });
         }
 
+        // Validate password policy
+        const passwordValidation = validatePasswordPolicy(admin_password);
+        if (!passwordValidation.valid) {
+          return res.status(400).json({
+            error: `Invalid password: ${passwordValidation.errors.join('; ')}`,
+          });
+        }
+
+        // Check if admin email already exists
+        const existingUser = await pool.query(
+          'SELECT id FROM users WHERE email = $1',
+          [admin_email.toLowerCase()]
+        );
+        if (existingUser.rows.length > 0) {
+          return res.status(409).json({ error: 'Email already registered' });
+        }
+
         const user = (req as any).user;
+        const client = await pool.connect();
 
-        // Create provider
-        const provider = await providerModel.createProvider({
-          rut,
-          legal_name,
-          trade_name,
-          legal_entity_type: legal_entity_type || 'healthcare_organization',
-          address,
-          city,
-          department,
-          country: country || 'Colombia',
-          status: status || 'active',
-          created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
-        });
+        try {
+          await client.query('BEGIN');
 
-        // Emit event
-        await eventStore.append({
-          aggregateId: provider.id,
-          aggregateType: 'provider',
-          eventType: 'provider.created',
-          payload: provider as any,
-          userId: user?.user_id,
-        });
+          // 1. Create provider
+          const provider = await providerModel.createProvider({
+            rut,
+            legal_name,
+            trade_name,
+            legal_entity_type: legal_entity_type || 'healthcare_organization',
+            address,
+            city,
+            department,
+            country: country || 'Colombia',
+            status: status || 'active',
+            created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
+          });
 
-        logger.info({
-          msg: 'Provider created',
-          provider_id: provider.id,
-          rut: provider.rut,
-          userId: user?.user_id,
-          role: user?.role,
-        });
+          // 2. Create admin user for the provider
+          const adminUserId = uuidv4();
+          const passwordHash = await hashPassword(admin_password);
+          const now = new Date();
 
-        res.status(201).json({ data: provider });
+          await client.query(
+            `INSERT INTO users (
+              id, email, password_hash, role, provider_id, first_name, last_name,
+              status, password_history, failed_login_attempts, locked_until, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            [
+              adminUserId,
+              admin_email.toLowerCase(),
+              passwordHash,
+              'provider_admin',
+              provider.id,
+              admin_first_name,
+              admin_last_name,
+              'active',
+              '[]',
+              0,
+              null,
+              now,
+              now,
+            ]
+          );
+
+          // Commit transaction
+          await client.query('COMMIT');
+
+          // Emit events
+          await eventStore.append({
+            aggregateId: provider.id,
+            aggregateType: 'provider',
+            eventType: 'provider.created',
+            payload: provider as any,
+            userId: user?.user_id,
+          });
+
+          logger.info({
+            msg: 'Provider created with admin user',
+            provider_id: provider.id,
+            rut: provider.rut,
+            admin_id: adminUserId,
+            admin_email,
+            userId: user?.user_id,
+            role: user?.role,
+          });
+
+          res.status(201).json({
+            data: {
+              provider,
+              admin: {
+                id: adminUserId,
+                email: admin_email,
+                first_name: admin_first_name,
+                last_name: admin_last_name,
+                role: 'provider_admin',
+              },
+            },
+          });
+        } catch (transactionErr) {
+          await client.query('ROLLBACK');
+          throw transactionErr;
+        } finally {
+          client.release();
+        }
       } catch (err) {
         logger.error({ msg: 'Error creating provider', error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ error: 'Failed to create provider' });
@@ -644,6 +739,49 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           error: err instanceof Error ? err.message : String(err),
         });
         res.status(500).json({ error: 'Failed to fetch auditors' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/auditors/:auditorId/providers
+   * List providers assigned to an auditor
+   */
+  router.get(
+    '/auditors/:auditorId/providers',
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        // Verify auditor exists
+        const auditorResult = await pool.query(
+          `SELECT id FROM users WHERE id = $1 AND role = 'auditor'`,
+          [req.params.auditorId]
+        );
+        if (auditorResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Auditor not found' });
+        }
+
+        // Get all providers assigned to this auditor
+        const result = await pool.query(
+          `SELECT p.id, p.legal_name, p.rut, p.city, p.department, p.status, ap.assigned_at, ap.assigned_by
+           FROM providers p
+           INNER JOIN auditor_providers ap ON p.id = ap.provider_id
+           WHERE ap.auditor_id = $1
+           ORDER BY p.legal_name ASC`,
+          [req.params.auditorId]
+        );
+
+        res.json({
+          auditor_id: req.params.auditorId,
+          count: result.rows.length,
+          providers: result.rows,
+        });
+      } catch (err) {
+        logger.error({
+          msg: 'Error fetching providers for auditor',
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(500).json({ error: 'Failed to fetch providers' });
       }
     }
   );

@@ -12,7 +12,8 @@ interface Provider {
   rut: string;
   city: string;
   department: string;
-  status: 'active' | 'inactive' | 'suspended';
+  address?: string;
+  status: 'active' | 'inactive' | 'suspended' | 'revoked';
   created_at: string;
 }
 
@@ -28,6 +29,20 @@ const STATUS_COLORS: Record<string, string> = {
   suspended: '#de350b',
 };
 
+/**
+ * Helper para validar fortaleza de contraseña
+ */
+const checkPasswordStrength = (password: string) => {
+  const checks = {
+    hasMinLength: password.length >= 12,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasSpecial: /[!@#$%^&*()_\-+=\[\]{};:'",.<>?/\\|`~]/.test(password),
+  };
+  const passedCount = Object.values(checks).filter(Boolean).length;
+  return { checks, strength: passedCount };
+};
+
 interface FormData {
   rut: string;
   legal_name: string;
@@ -35,6 +50,10 @@ interface FormData {
   city: string;
   department: string;
   auditor_id: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  admin_email: string;
+  admin_password: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -44,6 +63,10 @@ const INITIAL_FORM: FormData = {
   city: '',
   department: '',
   auditor_id: '',
+  admin_first_name: '',
+  admin_last_name: '',
+  admin_email: '',
+  admin_password: '',
 };
 
 export const ProvidersPage: React.FC = () => {
@@ -95,7 +118,7 @@ export const ProvidersPage: React.FC = () => {
   });
 
   const handleCreate = async () => {
-    // Validar campos obligatorios
+    // Validar campos obligatorios del prestador
     if (!formData.rut.trim()) {
       setCreateError('RUT es obligatorio');
       return;
@@ -112,8 +135,22 @@ export const ProvidersPage: React.FC = () => {
       setCreateError('Ciudad es obligatoria');
       return;
     }
-    if (!formData.auditor_id.trim()) {
-      setCreateError('Auditor es obligatorio');
+
+    // Validar campos obligatorios del administrador
+    if (!formData.admin_first_name.trim()) {
+      setCreateError('Nombre del administrador es obligatorio');
+      return;
+    }
+    if (!formData.admin_last_name.trim()) {
+      setCreateError('Apellido del administrador es obligatorio');
+      return;
+    }
+    if (!formData.admin_email.trim()) {
+      setCreateError('Email del administrador es obligatorio');
+      return;
+    }
+    if (!formData.admin_password.trim()) {
+      setCreateError('Contraseña del administrador es obligatoria');
       return;
     }
 
@@ -121,30 +158,36 @@ export const ProvidersPage: React.FC = () => {
     setCreateError(null);
 
     try {
-      // 1. Crear el prestador
+      // Crear prestador + admin en un solo paso
       const createRes = await providersApi.create({
         rut: formData.rut.trim(),
         legal_name: formData.legal_name.trim(),
         address: formData.address.trim(),
         city: formData.city.trim(),
         department: formData.department.trim(),
+        admin_email: formData.admin_email.trim(),
+        admin_password: formData.admin_password,
+        admin_first_name: formData.admin_first_name.trim(),
+        admin_last_name: formData.admin_last_name.trim(),
       });
 
-      const newProviderId = createRes.data.id;
+      const newProviderId = (createRes.data as any).provider.id;
 
-      // 2. Asignar el auditor (obligatorio)
-      await providersApi.assignAuditor(newProviderId, formData.auditor_id);
+      // Asignar el auditor al prestador creado
+      if (formData.auditor_id) {
+        await providersApi.assignAuditor(newProviderId, formData.auditor_id);
+      }
 
-      // 3. Recargar lista de prestadores
+      // Recargar lista de prestadores
       const providersRes = await providersApi.list();
       setProviders((providersRes.data || []) as Provider[]);
 
-      // 4. Cerrar modal y limpiar form
+      // Cerrar modal y limpiar form
       setShowModal(false);
       setFormData(INITIAL_FORM);
 
       // Mensaje de éxito
-      setSuccessMessage('Prestador creado correctamente');
+      setSuccessMessage('Prestador creado y administrador configurado');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear prestador';
@@ -204,6 +247,10 @@ export const ProvidersPage: React.FC = () => {
 
       setShowDeleteConfirm(false);
       setDeleteTarget(null);
+
+      // Mensaje de éxito
+      setSuccessMessage('Prestador eliminado exitosamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       console.error('Error al eliminar prestador:', err);
       // Mostrar error pero mantener el modal abierto para reintentar
@@ -221,6 +268,10 @@ export const ProvidersPage: React.FC = () => {
       city: provider.city,
       department: provider.department,
       auditor_id: '',
+      admin_first_name: '',
+      admin_last_name: '',
+      admin_email: '',
+      admin_password: '',
     });
     setCreateError(null);
     setShowModal(true);
@@ -444,7 +495,7 @@ export const ProvidersPage: React.FC = () => {
               </div>
 
               <div className="dashboard-form-group">
-                <label htmlFor="auditor_id">Asignar Auditor *</label>
+                <label htmlFor="auditor_id">Asignar Auditor {!editingId && '*'}</label>
                 <select
                   id="auditor_id"
                   value={formData.auditor_id}
@@ -459,6 +510,127 @@ export const ProvidersPage: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Admin section - only show on create, not on edit */}
+              {!editingId && (
+                <>
+                  <div style={{
+                    borderTop: '1px solid #e0e0e0',
+                    margin: '24px 0',
+                    paddingTop: '20px',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      marginBottom: '16px',
+                      color: '#333',
+                      fontWeight: '600',
+                    }}>
+                      <span style={{ fontSize: '20px' }}>👤</span>
+                      <span>Administrador del Prestador</span>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-form-group">
+                    <label htmlFor="admin_first_name">Nombre *</label>
+                    <input
+                      id="admin_first_name"
+                      type="text"
+                      placeholder="Ej: Juan"
+                      value={formData.admin_first_name}
+                      onChange={(e) => setFormData({ ...formData, admin_first_name: e.target.value })}
+                      disabled={creating}
+                    />
+                  </div>
+
+                  <div className="dashboard-form-group">
+                    <label htmlFor="admin_last_name">Apellido *</label>
+                    <input
+                      id="admin_last_name"
+                      type="text"
+                      placeholder="Ej: Pérez"
+                      value={formData.admin_last_name}
+                      onChange={(e) => setFormData({ ...formData, admin_last_name: e.target.value })}
+                      disabled={creating}
+                    />
+                  </div>
+
+                  <div className="dashboard-form-group">
+                    <label htmlFor="admin_email">Email *</label>
+                    <input
+                      id="admin_email"
+                      type="email"
+                      placeholder="Ej: admin@hospital.com"
+                      value={formData.admin_email}
+                      onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
+                      disabled={creating}
+                    />
+                  </div>
+
+                  <div className="dashboard-form-group">
+                    <label htmlFor="admin_password">Contraseña *</label>
+                    <input
+                      id="admin_password"
+                      type="password"
+                      placeholder="Mínimo 12 caracteres"
+                      value={formData.admin_password}
+                      onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
+                      disabled={creating}
+                    />
+                    {formData.admin_password && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', fontWeight: '500' }}>
+                          Requisitos de contraseña:
+                        </div>
+                        {(() => {
+                          const { checks } = checkPasswordStrength(formData.admin_password);
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13px',
+                                color: checks.hasMinLength ? '#00875a' : '#999',
+                              }}>
+                                <span>{checks.hasMinLength ? '✓' : '○'}</span> Mínimo 12 caracteres
+                              </div>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13px',
+                                color: checks.hasUppercase ? '#00875a' : '#999',
+                              }}>
+                                <span>{checks.hasUppercase ? '✓' : '○'}</span> Una mayúscula
+                              </div>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13px',
+                                color: checks.hasLowercase ? '#00875a' : '#999',
+                              }}>
+                                <span>{checks.hasLowercase ? '✓' : '○'}</span> Una minúscula
+                              </div>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13px',
+                                color: checks.hasSpecial ? '#00875a' : '#999',
+                              }}>
+                                <span>{checks.hasSpecial ? '✓' : '○'}</span> Un carácter especial
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="modal-footer">
