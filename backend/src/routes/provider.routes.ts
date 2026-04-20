@@ -80,7 +80,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           role: user?.role,
         });
 
-        res.status(201).json(provider);
+        res.status(201).json({ data: provider });
       } catch (err) {
         logger.error({ msg: 'Error creating provider', error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ error: 'Failed to create provider' });
@@ -245,7 +245,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           userId: user.user_id,
         });
 
-        res.json(updated);
+        res.json({ data: updated });
       } catch (err) {
         logger.error({ msg: 'Error updating provider', error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ error: 'Failed to update provider' });
