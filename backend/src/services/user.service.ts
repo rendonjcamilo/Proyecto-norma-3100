@@ -55,13 +55,15 @@ export class UserService {
         throw new Error(`Invalid password: ${passwordValidation.errors.join('; ')}`);
       }
 
-      // Verify provider exists
-      const providerResult = await client.query(
-        'SELECT id FROM providers WHERE id = $1',
-        [data.provider_id]
-      );
-      if (providerResult.rows.length === 0) {
-        throw new Error('Provider not found');
+      // Verify provider exists (only if provider_id is set)
+      if (data.provider_id) {
+        const providerResult = await client.query(
+          'SELECT id FROM providers WHERE id = $1',
+          [data.provider_id]
+        );
+        if (providerResult.rows.length === 0) {
+          throw new Error('Provider not found');
+        }
       }
 
       // Hash password
