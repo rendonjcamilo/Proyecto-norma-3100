@@ -279,7 +279,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         <div className="sidebar-footer">
           <div className="user-card">
             <div className="user-avatar">
-              {user?.firstName.charAt(0)}{user?.lastName.charAt(0)}
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>
             <div className="user-info">
               <div className="user-name">
