@@ -279,7 +279,7 @@ export const usersApi = {
     request<{ data: User }>(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
 
   delete: (id: string) =>
-    request<{ success: boolean; message: string }>(`/api/users/${id}`, { method: 'DELETE' }),
+    request<{ success: boolean; message: string }>('DELETE', `/api/users/${id}`),
 };
 
 // ─────────────────────────────────────────────
