@@ -172,6 +172,9 @@ app.use('/api', apiLimiter, createInvimaRouter(pool));
 // Norma 3100 JSON-based assessments (no database required)
 app.use('/api', apiLimiter, createNorma3100Router());
 
+// Locations (Colombian departments and municipalities)
+app.use('/api', apiLimiter, createLocationsRouter(pool));
+
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

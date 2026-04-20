@@ -795,7 +795,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.get('/departments', async (req: Request, res: Response) => {
     try {
       const result = await pool.query(
-        'SELECT id, name, code FROM departments ORDER BY name ASC'
+        'SELECT id, name FROM departments ORDER BY name ASC'
       );
       res.json(result.rows);
     } catch (err) {

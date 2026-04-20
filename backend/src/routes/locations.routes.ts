@@ -9,7 +9,8 @@ export function createLocationsRouter(pool: Pool): Router {
       const result = await pool.query('SELECT id, name FROM departments ORDER BY name');
       res.json(result.rows);
     } catch (err) {
-      res.status(500).json({ error: 'Failed to fetch departments' });
+      console.error('Departments error:', err);
+      res.status(500).json({ error: 'Failed to fetch departments', details: (err as Error).message });
     }
   });
 
