@@ -134,8 +134,8 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           await client.query(
             `INSERT INTO users (
               id, email, password_hash, role_id, provider_id, first_name, last_name,
-              status, password_history, failed_login_attempts, locked_until, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+              status, created_at, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             [
               adminUserId,
               admin_email.toLowerCase(),
@@ -145,9 +145,6 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
               admin_first_name,
               admin_last_name,
               'active',
-              null, // password_history - use DB default
-              0,
-              null,
               now,
               now,
             ]
