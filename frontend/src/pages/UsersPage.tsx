@@ -228,8 +228,9 @@ export function UsersPage(): JSX.Element {
   }
 
   return (
-    <div className="admin-dashboard">
-      <div style={{ padding: '32px', maxWidth: '1600px', margin: '0 auto' }}>
+    <>
+      <div className="admin-dashboard">
+        <div style={{ padding: '32px', maxWidth: '1600px', margin: '0 auto' }}>
         <div className="dashboard-header">
           <h1 className="dashboard-title">Gestión de Usuarios</h1>
           <p className="dashboard-subtitle">Crear y administrar usuarios con diferentes roles</p>
@@ -617,7 +618,10 @@ export function UsersPage(): JSX.Element {
         </div>
       )}
 
-      {/* Toast de éxito */}
+      </div>
+      </div>
+
+      {/* Toast de éxito - Fuera del admin-dashboard para que sea visible */}
       {successMessage && (
         <div style={{
           position: 'fixed',
@@ -638,8 +642,7 @@ export function UsersPage(): JSX.Element {
           <span style={{ fontWeight: '500' }}>{successMessage}</span>
         </div>
       )}
-      </div>
-    </div>
+    </>
   );
 }
 
