@@ -83,6 +83,8 @@ export const ProvidersPage: React.FC = () => {
   }, []);
 
   const filtered = providers.filter((p) => {
+    // Excluir prestadores eliminados (revoked)
+    if (p.status === 'revoked') return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
