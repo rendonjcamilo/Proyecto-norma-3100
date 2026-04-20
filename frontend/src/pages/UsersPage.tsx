@@ -113,10 +113,13 @@ export function UsersPage(): JSX.Element {
 
     try {
       setCreatingUser(true);
+      setCreateError(null);
       const updated = await usersApi.update(editingUser.id, editFormData);
       setUsers(users.map(u => u.id === editingUser.id ? updated.data : u));
       setShowEditModal(false);
       setEditingUser(null);
+      setSuccessMessage('Cambios guardados exitosamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Error al actualizar usuario');
     } finally {
