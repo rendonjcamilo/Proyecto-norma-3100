@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, User } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithMock, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('admin@test.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [showMockOptions, setShowMockOptions] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,16 +24,8 @@ export const LoginPage: React.FC = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      // Si falla la BD, usar mock login automáticamente
-      console.log('BD no disponible, usando mock login');
-      loginWithMock(email, 'provider_admin');
-      navigate('/');
+      setError('Error de autenticación. Verifica tu correo y contraseña.');
     }
-  };
-
-  const handleMockLogin = (role: User['role']) => {
-    loginWithMock(email || 'demo@test.com', role);
-    navigate('/');
   };
 
   return (
@@ -78,56 +69,6 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="divider">O</div>
-
-          <div className="mock-login-section">
-            <p className="mock-info">
-              🧪 Para demostración, usa una cuenta mock (sin BD disponible):
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowMockOptions(!showMockOptions)}
-              className="toggle-mock-btn"
-            >
-              {showMockOptions ? '↓ Ocultar' : '→ Mostrar'} opciones de prueba
-            </button>
-
-            {showMockOptions && (
-              <div className="mock-options">
-                <button
-                  type="button"
-                  onClick={() => handleMockLogin('super_admin')}
-                  className="mock-btn super-admin"
-                >
-                  👤 Administrador
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMockLogin('provider_admin')}
-                  className="mock-btn provider-admin"
-                >
-                  🏥 Prestador de Servicio
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMockLogin('auditor')}
-                  className="mock-btn auditor"
-                >
-                  📋 Auditor
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="login-footer">
-            <p className="credentials-hint">
-              💡 Credenciales de prueba con BD:
-              <br />
-              Correo: admin@test.com
-              <br />
-              Contraseña: AdminTest2025!
-            </p>
-          </div>
         </div>
       </div>
     </div>

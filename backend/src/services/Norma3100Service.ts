@@ -117,7 +117,6 @@ export class Norma3100Service {
       __dirname,
       '..',
       '..',
-      '..',
       'docs',
       'norma3100-model.json'
     );

@@ -25,46 +25,17 @@ interface AuditorMetrics {
   actionsRequired: number;
 }
 
-// Mock data for development
-const MOCK_PROVIDERS: ProviderWithMetrics[] = [
-  {
-    id: 'prov-001',
-    legal_name: 'Hospital Central de Bogotá',
-    rut: '860.123.456-7',
-    compliance_rate: 75,
-    pending_validations: 3,
-    city: 'Bogotá',
-  },
-  {
-    id: 'prov-002',
-    legal_name: 'Clínica San Carlos',
-    rut: '860.234.567-8',
-    compliance_rate: 82,
-    pending_validations: 1,
-    city: 'Medellín',
-  },
-  {
-    id: 'prov-003',
-    legal_name: 'Centro Médico del Caribe',
-    rut: '860.345.678-9',
-    compliance_rate: 65,
-    pending_validations: 5,
-    city: 'Cartagena',
-  },
-];
-
-const MOCK_METRICS: AuditorMetrics = {
-  totalProviders: 3,
-  pendingEvaluations: 9,
-  criticalFindings: 2,
-  avgComplianceRate: 74,
-  actionsRequired: 4,
-};
 
 export function AuditorDashboard(): JSX.Element {
   const { user } = useAuth();
   const [providers, setProviders] = useState<ProviderWithMetrics[]>([]);
-  const [metrics, setMetrics] = useState<AuditorMetrics>(MOCK_METRICS);
+  const [metrics, setMetrics] = useState<AuditorMetrics>({
+    totalProviders: 0,
+    pendingEvaluations: 0,
+    criticalFindings: 0,
+    avgComplianceRate: 0,
+    actionsRequired: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddProvider, setShowAddProvider] = useState(false);
@@ -97,10 +68,8 @@ export function AuditorDashboard(): JSX.Element {
         actionsRequired: 0,
       });
     } catch (err) {
-      // Use mock data on error
-      console.log('Using mock data for auditor dashboard');
-      setProviders(MOCK_PROVIDERS);
-      setMetrics(MOCK_METRICS);
+      console.error('Error loading auditor providers:', err);
+      setError(err instanceof Error ? err.message : 'Error al cargar proveedores');
     } finally {
       setLoading(false);
     }

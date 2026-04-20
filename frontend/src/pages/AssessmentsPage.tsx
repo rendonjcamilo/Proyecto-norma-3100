@@ -5,8 +5,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { assessmentsApi, servicesApi, type Assessment, type HealthService } from '../services/api';
+import { assessmentsApi, servicesApi, providersApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
+import { useAuth } from '../context/AuthContext';
 import './Pages.css';
 
 interface AssessmentsPageProps {
@@ -20,59 +21,6 @@ interface Norma3100Service {
   totalCriteria: number;
 }
 
-// Servicios de Norma 3100 del modelo JSON
-const NORMA3100_SERVICES: Norma3100Service[] = [
-  // Consulta Externa
-  { code: 'CEG', name: 'Consulta Externa General', groupName: 'Consulta Externa', totalCriteria: 128 },
-  { code: 'CEE', name: 'Consulta Externa Especializada', groupName: 'Consulta Externa', totalCriteria: 64 },
-  { code: 'CEV', name: 'Consulta Externa Virtual', groupName: 'Consulta Externa', totalCriteria: 60 },
-  { code: 'CES', name: 'Consulta Externa Seguridad Social en el Trabajo', groupName: 'Consulta Externa', totalCriteria: 30 },
-  // Apoyo Diagnóstico
-  { code: 'TRF', name: 'Terapia Física', groupName: 'Apoyo Diagnóstico', totalCriteria: 59 },
-  { code: 'RXO', name: 'Rayos X Odontológicos', groupName: 'Apoyo Diagnóstico', totalCriteria: 48 },
-  { code: 'IDX', name: 'Imágenes Diagnósticas', groupName: 'Apoyo Diagnóstico', totalCriteria: 125 },
-  { code: 'RDT', name: 'Radioterapia', groupName: 'Apoyo Diagnóstico', totalCriteria: 94 },
-  { code: 'QMT', name: 'Quimioterapia', groupName: 'Apoyo Diagnóstico', totalCriteria: 86 },
-  { code: 'DVX', name: 'Diagnóstico Vascular', groupName: 'Apoyo Diagnóstico', totalCriteria: 35 },
-  { code: 'HTR', name: 'Hematología', groupName: 'Apoyo Diagnóstico', totalCriteria: 97 },
-  { code: 'GNT', name: 'Genética', groupName: 'Apoyo Diagnóstico', totalCriteria: 43 },
-  { code: 'TLC', name: 'Técnicas Mínimamente Invasivas Laparoscópicas', groupName: 'Apoyo Diagnóstico', totalCriteria: 32 },
-  { code: 'LAB', name: 'Laboratorio Clínico', groupName: 'Apoyo Diagnóstico', totalCriteria: 59 },
-  { code: 'LAC', name: 'Laboratorio Clínico Urgencias', groupName: 'Apoyo Diagnóstico', totalCriteria: 36 },
-  { code: 'LHT', name: 'Laboratorio de Hematología', groupName: 'Apoyo Diagnóstico', totalCriteria: 33 },
-  { code: 'LPT', name: 'Laboratorio de Patología', groupName: 'Apoyo Diagnóstico', totalCriteria: 57 },
-  { code: 'DLS', name: 'Diálisis', groupName: 'Apoyo Diagnóstico', totalCriteria: 104 },
-  // Internación
-  { code: 'HGP', name: 'Hospitalización General', groupName: 'Internación', totalCriteria: 228 },
-  { code: 'HPP', name: 'Hospitalización Pediatría', groupName: 'Internación', totalCriteria: 207 },
-  { code: 'OBN', name: 'Obstetricia Neonatal', groupName: 'Internación', totalCriteria: 70 },
-  { code: 'CII', name: 'Cuidado Intermedio Neonatal', groupName: 'Internación', totalCriteria: 123 },
-  { code: 'CIP', name: 'Cuidado Intensivo Pediátrico', groupName: 'Internación', totalCriteria: 90 },
-  { code: 'CIM', name: 'Cuidado Intermedio Pediátrico', groupName: 'Internación', totalCriteria: 116 },
-  { code: 'CIA', name: 'Cuidado Intensivo Adulto', groupName: 'Internación', totalCriteria: 86 },
-  { code: 'HSC', name: 'Hospitalización Salud Mental', groupName: 'Internación', totalCriteria: 111 },
-  { code: 'HSP', name: 'Hospitalización Psiquiátrica', groupName: 'Internación', totalCriteria: 134 },
-  { code: 'CPC', name: 'Cuidado Básico Psiquiátrico', groupName: 'Internación', totalCriteria: 89 },
-  // Quirúrgico
-  { code: 'QRG', name: 'Quirúrgico', groupName: 'Quirúrgico', totalCriteria: 205 },
-  // Atención Inmediata
-  { code: 'URG', name: 'Urgencias', groupName: 'Atención Inmediata', totalCriteria: 201 },
-  { code: 'TAS', name: 'Transporte Asistencial', groupName: 'Atención Inmediata', totalCriteria: 250 },
-  { code: 'APH', name: 'Atención Prehospitalaria', groupName: 'Atención Inmediata', totalCriteria: 74 },
-  { code: 'APR', name: 'Atención del Parto', groupName: 'Atención Inmediata', totalCriteria: 173 },
-];
-
-// Fallback a servicios antiguos si algo falla
-const MOCK_SERVICES = [
-  { id: 'svc-cx-001', code: 'CX-001', name: 'Consulta por medicina general', category: 'Consulta Externa', status: 'available' },
-  { id: 'svc-cx-002', code: 'CX-003', name: 'Consulta especializada cardiología', category: 'Consulta Externa', status: 'available' },
-  { id: 'svc-int-001', code: 'INT-001', name: 'Hospitalización adultos', category: 'Internación', status: 'available' },
-  { id: 'svc-int-002', code: 'INT-002', name: 'Hospitalización pediátrica', category: 'Internación', status: 'available' },
-  { id: 'svc-urg-001', code: 'URG-001', name: 'Urgencias adultos', category: 'Atención Inmediata', status: 'available' },
-  { id: 'svc-qx-001', code: 'QX-001', name: 'Cirugía general', category: 'Quirúrgico', status: 'available' },
-  { id: 'svc-dx-001', code: 'DX-001', name: 'Laboratorio clínico', category: 'Apoyo Diagnóstico', status: 'available' },
-  { id: 'svc-dx-002', code: 'DX-002', name: 'Imagenología — Radiología', category: 'Apoyo Diagnóstico', status: 'available' },
-];
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -97,6 +45,7 @@ const ASSESSMENT_TYPES: Record<string, string> = {
 
 export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -116,15 +65,51 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
   useEffect(() => {
     const load = async () => {
+      // No ejecutar si no hay datos suficientes
+      if (user?.role === 'auditor' && !user?.id) {
+        setLoading(false);
+        return;
+      }
+      if (user?.role !== 'auditor' && !providerId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         // Intentar cargar evaluaciones existentes
         let loadedAssessments: Assessment[] = [];
 
+        console.log('[AssessmentsPage] User:', user?.role, 'ID:', user?.id);
+
         try {
-          const assessRes = await assessmentsApi.listByProvider(providerId);
-          loadedAssessments = (assessRes.data || []) as Assessment[];
+          // Para auditors, cargar de sus providers asignados
+          if (user?.role === 'auditor' && user?.id) {
+            console.log('[AssessmentsPage] Loading for auditor:', user.id);
+            try {
+              const auditResponse = await providersApi.getAuditorProviders(user.id);
+              if (auditResponse.providers && auditResponse.providers.length > 0) {
+                // Cargar evaluaciones de cada provider asignado
+                const allAssessments: Assessment[] = [];
+                for (const provider of auditResponse.providers) {
+                  try {
+                    const assessRes = await assessmentsApi.listByProvider(provider.id);
+                    allAssessments.push(...((assessRes.data || []) as Assessment[]));
+                  } catch (err) {
+                    console.warn(`No se pudieron cargar evaluaciones para provider ${provider.id}:`, err);
+                  }
+                }
+                loadedAssessments = allAssessments;
+              }
+            } catch (err) {
+              console.warn('No se pudieron cargar providers del auditor:', err);
+            }
+          } else if (providerId) {
+            // Para provider_admin, cargar solo de su provider
+            const assessRes = await assessmentsApi.listByProvider(providerId);
+            loadedAssessments = (assessRes.data || []) as Assessment[];
+          }
         } catch (err) {
           console.warn('No se pudieron cargar evaluaciones desde backend, intentando localStorage:', err);
 
@@ -141,40 +126,29 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
         setAssessments(loadedAssessments);
 
-        // Cargar servicios de Norma 3100 desde el modelo JSON
-        try {
-          const svcRes = await fetch('/api/norma3100/services');
-          if (svcRes.ok) {
-            const data = await svcRes.json();
-            if (data.services && data.services.length > 0) {
-              // Convertir al formato esperado
-              const formattedServices = data.services.map((s: Norma3100Service) => ({
-                id: `svc-${s.code}`,
-                code: s.code,
-                name: `${s.name} (${s.totalCriteria} criterios)`,
-                category: s.groupName,
-                status: 'available'
-              }));
-              setServices(formattedServices);
-            } else {
-              setServices(MOCK_SERVICES);
-            }
-          } else {
-            setServices(MOCK_SERVICES);
+        // Cargar servicios de Norma 3100 desde la BD
+        const svcRes = await fetch('/api/norma3100/services');
+        if (svcRes.ok) {
+          const data = await svcRes.json();
+          if (data.services && data.services.length > 0) {
+            const formattedServices = data.services.map((s: Norma3100Service) => ({
+              id: `svc-${s.code}`,
+              code: s.code,
+              name: `${s.name} (${s.totalCriteria} criterios)`,
+              category: s.groupName,
+              status: 'available'
+            }));
+            setServices(formattedServices);
           }
-        } catch (err) {
-          console.warn('No se pudieron cargar servicios de Norma 3100, usando fallback:', err);
-          setServices(MOCK_SERVICES);
         }
       } catch (err) {
         console.error('Error cargando datos:', err);
-        setServices(MOCK_SERVICES);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [providerId]);
+  }, [providerId, user?.id, user?.role]);
 
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
@@ -263,7 +237,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </button>
           )}
           {can('assessments', 'create') && (
-            <button className="page-btn-primary" onClick={() => navigate('/assessments/new')}>
+            <button className="page-btn-primary" onClick={() => setShowCreateModal(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -452,24 +426,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     assessmentVersion: formData.type,
                   });
                 } catch (apiError) {
-                  console.warn('No se pudo crear evaluación en BD, usando JSON model:', apiError);
-
-                  // Fallback: crear evaluación desde modelo JSON
-                  const response = await fetch(`/api/norma3100/questionnaires/${formData.serviceId}/${formData.type}`);
-                  if (response.ok) {
-                    const { questionnaire } = await response.json();
-                    const newAssessment = {
-                      id: `assess-${Date.now()}`,
-                      title: formData.title,
-                      status: 'in_progress',
-                      type: formData.type,
-                      service_id: formData.serviceId,
-                      questionnaire_id: questionnaire.id,
-                      compliance_percent: 0,
-                      updated_at: new Date().toISOString(),
-                    };
-                    setAssessments(prev => [newAssessment as any, ...prev]);
-                  }
+                  console.error('Error al crear evaluación:', apiError);
+                  throw new Error(
+                    apiError instanceof Error ? apiError.message : 'No se pudo crear la evaluación'
+                  );
                 }
 
                 setShowCreateModal(false);

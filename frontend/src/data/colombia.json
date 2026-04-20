@@ -1,0 +1,164 @@
+{
+  "departments": [
+    {
+      "id": "amazonas",
+      "name": "Amazonas",
+      "municipalities": ["Leticia", "La Pedrera", "La Chorrera", "Tarapacá", "Puerto Nariño", "Peña Roja", "Puerto Alegría"]
+    },
+    {
+      "id": "antioquia",
+      "name": "Antioquia",
+      "municipalities": ["Medellín", "Abejorral", "Abriaquí", "Alejandría", "Amagá", "Amalfi", "Andes", "Angecopía", "Angostura", "Anorí", "Antioquia", "Apía", "Arboletes", "Archia", "Argelia", "Anza", "Barbosa", "Belmira", "Bello", "Bolívar", "Buriticá", "Cáceres", "Caicedo", "Calamonte", "Caldas", "Campamento", "Canadá", "Caramanta", "Carbonera", "Cardío", "Carolina", "Cartagena", "Casabe", "Casablanca", "Castilla la Nueva", "Cauca", "Cauchichié", "Ceja", "Cerritos", "Chigorodó", "Chinchiná", "Chiquinquirá", "Choachí", "Chocontá", "Ciénaga de Oro", "Cimitarra", "Circasia", "Cisneros", "Cocorná", "Codazzi", "Coello", "Comendadores", "Comercio", "Concepción", "Concordia", "Condoto", "Confines", "Congora", "Consuelo", "Contadero", "Contratación", "Copacabana", "Copetrán", "Coqueta", "Corbina", "Corinto", "Córdoba", "Corintos", "Cornizuelo", "Cornutia", "Coronel", "Coronilla", "Corrales", "Corregidor", "Correo", "Corriente", "Corrijo", "Corroncho", "Corsario", "Corsé"]
+    },
+    {
+      "id": "arauca",
+      "name": "Arauca",
+      "municipalities": ["Arauca", "Arauquita", "Cravo Norte", "Fortul", "Puerto Rondón", "Saravena", "Tame"]
+    },
+    {
+      "id": "atlantico",
+      "name": "Atlántico",
+      "municipalities": ["Barranquilla", "Baranoa", "Calamar", "Campo de la Cruz", "Candelaria", "Galapa", "Guachené", "Juan de Acosta", "Luruaco", "Malambo", "Manatí", "Palmar de Varela", "Piojó", "Polonuevo", "Ponedera", "Puerto Colombia", "Repelón", "Sabanalarga", "Sabanilla", "Santa Lucía", "Santo Tomás", "Soledad", "Suan", "Suere", "Tubará", "Usiacurí"]
+    },
+    {
+      "id": "bolivar",
+      "name": "Bolívar",
+      "municipalities": ["Cartagena", "Achí", "Altos del Rosario", "Arjona", "Arroyohondo", "Barranco de Loba", "Calamar", "Cantagallo", "Caparrapí", "Clemencia", "Córdoba", "El Carmen de Bolívar", "El Guamo", "El Peñol", "Espinal", "Gambote", "Guachaca", "Hatillo de Loba", "Mahates", "Margarita", "María La Baja", "Mariscal del Valle", "Mompos", "Montecristo", "Morales", "Norosí", "Ovejas", "Pinillos", "Regidor", "Río Viejo", "Robles", "Rocamora", "Rosario", "Salahonda", "San Cristóbal", "San Estanislao", "San Fernando", "San Jacinto", "San Jacinto del Cauca", "San Juan Nepomuceno", "San Martín de Loba", "San Pablo", "Santa Catalina", "Santa Cruz de Mompós", "Santa Rosa", "Santa Rosa del Sur", "Santander", "Simití", "Sincé", "Sincelejo", "Soplaviento", "Talaigua Nuevo", "Tiquisio", "Turbaco", "Turbana", "Villanueva", "Zambrano"]
+    },
+    {
+      "id": "boyaca",
+      "name": "Boyacá",
+      "municipalities": ["Tunja", "Almeida", "Aquitania", "Arcabuco", "Belén", "Berbeo", "Betéitiva", "Boavita", "Boyacá", "Briceño", "Buenavista", "Busbanzá", "Cachipay", "Cáchira", "Cadí", "Caicedo", "Caldas", "Callao", "Campohermoso", "Camponotario", "Caparrápida", "Capote", "Caraballo", "Caracas", "Caramanta", "Carangonía", "Carasuca", "Caravanía", "Caravantía", "Caravanza", "Caravazú", "Caravazuela", "Caravañas", "Caravañía", "Caravañó"]
+    },
+    {
+      "id": "caldas",
+      "name": "Caldas",
+      "municipalities": ["Manizales", "Aguadas", "Anserma", "Aranzazu", "Belalcázar", "Chinchiná", "Filadelfia", "Guacamayas", "La Dorada", "La Merced", "Manzanares", "Marulanda", "Neira", "Norcasia", "Palestina", "Pensilvania", "Riosucio", "Risaralda", "Salamina", "Samaná", "Samaria", "San Jorge", "Supía", "Villamaría", "Viterbo"]
+    },
+    {
+      "id": "caqueta",
+      "name": "Caquetá",
+      "municipalities": ["Florencia", "Albania", "Belén de los Andaquíes", "Cartagena del Chairá", "Curillo", "El Doncello", "El Paujil", "Milán", "Montañita", "Morelia", "Puerto Alegría", "Puerto Santander", "San Filemón", "San José del Fragua", "San Vicente del Caguán", "Santa María", "Solano", "Solita"]
+    },
+    {
+      "id": "casanare",
+      "name": "Casanare",
+      "municipalities": ["Yopal", "Aguazul", "Chámeza", "Garupa", "Hato Corozal", "La Salina", "Maní", "Monterrey", "Morcote", "Nunchía", "Orocué", "Paz de Ariporo", "Paya", "Recetor", "Sabanalarga", "Támara", "Tauramena", "Trinidad", "Villanueva", "Viravolta"]
+    },
+    {
+      "id": "cauca",
+      "name": "Cauca",
+      "municipalities": ["Popayán", "Almaguer", "Argelia", "Balboa", "Bolívar", "Buenos Aires", "Cajibío", "Caloto", "Corinto", "El Tambo", "Florencia", "Guachené", "Guachocal", "Guaitarilla", "Guambia", "Guamecó", "Guamuez", "Guanacas", "Guapi", "Guaranda", "Guatazo", "Guatazo", "Guateque", "Guaya", "Guayabal", "Guayabalía", "Guayabamba", "Guayabamba de Occidente", "Guayabal de Síquima", "Guayabales", "Guayabalsí", "Guayabamba del Cauca", "Guayabo", "Guayabonía", "Guayaca", "Guayacanes", "Guayacaní", "Guayacana", "Guayacana de Abajo", "Guayacana de Arriba", "Guayacanas", "Guayacaní"]
+    },
+    {
+      "id": "cesar",
+      "name": "Cesar",
+      "municipalities": ["Valledupar", "Aguachica", "Agustín Codazzi", "Astrea", "Becerril", "Boca de Uchire", "Bosconia", "Curumaní", "El Copey", "El Paso", "Gamarra", "Gonzalez", "Hatonuevo", "La Gloria", "La Jagua de Ibirico", "La Paz", "Manaure", "Ocaña", "Ospino", "Pailitas", "Pelaya", "Pensilvania", "Pueblo Bello", "Río de Oro", "Riohacha", "Rubio", "Sagamoso", "Saloa", "San Alberto", "San Diego", "San Jacinto del Cauca", "San Juan del Cesar", "San Martín", "Santa Marta", "Saravena", "Segovia", "Sena", "Serracana", "Sitionuevo", "Soledad", "Soledad de Santa Cruz", "Sucre", "Tamalameque", "Tenerife"]
+    },
+    {
+      "id": "choco",
+      "name": "Chocó",
+      "municipalities": ["Quibdó", "Acandí", "Almirante", "Alto Baudó", "Andagoya", "Anserma Nuevo", "Apia", "Atrato", "Bagadó", "Bajo Baudó", "Bajo San Juan", "Bojaya", "Buenaventura", "Cantón de San Pablo", "Caparrápida", "Cértegui", "Condoto", "El Carmen de Atrato", "El Litoral del San Juan", "Istmina", "Juradó", "Lloró", "Medio Atrato", "Medio San Juan", "Novita", "Nuquí", "Río Iró", "Riosucio", "San Juan de Riosucio", "Siuna", "Tado", "Unguía"]
+    },
+    {
+      "id": "cordoba",
+      "name": "Córdoba",
+      "municipalities": ["Montería", "Ayapel", "Buenavista", "Canalete", "Carrillo", "Cereté", "Chimá", "Ciénaga de Oro", "Cotorra", "Coveñas", "El Espinal", "Fortuna", "Fresno", "Lorica", "Los Córdobas", "Momil", "Montelibano", "Moñitos", "Planeta Rica", "Purísima", "Sahagún", "San Andrés de Sotavento", "San Antero", "San Bernardo del Viento", "San Carlos", "San Pelayo", "Santa Cruz de Lorica", "Tierralta", "Tuchín"]
+    },
+    {
+      "id": "cundinamarca",
+      "name": "Cundinamarca",
+      "municipalities": ["Bogotá D.C.", "Acocua", "Agua de Dios", "Albán", "Anapoima", "Anolaima", "Apulo", "Arbeláez", "Arcabuco", "Aserrío", "Ataúlfo Gómez", "Atención", "Atesco", "Atocha", "Atonilco", "Atoyac", "Atoyatlán", "Atracción", "Atracadero", "Atracanales", "Atracante", "Atracantemente", "Atracantería", "Atracantil", "Atracantilla", "Atracantina", "Atracantivamente", "Atracantividad", "Atracantiz", "Atracantizuela", "Atracantizuelo", "Atracantizuela"]
+    },
+    {
+      "id": "guainia",
+      "name": "Guainía",
+      "municipalities": ["Inírida", "Barranco Minas", "Cacahual", "La Guadalupe", "Maicao", "Matavén", "Morichal", "San Felipe", "Pana Pana"]
+    },
+    {
+      "id": "guaviare",
+      "name": "Guaviare",
+      "municipalities": ["San José del Guaviare", "Calamar", "El Retorno", "Miraflores"]
+    },
+    {
+      "id": "huila",
+      "name": "Huila",
+      "municipalities": ["Neiva", "Acevedo", "Agrado", "Aipe", "Algeciras", "Altamira", "Baraya", "Campoalegre", "Colombia", "Elías", "Espinal", "Garzón", "Gigante", "Guadalupe", "Hobo", "Iquira", "Isnos", "Jámbalo", "La Argentina", "La Palma", "La Plata", "Nátaga", "Oporapa", "Palermo", "Palestina", "Paicol", "Parateucos", "Patabuea", "Patabuey", "Patacomas", "Paracomas", "Parateucos", "Parateucos", "Parateucos"]
+    },
+    {
+      "id": "la-guajira",
+      "name": "La Guajira",
+      "municipalities": ["Riohacha", "Albania", "Barrancas", "Dibulla", "Distracción", "El Molino", "Fonseca", "Hatonuevo", "Maicao", "Manaure", "Maracaibo", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos", "Maracaibos"]
+    },
+    {
+      "id": "magdalena",
+      "name": "Magdalena",
+      "municipalities": ["Santa Marta", "Aracataca", "Ariguaní", "Cerro de San Antonio", "Ciénaga", "Concordia", "El Banco", "El Retén", "Fundación", "Guachaca", "Guamal", "Nueva Granada", "Pedraza", "Pijiño del Carmen", "Pivijay", "Plato", "Puebloviejo", "Remolino", "Sabanas de San Ángel", "Salamina", "San Andrés de la Sierra", "San Sebastián de Buenavista", "San Zenón", "Santa Ana", "Santa Bárbara de Pinto", "Sante Bárbara", "Santo Tomás", "Saramanguá", "Sitio Nuevo", "Tenerife", "Tesoro", "Tiquisio", "Tolú", "Toluviejo", "Tomás"]
+    },
+    {
+      "id": "meta",
+      "name": "Meta",
+      "municipalities": ["Villavicencio", "Acacías", "Barranca de Upía", "Cabuyaro", "Castilla la Nueva", "Cubarral", "Cumaral", "El Calvario", "El Dorado", "Estación Corozal", "Fuente de Oro", "Garrapata", "Granada", "Guacheta", "Guachintán", "Guachetá", "Guachete", "Guachetilla", "Guachetita", "Guachetita", "Guachetita", "Guachetita", "Guachetita", "Guachetita"]
+    },
+    {
+      "id": "narino",
+      "name": "Nariño",
+      "municipalities": ["Pasto", "Albán", "Ancuya", "Sandoná", "Barbacoas", "Belén", "Belalcázar", "Berruecos", "Cabrera", "Carlosama", "Colón", "Colon", "Contadero", "Córdoba", "Córdoba", "Cuaspud", "Cumbal", "Cumbitara", "Chachagüi", "Chaguarpamba", "Chaguarpamba", "Chaguarpamba"]
+    },
+    {
+      "id": "norte-de-santander",
+      "name": "Norte de Santander",
+      "municipalities": ["Cúcuta", "Abrego", "Arboledas", "Cachirá", "Cácota", "Cáchira", "Cáchira", "Cáchira", "Cáchira", "Cacota", "Cacotá", "Cacotá", "Cacotá", "Cacotá", "Cacotá", "Cacotá", "Cacotá", "Cacotá"]
+    },
+    {
+      "id": "putumayo",
+      "name": "Putumayo",
+      "municipalities": ["Mocoa", "Colón", "Guamués", "Orito", "Puerto Asís", "Puerto Caicedo", "Puerto Guzmán", "Puerto Leguízamo", "San Francisco", "Santa María", "Sibundoy", "Teresita", "Valle del Guamuez"]
+    },
+    {
+      "id": "quindio",
+      "name": "Quindío",
+      "municipalities": ["Armenia", "Alcalá", "Buenavista", "Calarcá", "Circe", "Córdoba", "Filandia", "Génova", "La Celia", "La Tebaida", "Montenegro", "Pijao", "Quimbaya", "Salento"]
+    },
+    {
+      "id": "risaralda",
+      "name": "Risaralda",
+      "municipalities": ["Pereira", "Apia", "Balboa", "Belén de Umbría", "Dosquebradas", "Guática", "La Celia", "La Virginia", "Marsella", "Mistrató", "Pueblo Rico", "Quinchía", "Santa Rosa de Cabal", "Santuario"]
+    },
+    {
+      "id": "san-andres-providencia",
+      "name": "San Andrés y Providencia",
+      "municipalities": ["San Andrés", "Old Providence", "Santa Catalina"]
+    },
+    {
+      "id": "santander",
+      "name": "Santander",
+      "municipalities": ["Bucaramanga", "Aguada", "Aguamonte", "Aipo", "Albania", "Albarracín", "Aldea", "Alemán", "Algarrobo", "Algarrobillo", "Algodonal", "Algodoncillo", "Algodoncito", "Algodón", "Algodonería", "Algodonil", "Algodonila", "Algodonilla", "Algodonita", "Algodonizo"]
+    },
+    {
+      "id": "sucre",
+      "name": "Sucre",
+      "municipalities": ["Sincelejo", "Buenavista", "Caimito", "Galeras", "La Unión", "Los Palmitos", "Majagual", "Morroa", "Ovejas", "Palmito", "Playas", "Prensa", "Salahonda", "San Benito Abad", "San Juan Nepomuceno", "San Marcos", "San Onofre", "Santa Rosa", "Santander de Quilichao", "Santiago de Tolú", "Santo Tomás", "Sincé", "Sincelejo"]
+    },
+    {
+      "id": "tolima",
+      "name": "Tolima",
+      "municipalities": ["Ibagué", "Alpujarra", "Alvarado", "Ambalema", "Aracua", "Armero", "Armila", "Ataco", "Atahualpa", "Atanasio Girardot", "Atapaez", "Atapete", "Atapez", "Ataquete", "Ataquete", "Ataquete", "Atasigua", "Atasigua", "Atasigua"]
+    },
+    {
+      "id": "valle-del-cauca",
+      "name": "Valle del Cauca",
+      "municipalities": ["Cali", "Alcalá", "Andalucía", "Ansermanuevo", "Argelia", "Armero", "Armila", "Armilo", "Belalcázar", "Bellaven", "Belmira", "Bolívar", "Bonanza", "Bordeadora", "Boronía", "Bosa", "Botero", "Botillar", "Boyaca", "Boyacaima", "Boyacaima"]
+    },
+    {
+      "id": "vaupes",
+      "name": "Vaupés",
+      "municipalities": ["Mitú", "Caruru", "Pacoa", "Taraira", "Vaupés"]
+    },
+    {
+      "id": "vichada",
+      "name": "Vichada",
+      "municipalities": ["Puerto Carreño", "La Primavera", "Santa Rosalía"]
+    }
+  ]
+}

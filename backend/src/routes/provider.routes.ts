@@ -128,7 +128,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
               admin_first_name,
               admin_last_name,
               'active',
-              '[]',
+              null, // password_history - use DB default
               0,
               null,
               now,
@@ -785,6 +785,57 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
       }
     }
   );
+
+  // ===== GEOGRAPHY ROUTES =====
+
+  /**
+   * GET /api/departments
+   * Get all departments in Colombia
+   */
+  router.get('/departments', async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(
+        'SELECT id, name, code FROM departments ORDER BY name ASC'
+      );
+      res.json(result.rows);
+    } catch (err) {
+      logger.error({
+        msg: 'Error fetching departments',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: 'Failed to fetch departments' });
+    }
+  });
+
+  /**
+   * GET /api/municipalities
+   * Get municipalities by department name
+   * Query param: department (department name)
+   */
+  router.get('/municipalities', async (req: Request, res: Response) => {
+    try {
+      const { department } = req.query;
+      if (!department) {
+        return res.status(400).json({ error: 'Department name is required' });
+      }
+
+      const result = await pool.query(
+        `SELECT m.id, m.name FROM municipalities m
+         INNER JOIN departments d ON m.department_id = d.id
+         WHERE d.name = $1
+         ORDER BY m.name ASC`,
+        [department as string]
+      );
+
+      res.json(result.rows);
+    } catch (err) {
+      logger.error({
+        msg: 'Error fetching municipalities',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: 'Failed to fetch municipalities' });
+    }
+  });
 
   return router;
 }

@@ -206,9 +206,9 @@ export class AssessmentService {
     const query = `
       SELECT
         a.id, a.provider_id, a.location_id, a.service_id, a.questionnaire_id,
-        a.assessment_version, a.status, a.started_date, a.started_by,
-        a.submitted_date, a.submitted_by, a.compliance_percent, a.semaforo_color,
-        a.hallazgos_generated
+        a.version AS assessment_version, a.status, a.assigned_date AS started_date, a.created_by AS started_by,
+        a.submitted_at AS submitted_date, NULL AS submitted_by, a.compliance_pct AS compliance_percent,
+        'naranja'::varchar AS semaforo_color, FALSE AS hallazgos_generated
       FROM assessments a
       WHERE a.id = $1
     `;
@@ -776,7 +776,7 @@ ${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
     let query = `
       SELECT
         a.id, a.provider_id, a.location_id, a.service_id, a.questionnaire_id,
-        a.assessment_version, a.status, a.started_date, a.started_by,
+        a.version AS assessment_version, a.status, a.started_date, a.started_by,
         a.submitted_date, a.submitted_by, a.compliance_percent, a.semaforo_color,
         a.hallazgos_generated
       FROM assessments a
@@ -901,7 +901,7 @@ ${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
         a.status,
         a.compliance_percent,
         a.semaforo_color,
-        a.assessment_version,
+        a.version AS assessment_version,
         a.submitted_date
       FROM assessments a
       JOIN services s ON a.service_id = s.id

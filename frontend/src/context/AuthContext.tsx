@@ -15,7 +15,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  loginWithMock: (email: string, role: User['role']) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,37 +61,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginWithMock = (email: string, role: User['role']) => {
-    const mockUser: User = {
-      id: `user-${Date.now()}`,
-      email,
-      role,
-      firstName: 'Usuario',
-      lastName: 'Prueba',
-      providerId: 'prov-test-001',
-    };
-
-    // Create a valid JWT format token for mock login
-    // Format: header.payload.signature (all base64url encoded)
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const payload = btoa(JSON.stringify({
-      user_id: mockUser.id,
-      email: mockUser.email,
-      role: mockUser.role,
-      provider_id: mockUser.providerId,
-      jti: `jti-${Date.now()}`,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-      type: 'access'
-    }));
-    const signature = btoa('mock-signature');
-    const mockToken = `${header}.${payload}.${signature}`;
-
-    localStorage.setItem('auth_token', mockToken);
-    localStorage.setItem('auth_user', JSON.stringify(mockUser));
-    setUser(mockUser);
-  };
-
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
@@ -106,7 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!user,
       login,
       logout,
-      loginWithMock,
     }}>
       {children}
     </AuthContext.Provider>

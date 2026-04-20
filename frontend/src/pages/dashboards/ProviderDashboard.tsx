@@ -27,51 +27,12 @@ interface StandardCompliance {
   percentage: number;
 }
 
-// Mock data for development
-const MOCK_TRENDS: ComplianceTrend[] = [
-  { period: 'Ene 2024', percentage: 65 },
-  { period: 'Feb 2024', percentage: 68 },
-  { period: 'Mar 2024', percentage: 72 },
-  { period: 'Abr 2024', percentage: 70 },
-  { period: 'May 2024', percentage: 75 },
-  { period: 'Jun 2024', percentage: 78 },
-];
-
-const MOCK_STANDARDS: StandardCompliance[] = [
-  { code: 'TSTH', name: 'Talento Humano', percentage: 82 },
-  { code: 'TSINF', name: 'Información', percentage: 85 },
-  { code: 'TSDOT', name: 'Dotación', percentage: 76 },
-  { code: 'TSMD', name: 'Medicamentos', percentage: 72 },
-  { code: 'TSPP', name: 'Procesos', percentage: 79 },
-  { code: 'TSHCR', name: 'Habilitación Conjunta', percentage: 74 },
-  { code: 'TSINT', name: 'Integralidad', percentage: 88 },
-];
-
-const MOCK_METRICS: ComplianceMetrics = {
-  compliance_rate: 78,
-  open_findings: 8,
-  in_progress_findings: 5,
-  resolved_findings: 12,
-  pending_actions: 3,
-};
-
-const MOCK_DOCUMENTS = [
-  { name: 'Política de Talento Humano', daysUntilExpiry: 45, status: 'warning' },
-  { name: 'Manual de Procesos', daysUntilExpiry: 15, status: 'danger' },
-  { name: 'Matriz de Competencias', daysUntilExpiry: 120, status: 'ok' },
-];
-
-const MOCK_RECENT_ASSESSMENTS = [
-  { service: 'Urgencias', date: '2024-06-10', status: 'completed', percentage: 82 },
-  { service: 'Consultoría Externa', date: '2024-06-05', status: 'completed', percentage: 75 },
-  { service: 'Laboratorio Clínico', date: '2024-05-28', status: 'in_progress', percentage: 68 },
-];
 
 export function ProviderDashboard(): JSX.Element {
   const { selectedProvider } = useProvider();
-  const [metrics, setMetrics] = useState<ComplianceMetrics>(MOCK_METRICS);
-  const [trends, setTrends] = useState<ComplianceTrend[]>(MOCK_TRENDS);
-  const [standards, setStandards] = useState<StandardCompliance[]>(MOCK_STANDARDS);
+  const [metrics, setMetrics] = useState<ComplianceMetrics | null>(null);
+  const [trends, setTrends] = useState<ComplianceTrend[]>([]);
+  const [standards, setStandards] = useState<StandardCompliance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,28 +48,22 @@ export function ProviderDashboard(): JSX.Element {
       setLoading(true);
       setError(null);
 
-      try {
-        const assessmentsRes = await assessmentsApi.listByProvider(selectedProvider.id);
-        const findingsRes = await findingsApi.listByProvider(selectedProvider.id);
+      const assessmentsRes = await assessmentsApi.listByProvider(selectedProvider.id);
+      const findingsRes = await findingsApi.listByProvider(selectedProvider.id);
 
-        const openFindings = findingsRes.data?.filter((f: any) => f.status === 'open' || f.status === 'abierta').length || 0;
-        const inProgressFindings = findingsRes.data?.filter((f: any) => f.status === 'in_progress' || f.status === 'en_proceso').length || 0;
-        const resolvedFindings = findingsRes.data?.filter((f: any) => f.status === 'resolved' || f.status === 'cerrada').length || 0;
+      const openFindings = findingsRes.data?.filter((f: any) => f.status === 'open' || f.status === 'abierta').length || 0;
+      const inProgressFindings = findingsRes.data?.filter((f: any) => f.status === 'in_progress' || f.status === 'en_proceso').length || 0;
+      const resolvedFindings = findingsRes.data?.filter((f: any) => f.status === 'resolved' || f.status === 'cerrada').length || 0;
 
-        const complianceRate = assessmentsRes.data?.[0]?.compliance_percentage || assessmentsRes.data?.[0]?.compliance_percent || 0;
+      const complianceRate = assessmentsRes.data?.[0]?.compliance_percentage || assessmentsRes.data?.[0]?.compliance_percent || 0;
 
-        setMetrics({
-          compliance_rate: complianceRate,
-          open_findings: openFindings,
-          in_progress_findings: inProgressFindings,
-          resolved_findings: resolvedFindings,
-          pending_actions: Math.max(0, openFindings - inProgressFindings),
-        });
-      } catch (apiError) {
-        // Use mock data if API fails
-        console.warn('Using mock data due to API error:', apiError);
-        setMetrics(MOCK_METRICS);
-      }
+      setMetrics({
+        compliance_rate: complianceRate,
+        open_findings: openFindings,
+        in_progress_findings: inProgressFindings,
+        resolved_findings: resolvedFindings,
+        pending_actions: Math.max(0, openFindings - inProgressFindings),
+      });
     } finally {
       setLoading(false);
     }
@@ -132,6 +87,10 @@ export function ProviderDashboard(): JSX.Element {
 
   if (!selectedProvider) {
     return <div className="dashboard-error">No hay prestador seleccionado</div>;
+  }
+
+  if (!metrics) {
+    return <div className="dashboard-error">No hay datos de métricas disponibles</div>;
   }
 
   return (
@@ -247,45 +206,6 @@ export function ProviderDashboard(): JSX.Element {
         </div>
       </section>
 
-      {/* Recent Assessments */}
-      <section className="dashboard-section">
-        <h2>Evaluaciones Recientes</h2>
-        <div className="assessments-list">
-          {MOCK_RECENT_ASSESSMENTS.map((assessment, idx) => (
-            <div key={idx} className="assessment-item">
-              <div className="assessment-service">{assessment.service}</div>
-              <div className="assessment-date">{new Date(assessment.date).toLocaleDateString('es-CO')}</div>
-              <div className="assessment-status" style={{ color: getTrendColor(assessment.percentage) }}>
-                {assessment.percentage}%
-              </div>
-              <div className="assessment-badge" style={{ background: getTrendColor(assessment.percentage) + '20' }}>
-                {assessment.status === 'completed' ? '✓ Completada' : '⏳ En progreso'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Documents Expiring */}
-      <section className="dashboard-section">
-        <h2>Documentos por Vencer</h2>
-        <div className="documents-list">
-          {MOCK_DOCUMENTS.map((doc, idx) => (
-            <div key={idx} className={`document-item document-${doc.status}`}>
-              <div className="doc-icon">📄</div>
-              <div className="doc-content">
-                <div className="doc-name">{doc.name}</div>
-                <div className="doc-days">
-                  {doc.daysUntilExpiry > 30 ? `Vence en ${doc.daysUntilExpiry} días` : `⚠ Vence en ${doc.daysUntilExpiry} días`}
-                </div>
-              </div>
-              <div className={`doc-status status-${doc.status}`}>
-                {doc.status === 'ok' ? '✓' : doc.status === 'warning' ? '⚠' : '✗'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Quick Actions */}
       <section className="dashboard-section">
