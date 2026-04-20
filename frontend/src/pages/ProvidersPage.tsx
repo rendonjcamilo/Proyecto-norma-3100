@@ -237,6 +237,7 @@ export const ProvidersPage: React.FC = () => {
     if (!deleteTarget) return;
 
     setDeleting(true);
+    setCreateError(null);
 
     try {
       await providersApi.delete(deleteTarget.id);
@@ -252,8 +253,9 @@ export const ProvidersPage: React.FC = () => {
       setSuccessMessage('Prestador eliminado exitosamente');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al eliminar prestador';
+      setCreateError(message);
       console.error('Error al eliminar prestador:', err);
-      // Mostrar error pero mantener el modal abierto para reintentar
     } finally {
       setDeleting(false);
     }
@@ -678,6 +680,7 @@ export const ProvidersPage: React.FC = () => {
             </div>
 
             <div className="modal-body">
+              {createError && <div className="modal-error">{createError}</div>}
               <p style={{ marginBottom: '16px', color: '#333' }}>
                 ¿Está seguro de que desea eliminar a <strong>{deleteTarget.legal_name}</strong>?
               </p>
