@@ -180,7 +180,8 @@ export const ProvidersPage: React.FC = () => {
       setFormData(INITIAL_FORM);
 
       // Mensaje de éxito
-      alert('✅ Prestador actualizado correctamente');
+      setSuccessMessage('Prestador actualizado correctamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al actualizar prestador';
       setCreateError(message);
