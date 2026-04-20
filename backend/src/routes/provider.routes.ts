@@ -114,16 +114,26 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           const passwordHash = await hashPassword(admin_password);
           const now = new Date();
 
+          // Get role_id for PROVIDER_ADMIN
+          const roleResult = await client.query(
+            'SELECT id FROM roles WHERE name = $1',
+            ['PROVIDER_ADMIN']
+          );
+          if (roleResult.rows.length === 0) {
+            throw new Error('PROVIDER_ADMIN role not found in database');
+          }
+          const roleId = roleResult.rows[0].id;
+
           await client.query(
             `INSERT INTO users (
-              id, email, password_hash, role, provider_id, first_name, last_name,
+              id, email, password_hash, role_id, provider_id, first_name, last_name,
               status, password_history, failed_login_attempts, locked_until, created_at, updated_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
               adminUserId,
               admin_email.toLowerCase(),
               passwordHash,
-              'provider_admin',
+              roleId,
               provider.id,
               admin_first_name,
               admin_last_name,
