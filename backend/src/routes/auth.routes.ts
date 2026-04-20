@@ -192,10 +192,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       expires_in: 3600,
       token_type: 'Bearer',
       user: {
-        user_id: user.id,
+        id: user.id,
         email: user.email,
         role: user.role,
-        provider_id: user.provider_id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        providerId: user.provider_id,
       },
     });
   } catch (err) {
