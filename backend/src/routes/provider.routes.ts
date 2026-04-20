@@ -13,6 +13,13 @@ import { EventStore } from '../modules/events/EventStore.js';
 import { validatePasswordPolicy, hashPassword } from '../services/password.service.js';
 import { logger } from '../utils/logger.js';
 
+// Helper: In development mode with mock auth, use null userId for events to avoid FK violations
+const getEventUserId = (userId: string | null): string | null => {
+  const isDev = process.env.NODE_ENV === 'development';
+  const isMockUser = userId === '550e8400-e29b-41d4-a716-446655440000';
+  return isDev && isMockUser ? null : userId || null;
+};
+
 export function createProviderRouter(pool: Pool, eventStore: EventStore): Router {
   const router = Router();
   const providerModel = new ProviderModel(pool);
@@ -343,7 +350,10 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           updated_by: user.user_id,
         });
 
-        // Emit event
+        // Emit event (use null userId in development mode with mock auth)
+        const isDevMockUser = process.env.NODE_ENV === 'development' &&
+          user.user_id === '550e8400-e29b-41d4-a716-446655440000';
+
         await eventStore.append({
           aggregateId: updated.id,
           aggregateType: 'provider',
@@ -352,7 +362,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             before: oldProvider,
             after: updated,
           },
-          userId: user.user_id,
+          userId: isDevMockUser ? null : user.user_id,
         });
 
         logger.info({
