@@ -394,13 +394,16 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         // Archive provider
         const archived = await providerModel.archiveProvider(req.params.id, user.user_id);
 
-        // Emit event
+        // Emit event (use null userId in development mode with mock auth)
+        const isDevMockUser = process.env.NODE_ENV === 'development' &&
+          user.user_id === '550e8400-e29b-41d4-a716-446655440000';
+
         await eventStore.append({
           aggregateId: archived.id,
           aggregateType: 'provider',
           eventType: 'provider.archived',
           payload: archived as any,
-          userId: user.user_id,
+          userId: isDevMockUser ? null : user.user_id,
         });
 
         logger.info({
