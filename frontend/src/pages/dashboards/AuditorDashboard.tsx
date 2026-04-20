@@ -6,6 +6,7 @@
 import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { providersApi, assessmentsApi } from '@services/api';
+import { useAuth } from '@context/AuthContext';
 
 interface ProviderWithMetrics {
   id: string;
@@ -61,6 +62,7 @@ const MOCK_METRICS: AuditorMetrics = {
 };
 
 export function AuditorDashboard(): JSX.Element {
+  const { user } = useAuth();
   const [providers, setProviders] = useState<ProviderWithMetrics[]>([]);
   const [metrics, setMetrics] = useState<AuditorMetrics>(MOCK_METRICS);
   const [loading, setLoading] = useState(true);
@@ -77,14 +79,23 @@ export function AuditorDashboard(): JSX.Element {
 
   useEffect(() => {
     loadProviders();
-  }, []);
+  }, [user?.id]);
 
   const loadProviders = async () => {
+    if (!user?.id) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await providersApi.getMyProviders();
-      setProviders(response.providers || []);
+      const response = await providersApi.getAuditorProviders(user.id);
+      setProviders((response.providers || []) as ProviderWithMetrics[]);
+      // Update metrics with real data
+      setMetrics({
+        totalProviders: response.count || 0,
+        pendingEvaluations: 0,
+        criticalFindings: 0,
+        avgComplianceRate: 0,
+        actionsRequired: 0,
+      });
     } catch (err) {
       // Use mock data on error
       console.log('Using mock data for auditor dashboard');
@@ -131,7 +142,7 @@ export function AuditorDashboard(): JSX.Element {
   return (
     <div className="dashboard auditor-dashboard">
       <div className="dashboard-header super-admin-header">
-        <h1>Panel de auditoria</h1>
+        <h1>Dashboard de Cumplimiento — {user?.firstName} {user?.lastName}</h1>
         <button onClick={loadProviders} className="btn-refresh">
           Actualizar
         </button>
