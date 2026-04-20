@@ -137,15 +137,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if account is locked
-    if (userService.isAccountLocked(user)) {
-      res.status(429).json({
-        error: 'Too Many Requests',
-        message: 'Account is temporarily locked due to too many failed attempts',
-      });
-      return;
-    }
-
     // Check if user is active
     if (user.status !== 'active') {
       res.status(403).json({
@@ -158,15 +149,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     // Compare password
     const passwordMatches = await comparePassword(password, user.password_hash);
     if (!passwordMatches) {
-      // Record failed attempt
-      await userService.recordFailedAttempt(user.id);
-
-      // Check if should lock account (5 failed attempts)
-      const updatedUser = await userService.getUserById(user.id);
-      if (updatedUser && updatedUser.failed_login_attempts >= 5) {
-        await userService.lockUser(user.id);
-      }
-
       logger.warn({ email }, 'Login attempt with incorrect password');
       res.status(401).json({
         error: 'Unauthorized',
@@ -174,9 +156,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
-
-    // Clear failed attempts on successful login
-    await userService.clearFailedAttempts(user.id);
 
     // Generate tokens
     const accessToken = generateAccessToken(user.id, user.role, user.provider_id);
@@ -186,6 +165,14 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     logger.info({ user_id: user.id, email }, 'User logged in successfully');
 
+    // Convert role from DB format (ADMIN, AUDITOR, PROVIDER_ADMIN) to API format (super_admin, auditor, provider_admin)
+    const roleMap: { [key: string]: string } = {
+      'ADMIN': 'super_admin',
+      'AUDITOR': 'auditor',
+      'PROVIDER_ADMIN': 'provider_admin',
+    };
+    const apiRole = roleMap[user.role] || user.role.toLowerCase();
+
     res.status(200).json({
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -194,10 +181,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        providerId: user.provider_id,
+        role: apiRole,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        provider_id: user.provider_id,
       },
     });
   } catch (err) {

@@ -62,7 +62,7 @@ export const AuditorsPage: React.FC = () => {
 
         // Filter active providers (exclude revoked)
         const activeProviders = (providersRes.data || []).filter((p: any) => p.status !== 'revoked');
-        setAllProviders(activeProviders);
+        setAllProviders(activeProviders as any[]);
       } catch {
         console.error('Failed to load auditors or providers');
       } finally {
@@ -91,7 +91,7 @@ export const AuditorsPage: React.FC = () => {
 
     try {
       const res = await providersApi.getAuditorProviders(auditor.id);
-      const assigned = res.data?.providers || [];
+      const assigned = (res.providers || []) as any[];
       setAssignedProviders(assigned);
 
       // Calculate available providers
@@ -122,7 +122,7 @@ export const AuditorsPage: React.FC = () => {
 
       // Reload providers for this auditor
       const res = await providersApi.getAuditorProviders(selectedAuditor.id);
-      const assigned = res.data?.providers || [];
+      const assigned = (res.providers || []) as any[];
       setAssignedProviders(assigned);
 
       // Recalculate available
@@ -151,7 +151,7 @@ export const AuditorsPage: React.FC = () => {
 
       // Reload providers for this auditor
       const res = await providersApi.getAuditorProviders(selectedAuditor.id);
-      const assigned = res.data?.providers || [];
+      const assigned = (res.providers || []) as any[];
       setAssignedProviders(assigned);
 
       // Recalculate available

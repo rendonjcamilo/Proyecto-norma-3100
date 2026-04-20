@@ -111,7 +111,7 @@ export function AuditorDashboard(): JSX.Element {
   return (
     <div className="dashboard auditor-dashboard">
       <div className="dashboard-header super-admin-header">
-        <h1>Dashboard de Cumplimiento — {user?.firstName} {user?.lastName}</h1>
+        <h1>Dashboard de Cumplimiento — {user?.first_name} {user?.last_name}</h1>
         <button onClick={loadProviders} className="btn-refresh">
           Actualizar
         </button>

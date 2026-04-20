@@ -30,12 +30,13 @@ const getPasswordRequirements = (password: string) => ({
   length: password.length >= 12,
   uppercase: /[A-Z]/.test(password),
   lowercase: /[a-z]/.test(password),
+  digit: /[0-9]/.test(password),
   special: /[!@#$%^&*]/.test(password),
 });
 
 const isPasswordValid = (password: string) => {
   const reqs = getPasswordRequirements(password);
-  return reqs.length && reqs.uppercase && reqs.lowercase && reqs.special;
+  return reqs.length && reqs.uppercase && reqs.lowercase && reqs.digit && reqs.special;
 };
 
 export function UsersPage(): JSX.Element {
@@ -419,6 +420,9 @@ export function UsersPage(): JSX.Element {
                       </div>
                       <div style={{ color: getPasswordRequirements(formData.password).lowercase ? '#00875a' : '#de350b' }}>
                         {getPasswordRequirements(formData.password).lowercase ? '✓' : '✗'} Minúscula (a-z)
+                      </div>
+                      <div style={{ color: getPasswordRequirements(formData.password).digit ? '#00875a' : '#de350b' }}>
+                        {getPasswordRequirements(formData.password).digit ? '✓' : '✗'} Dígito (0-9)
                       </div>
                       <div style={{ color: getPasswordRequirements(formData.password).special ? '#00875a' : '#de350b' }}>
                         {getPasswordRequirements(formData.password).special ? '✓' : '✗'} Símbolo (!@#$%^&*)

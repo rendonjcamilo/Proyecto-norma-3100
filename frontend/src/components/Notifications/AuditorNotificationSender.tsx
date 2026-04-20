@@ -93,7 +93,7 @@ export const AuditorNotificationSender: React.FC = () => {
 
     const providerName =
       providers.find((p) => p.id === selectedProvider)?.legal_name || 'Prestador';
-    const auditorName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Auditor';
+    const auditorName = user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : 'Auditor';
 
     const defaultVars: PreviewData = {
       providerName,

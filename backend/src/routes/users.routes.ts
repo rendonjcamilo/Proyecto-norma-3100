@@ -25,10 +25,11 @@ export function createUsersRouter(pool: Pool): Router {
 
       const result = await pool.query(`
         SELECT
-          id, email, role, provider_id, first_name, last_name,
-          status, created_at, updated_at
-        FROM users
-        ORDER BY created_at DESC
+          u.id, u.email, r.name AS role, u.provider_id, u.first_name, u.last_name,
+          u.status, u.created_at, u.updated_at
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        ORDER BY u.created_at DESC
       `);
 
       res.json({ data: result.rows, total: result.rows.length });
@@ -102,10 +103,25 @@ export function createUsersRouter(pool: Pool): Router {
 
       // If a different role was specified, update it
       if (role && role !== 'provider_admin') {
-        await pool.query(
-          'UPDATE users SET role = $1 WHERE id = $2',
-          [role, newUser.id]
+        // Map API role format to DB role format
+        const roleMap: { [key: string]: string } = {
+          'super_admin': 'ADMIN',
+          'auditor': 'AUDITOR',
+          'provider_admin': 'PROVIDER_ADMIN',
+        };
+        const dbRoleName = roleMap[role] || role.toUpperCase();
+
+        // Get role_id from roles table
+        const roleResult = await pool.query(
+          'SELECT id FROM roles WHERE UPPER(name) = $1',
+          [dbRoleName]
         );
+        if (roleResult.rows.length > 0) {
+          await pool.query(
+            'UPDATE users SET role_id = $1 WHERE id = $2',
+            [roleResult.rows[0].id, newUser.id]
+          );
+        }
       }
 
       logger.info({ user_id: newUser.id, email, role }, 'New user created by super_admin');
@@ -238,10 +254,11 @@ export function createUsersRouter(pool: Pool): Router {
       // Fetch all users
       const result = await pool.query(`
         SELECT
-          id, email, role, provider_id, first_name, last_name,
-          status, created_at, updated_at
-        FROM users
-        ORDER BY created_at DESC
+          u.id, u.email, r.name AS role, u.provider_id, u.first_name, u.last_name,
+          u.status, u.created_at, u.updated_at
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        ORDER BY u.created_at DESC
       `);
 
       // Create workbook and worksheet

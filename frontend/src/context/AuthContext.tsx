@@ -4,9 +4,9 @@ export interface User {
   id: string;
   email: string;
   role: 'super_admin' | 'auditor' | 'provider_admin';
-  firstName: string;
-  lastName: string;
-  providerId: string;
+  first_name?: string;
+  last_name?: string;
+  provider_id?: string;
 }
 
 interface AuthContextType {
@@ -14,6 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithMock: (email: string, role: User['role']) => Promise<void>;
   logout: () => void;
 }
 
@@ -61,6 +62,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithMock = async (email: string, role: User['role']) => {
+    // Development only: login without credentials
+    const mockUser: User = {
+      id: `mock-${Date.now()}`,
+      email,
+      role,
+      first_name: 'Mock',
+      last_name: 'User',
+      provider_id: role === 'provider_admin' ? 'f47ac10b-58cc-4372-a567-0e02b2c3d479' : '',
+    };
+    localStorage.setItem('auth_token', 'mock-token');
+    localStorage.setItem('auth_user', JSON.stringify(mockUser));
+    setUser(mockUser);
+  };
+
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
@@ -73,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       isAuthenticated: !!user,
       login,
+      loginWithMock,
       logout,
     }}>
       {children}

@@ -6,6 +6,7 @@
 import './dashboards.css';
 import React, { useState, useEffect } from 'react';
 import { reportsApi, providersApi } from '@services/api';
+import { useAuth } from '@context/AuthContext';
 
 interface GlobalSummary {
   totalProviders: number;
@@ -16,6 +17,7 @@ interface GlobalSummary {
 }
 
 export function SuperAdminDashboard(): JSX.Element {
+  const { user } = useAuth();
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function SuperAdminDashboard(): JSX.Element {
   return (
     <div className="dashboard super-admin-dashboard">
       <div className="dashboard-header super-admin-header">
-        <h1>Panel de administración</h1>
+        <h1>Panel de administración — {user?.first_name} {user?.last_name}</h1>
         <button onClick={fetchGlobalSummary} className="btn-refresh">
           Actualizar
         </button>

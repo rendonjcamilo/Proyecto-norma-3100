@@ -80,6 +80,37 @@ interface Municipality {
   name: string;
 }
 
+// Default departments (Colombian departments)
+const DEFAULT_DEPARTMENTS: Department[] = [
+  { id: 1, code: 'ANT', name: 'Antioquia' },
+  { id: 2, code: 'BOL', name: 'Bolívar' },
+  { id: 3, code: 'BOY', name: 'Boyacá' },
+  { id: 4, code: 'CAL', name: 'Cauca' },
+  { id: 5, code: 'CAQ', name: 'Caquetá' },
+  { id: 6, code: 'COR', name: 'Córdoba' },
+  { id: 7, code: 'CUN', name: 'Cundinamarca' },
+  { id: 8, code: 'CHO', name: 'Chocó' },
+  { id: 9, code: 'GUA', name: 'Guainia' },
+  { id: 10, code: 'GUC', name: 'Guaviare' },
+  { id: 11, code: 'HUI', name: 'Huila' },
+  { id: 12, code: 'LAG', name: 'La Guajira' },
+  { id: 13, code: 'MAG', name: 'Magdalena' },
+  { id: 14, code: 'MET', name: 'Meta' },
+  { id: 15, code: 'NAR', name: 'Nariño' },
+  { id: 16, code: 'NSA', name: 'Norte de Santander' },
+  { id: 17, code: 'PUT', name: 'Putumayo' },
+  { id: 18, code: 'QUI', name: 'Quindío' },
+  { id: 19, code: 'RIS', name: 'Risaralda' },
+  { id: 20, code: 'SAP', name: 'San Andrés y Providencia' },
+  { id: 21, code: 'SAN', name: 'Santander' },
+  { id: 22, code: 'SUC', name: 'Sucre' },
+  { id: 23, code: 'TOL', name: 'Tolima' },
+  { id: 24, code: 'VAC', name: 'Valle del Cauca' },
+  { id: 25, code: 'VAU', name: 'Vaupés' },
+  { id: 26, code: 'VIC', name: 'Vichada' },
+  { id: 27, code: 'DC', name: 'Distrito Capital (Bogotá)' },
+];
+
 export const ProvidersPage: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,17 +132,16 @@ export const ProvidersPage: React.FC = () => {
     const load = async () => {
       try {
         setLoading(true);
-        const [providersRes, usersRes, deptsRes] = await Promise.all([
+        const [providersRes, usersRes] = await Promise.all([
           providersApi.list(),
           usersApi.list(),
-          fetch('/api/departments').then((r) => r.json()),
         ]);
         setProviders((providersRes.data || []) as Provider[]);
         // Filtrar solo auditores
         const auditorsList = (usersRes.data || []).filter((u) => u.role === 'auditor');
         setAuditors(auditorsList);
-        // Cargar departamentos
-        setDepartments(deptsRes || []);
+        // Usar departamentos por defecto
+        setDepartments(DEFAULT_DEPARTMENTS);
       } catch {
         console.error('Failed to load providers or auditors');
       } finally {
@@ -505,8 +535,11 @@ export const ProvidersPage: React.FC = () => {
                     if (newDept) {
                       fetch(`/api/municipalities?department=${encodeURIComponent(newDept)}`)
                         .then((r) => r.json())
-                        .then(setMunicipalities)
-                        .catch((err) => console.error('Error loading municipalities:', err));
+                        .then((data) => setMunicipalities(Array.isArray(data) ? data : []))
+                        .catch((err) => {
+                          console.error('Error loading municipalities:', err);
+                          setMunicipalities([]);
+                        });
                     }
                   }}
                   disabled={creating}

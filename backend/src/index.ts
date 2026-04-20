@@ -24,6 +24,7 @@ import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js
 import { createInvimaRouter } from './routes/invima.routes.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
+import { createLocationsRouter } from './routes/locations.routes.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
