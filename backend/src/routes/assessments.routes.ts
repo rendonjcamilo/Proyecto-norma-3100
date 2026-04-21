@@ -243,6 +243,69 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   );
 
   /**
+   * GET /api/providers/:providerId/assessments
+   * List assessments for a specific provider
+   * RBAC: provider_admin (own), auditor (assigned), super_admin (all)
+   */
+  router.get(
+    '/providers/:providerId/assessments',
+    authMiddleware,
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { providerId } = req.params;
+        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.id || (req as any).userId;
+
+        // RBAC: provider_admin can only see own provider
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId]
+          );
+
+          if (userResult.rows.length === 0 || userResult.rows[0].provider_id !== providerId) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // RBAC: auditor can only see assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, providerId]
+          );
+
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
+        }
+
+        const filters = {
+          providerId,
+          limit: 100,
+          offset: 0,
+        };
+
+        const result = await assessmentService.listAssessments(filters);
+
+        res.json({
+          data: result.assessments,
+          total: result.total,
+          count: result.assessments.length,
+        });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error listing assessments for provider', error: msg });
+        res.status(500).json({ error: 'Failed to list assessments' });
+      }
+    }
+  );
+
+  /**
    * PUT /api/assessments/:id
    * Update assessment response(s)
    * Input: { responses: [{ criterionId, status: C/NC/NA, description?, comments?, evidenceFileIds? }] }

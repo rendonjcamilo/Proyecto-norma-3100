@@ -351,7 +351,7 @@ export const findingsApi = {
 
 export const assessmentsApi = {
   listByProvider: (providerId: string) =>
-    get<{ data: Assessment[]; total: number }>(`/api/providers/${providerId}/assessments`),
+    get<{ data: Assessment[]; total: number }>(`/api/assessments?providerId=${providerId}`),
 
   getById: (id: string) =>
     get<{ data: Assessment & { responses?: AssessmentResponse[]; metrics?: AssessmentMetrics } }>(`/api/assessments/${id}`),

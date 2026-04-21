@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { assessmentsApi, servicesApi, providersApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useAuth } from '../context/AuthContext';
@@ -45,6 +45,7 @@ const ASSESSMENT_TYPES: Record<string, string> = {
 
 export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,7 +151,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
       }
     };
     load();
-  }, [providerId, user?.id, user?.role]);
+  }, [providerId, user?.id, user?.role, location.key]);
 
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
@@ -270,8 +271,133 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           <p>Crea tu primera autoevaluación para comenzar el seguimiento de cumplimiento</p>
         </div>
       ) : (
-        <div className="card-grid">
-          {assessments.map((a) => (
+        <>
+          {(() => {
+            const draftAssessments = assessments.filter(a =>
+              a.status === 'draft' || a.status === 'in_progress'
+            );
+            const completedAssessments = assessments.filter(a =>
+              a.status !== 'draft' && a.status !== 'in_progress'
+            );
+
+            const getServiceName = (serviceId: string) => {
+              const service = services.find(s => s.id === serviceId);
+              return service?.name || serviceId;
+            };
+
+            const getProviderName = (providerId: string) => {
+              // Try to find in auditorsProviders if available
+              const provider = auditorsProviders.find(p => p.id === providerId);
+              if (provider?.legal_name) return provider.legal_name;
+              return providerId.substring(0, 20) + (providerId.length > 20 ? '...' : '');
+            };
+
+            return (
+              <>
+                {draftAssessments.length > 0 && (
+                  <section style={{ marginBottom: '32px' }}>
+                    <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Evaluaciones en curso</h2>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#0052cc',
+                        color: 'white',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}>
+                        {draftAssessments.length}
+                      </span>
+                    </div>
+                    <div className="page-table-wrapper">
+                      <table className="page-table">
+                        <thead>
+                          <tr>
+                            <th>Prestador</th>
+                            <th>Servicio</th>
+                            <th>Tipo</th>
+                            <th>Cumplimiento</th>
+                            <th>Estado</th>
+                            <th>Actualizado</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {draftAssessments.map(a => (
+                            <tr key={a.id}>
+                              <td>{getProviderName(a.provider_id)}</td>
+                              <td>{getServiceName(a.service_id)}</td>
+                              <td>{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</td>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{
+                                    width: '60px',
+                                    height: '8px',
+                                    background: '#e5e7eb',
+                                    borderRadius: '4px',
+                                    overflow: 'hidden',
+                                  }}>
+                                    <div style={{
+                                      width: `${(a.compliance_percentage ?? a.compliance_percent ?? 0)}%`,
+                                      height: '100%',
+                                      background: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
+                                    }} />
+                                  </div>
+                                  <span style={{
+                                    fontSize: '12px',
+                                    fontWeight: 600,
+                                    color: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
+                                  }}>
+                                    {Math.round((a.compliance_percentage ?? a.compliance_percent ?? 0))}%
+                                  </span>
+                                </div>
+                              </td>
+                              <td>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '4px 8px',
+                                  background: `${STATUS_COLORS[a.status]}15`,
+                                  color: STATUS_COLORS[a.status],
+                                  borderRadius: '4px',
+                                  fontSize: '12px',
+                                  fontWeight: 500,
+                                }}>
+                                  {STATUS_LABELS[a.status]}
+                                </span>
+                              </td>
+                              <td>{new Date(a.updated_at).toLocaleDateString('es-CO')}</td>
+                              <td>
+                                <button
+                                  onClick={() => navigate(`/assessments/${a.id}`)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    background: '#0052cc',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Continuar →
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                )}
+
+                <div className="card-grid">
+                  {completedAssessments.map((a) => {
+                    return (
             <div
               key={a.id}
               className={`assessment-card ${selectionMode && selectedAssessments.has(a.id) ? 'selected' : ''}`}
@@ -325,8 +451,13 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 Actualizado: {new Date(a.updated_at).toLocaleDateString('es-CO')}
               </div>
             </div>
-          ))}
-        </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </>
       )}
 
       {/* Selection Control Panel */}
