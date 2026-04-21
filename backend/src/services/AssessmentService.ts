@@ -139,33 +139,8 @@ export class AssessmentService {
 
       const assessment = aResult.rows[0];
 
-      // 3. Create assessment metrics record
-      const metricsQuery = `
-        INSERT INTO assessment_metrics
-          (assessment_id, total_criteria, cumple_count, no_cumple_count, no_aplica_count,
-           compliance_percent, semaforo_color)
-        VALUES ($1, $2, 0, 0, 0, 0.00, 'rojo')
-        RETURNING id
-      `;
-
-      await client.query(metricsQuery, [assessment.id, totalCriteria]);
-
-      // 4. Emit event
-      await client.query(
-        `INSERT INTO assessment_events
-          (assessment_id, event_type, description, payload, created_by)
-        VALUES ($1, $2, $3, $4, $5)`,
-        [
-          assessment.id,
-          'assessment.created',
-          `Assessment created for service ${serviceId}`,
-          JSON.stringify({
-            assessment_version: assessmentVersion,
-            total_criteria: totalCriteria,
-          }),
-          userId,
-        ]
-      );
+      // Note: assessment_metrics and assessment_events tables don't exist yet
+      // Will be created in future phases for tracking metrics and audit trail
 
       await client.query('COMMIT');
 
