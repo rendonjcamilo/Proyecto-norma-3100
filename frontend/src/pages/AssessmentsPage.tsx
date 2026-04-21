@@ -93,6 +93,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             try {
               const auditResponse = await providersApi.getAuditorProviders(user.id);
               if (auditResponse.providers && auditResponse.providers.length > 0) {
+                // Guardar providers asignados para mostrar sus nombres
+                setAuditorsProviders(auditResponse.providers);
                 // Cargar evaluaciones de cada provider asignado
                 const allAssessments: Assessment[] = [];
                 for (const provider of auditResponse.providers) {
@@ -285,11 +287,13 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               return service?.name || serviceId;
             };
 
-            const getProviderName = (providerId: string) => {
-              // Try to find in auditorsProviders if available
-              const provider = auditorsProviders.find(p => p.id === providerId);
+            const getProviderName = (assessment: any) => {
+              // Use provider_name from backend if available
+              if (assessment.provider_name) return assessment.provider_name;
+              // Fallback to auditorsProviders
+              const provider = auditorsProviders.find(p => p.id === assessment.provider_id);
               if (provider?.legal_name) return provider.legal_name;
-              return providerId.substring(0, 20) + (providerId.length > 20 ? '...' : '');
+              return assessment.provider_id.substring(0, 20) + (assessment.provider_id.length > 20 ? '...' : '');
             };
 
             return (
@@ -329,7 +333,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         <tbody>
                           {draftAssessments.map(a => (
                             <tr key={a.id}>
-                              <td>{getProviderName(a.provider_id)}</td>
+                              <td>{getProviderName(a)}</td>
                               <td>{getServiceName(a.service_id)}</td>
                               <td>{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</td>
                               <td>

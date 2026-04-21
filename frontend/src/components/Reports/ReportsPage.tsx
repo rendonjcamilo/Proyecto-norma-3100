@@ -48,6 +48,7 @@ interface ReportSummary {
 }
 
 export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerName }) => {
+  console.log('ReportsPage mounted with providerId:', providerId, 'at', new Date().toISOString());
   const { user } = useAuth();
   const isAuditor = user?.role === 'auditor';
   const isSuperAdmin = user?.role === 'super_admin';

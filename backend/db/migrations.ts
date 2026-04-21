@@ -30,36 +30,12 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
         )
       `);
 
-      // Read and execute schema.sql
-      const schemaPath = path.join(__dirname, 'schema.sql');
-      const schema = fs.readFileSync(schemaPath, 'utf8');
+      // Helper function to execute schema file
+      const executeSchemaFile = async (filePath: string, migrationName: string) => {
+        if (!fs.existsSync(filePath)) return;
 
-      // Split by semicolons and execute each statement
-      let statements = schema
-        .split(';')
-        .map((stmt) => stmt.trim())
-        .filter((stmt) => stmt.length > 0);
-
-      for (const statement of statements) {
-        try {
-          await client.query(statement);
-        } catch (err) {
-          console.error('Error executing statement:', statement.substring(0, 100));
-          console.error(err);
-        }
-      }
-
-      // Record migration
-      await client.query(
-        'INSERT INTO migrations (name) VALUES ($1) ON CONFLICT DO NOTHING',
-        ['01-initial-schema']
-      );
-
-      // Read and execute schema-phase3.sql (Phase 3 extensions)
-      const phase3SchemaPath = path.join(__dirname, 'schema-phase3.sql');
-      if (fs.existsSync(phase3SchemaPath)) {
-        const phase3Schema = fs.readFileSync(phase3SchemaPath, 'utf8');
-        statements = phase3Schema
+        const content = fs.readFileSync(filePath, 'utf8');
+        let statements = content
           .split(';')
           .map((stmt) => stmt.trim())
           .filter((stmt) => stmt.length > 0);
@@ -68,7 +44,7 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
           try {
             await client.query(statement);
           } catch (err) {
-            console.error('Error executing Phase 3 statement:', statement.substring(0, 100));
+            console.error(`Error executing ${migrationName}:`, statement.substring(0, 100));
             console.error(err);
           }
         }
@@ -76,9 +52,17 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
         // Record migration
         await client.query(
           'INSERT INTO migrations (name) VALUES ($1) ON CONFLICT DO NOTHING',
-          ['02-phase3-schema']
+          [migrationName]
         );
-      }
+      };
+
+      // Execute schema files in order
+      await executeSchemaFile(path.join(__dirname, 'schema.sql'), '01-initial-schema');
+      await executeSchemaFile(path.join(__dirname, 'evaluation-schema.sql'), '02-evaluation-schema');
+      await executeSchemaFile(path.join(__dirname, 'schema-phase3.sql'), '03-phase3-schema');
+      await executeSchemaFile(path.join(__dirname, 'assessment-execution-schema.sql'), '04-assessment-execution-schema');
+      await executeSchemaFile(path.join(__dirname, 'findings-workflow-schema.sql'), '05-findings-workflow-schema');
+      await executeSchemaFile(path.join(__dirname, 'documents-schema.sql'), '06-documents-schema');
 
       console.log('Migrations UP completed successfully');
     } else if (direction === 'down') {

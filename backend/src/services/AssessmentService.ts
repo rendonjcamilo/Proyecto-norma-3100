@@ -123,8 +123,8 @@ export class AssessmentService {
       // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, status, created_by, started_date, started_by)
-        VALUES ($1, $2, $3, $4, 'draft', $5, NOW(), $5)
+          (provider_id, location_id, service_id, questionnaire_id, status, created_by)
+        VALUES ($1, $2, $3, $4, 'draft', $5)
         RETURNING
           id, provider_id, location_id, service_id, questionnaire_id, version,
           status, created_by, compliance_pct, created_at
@@ -212,6 +212,22 @@ export class AssessmentService {
 
     const assessment = result.rows[0];
 
+    // Fetch all responses for this assessment
+    const responsesQuery = `
+      SELECT criterion_id, response_status, description, comments, evidence_file_ids
+      FROM assessment_responses_detailed
+      WHERE assessment_id = $1
+      ORDER BY criterion_id
+    `;
+    const responsesResult = await this.pool.query(responsesQuery, [assessmentId]);
+    const responses = responsesResult.rows.map(row => ({
+      criterionId: row.criterion_id,
+      status: row.response_status,
+      description: row.description,
+      comments: row.comments,
+      evidenceFileIds: row.evidence_file_ids,
+    }));
+
     // Map semáforo based on compliance percentage
     let semaforo: 'verde' | 'naranja' | 'rojo' = 'naranja';
     const compliancePct = parseFloat(assessment.compliance_percent) || 0;
@@ -236,6 +252,7 @@ export class AssessmentService {
       compliancePercent: compliancePct,
       semaforo: semaforo,
       hallazgosGenerated: false,
+      responses: responses,
     };
   }
 
@@ -273,7 +290,7 @@ export class AssessmentService {
       // 2. Save responses to criterion response table
       for (const response of responses) {
         const responseQuery = `
-          INSERT INTO assessment_criterion_responses
+          INSERT INTO assessment_responses_detailed
             (assessment_id, criterion_id, response_status, description, comments,
              evidence_file_ids, responded_by)
           VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -406,7 +423,7 @@ export class AssessmentService {
     // Fetch all responses for assessment
     const responsesQuery = `
       SELECT response_status, criterion_id
-      FROM assessment_criterion_responses
+      FROM assessment_responses_detailed
       WHERE assessment_id = $1
     `;
 
@@ -453,7 +470,7 @@ export class AssessmentService {
         SUM(CASE WHEN acr.response_status = 'NA' THEN 1 ELSE 0 END) as noAplica_in_standard
       FROM evaluation_standards es
       LEFT JOIN evaluation_criteria ec ON es.id = ec.standard_id
-      LEFT JOIN assessment_criterion_responses acr ON ec.id = acr.criterion_id AND acr.assessment_id = $1
+      LEFT JOIN assessment_responses_detailed acr ON ec.id = acr.criterion_id AND acr.assessment_id = $1
       WHERE ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
       GROUP BY es.id, es.code, es.name
       ORDER BY es.code
@@ -541,7 +558,7 @@ export class AssessmentService {
         ec.name as criterion_name,
         ec.complexity,
         es.is_transversal
-      FROM assessment_criterion_responses acr
+      FROM assessment_responses_detailed acr
       JOIN evaluation_criteria ec ON acr.criterion_id = ec.id
       JOIN evaluation_standards es ON ec.standard_id = es.id
       WHERE acr.assessment_id = $1 AND acr.response_status = 'NC'
@@ -632,10 +649,14 @@ ${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
     let query = `
       SELECT
         a.id, a.provider_id, a.location_id, a.service_id, a.questionnaire_id,
-        a.assessment_version, a.status, a.started_date, a.started_by,
-        a.submitted_at, a.compliance_percent, a.semaforo_color,
-        a.hallazgos_generated
+        COALESCE(a.assessment_version, q.version_type, 'initial') AS assessment_version,
+        a.status, a.assigned_date, a.created_by,
+        a.submitted_at, a.compliance_pct, a.semaforo_color,
+        a.hallazgos_generated, a.created_at, a.updated_at,
+        p.legal_name AS provider_name
       FROM assessments a
+      LEFT JOIN questionnaires q ON a.questionnaire_id = q.id
+      LEFT JOIN providers p ON a.provider_id = p.id
       WHERE 1=1
     `;
 
@@ -696,19 +717,19 @@ ${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
 
     const assessments = result.rows.map((row) => ({
       id: row.id,
-      providerId: row.provider_id,
-      locationId: row.location_id,
-      serviceId: row.service_id,
-      questionnaireId: row.questionnaire_id,
-      assessmentVersion: row.assessment_version,
+      provider_id: row.provider_id,
+      provider_name: row.provider_name,
+      location_id: row.location_id,
+      service_id: row.service_id,
+      questionnaire_id: row.questionnaire_id,
+      assessment_version: row.assessment_version,
       status: row.status,
-      startedDate: row.started_date,
-      startedBy: row.started_by,
-      submittedDate: row.submitted_date,
-      submittedBy: row.submitted_by,
-      compliancePercent: row.compliance_percent,
+      started_date: row.assigned_date,
+      submitted_date: row.submitted_at,
+      compliance_percent: parseFloat(row.compliance_pct) || 0,
       semaforo: row.semaforo_color,
-      hallazgosGenerated: row.hallazgos_generated,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
     }));
 
     return { assessments, total };
