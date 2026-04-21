@@ -68,7 +68,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   useEffect(() => {
     const load = async () => {
       // No ejecutar si no hay datos suficientes
-      if (user?.role === 'AUDITOR' && !user?.id) {
+      if (user?.role === 'auditor' && !user?.id) {
         setLoading(false);
         return;
       }
@@ -87,7 +87,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
         try {
           // Para auditors, cargar de sus providers asignados
-          if (user?.role === 'AUDITOR' && user?.id) {
+          if (user?.role === 'auditor' && user?.id) {
             console.log('[AssessmentsPage] Loading for auditor:', user.id);
             try {
               const auditResponse = await providersApi.getAuditorProviders(user.id);
@@ -241,7 +241,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           {can('assessments', 'create') && (
             <button className="page-btn-primary" onClick={async () => {
               // Load auditor's providers if auditor
-              if (user?.role === 'AUDITOR' && user?.id) {
+              if (user?.role === 'auditor' && user?.id) {
                 try {
                   const res = await providersApi.getAuditorProviders(user.id);
                   setAuditorsProviders(res.providers || []);
@@ -422,7 +422,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               }
 
               // Para auditors, validar que seleccionen prestador
-              if (user?.role === 'AUDITOR' && !formData.providerId) {
+              if (user?.role === 'auditor' && !formData.providerId) {
                 setModalError('Por favor selecciona un prestador');
                 return;
               }
@@ -438,7 +438,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 setIsSubmitting(true);
 
                 // Usar el providerId seleccionado (para auditors) o el prop (para provider_admin)
-                const finalProviderId = user?.role === 'AUDITOR' ? formData.providerId : providerId;
+                const finalProviderId = user?.role === 'auditor' ? formData.providerId : providerId;
 
                 // Intentar crear via API
                 try {
@@ -493,7 +493,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 />
               </div>
 
-              {user?.role === 'AUDITOR' && (
+              {user?.role === 'auditor' && (
                 <div style={{ marginBottom: '16px' }}>
                   <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Prestador <span style={{ color: '#ef4444' }}>*</span>
