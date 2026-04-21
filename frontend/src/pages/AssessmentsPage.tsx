@@ -495,7 +495,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     return categoryServices.length > 0 ? (
                       <optgroup key={category} label={`${category} (${categoryServices.length})`}>
                         {categoryServices.map(s => (
-                          <option key={s.id} value={s.code}>
+                          <option key={s.id} value={s.id}>
                             {s.name}
                           </option>
                         ))}
