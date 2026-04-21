@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { reportsApi, downloadBlob } from '../../services/api';
+import { reportsApi, assessmentsApi, downloadBlob, Assessment } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './ReportsPage.css';
 
@@ -55,9 +55,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
 
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState<'pdf' | 'xlsx' | null>(null);
+  const [downloading, setDownloading] = useState<'pdf' | 'xlsx' | 'auditoria-pdf' | 'auditoria-docx' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [completedAssessments, setCompletedAssessments] = useState<Assessment[]>([]);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | undefined>(undefined);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -68,8 +70,21 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
     const load = async () => {
       try {
         setLoading(true);
-        const res = await reportsApi.getSummary(providerId);
-        setSummary(res.data as ReportSummary);
+        const [summaryRes, assessmentsRes] = await Promise.all([
+          reportsApi.getSummary(providerId),
+          assessmentsApi.listByProvider(providerId),
+        ]);
+        setSummary(summaryRes.data as ReportSummary);
+
+        // Filtrar evaluaciones completadas (submitted o completed)
+        const completed = (assessmentsRes.data || []).filter(
+          (a: Assessment) => a.status === 'submitted' || a.status === 'completed'
+        );
+        setCompletedAssessments(completed);
+        if (completed.length > 0) {
+          setSelectedAssessmentId(completed[0].id);
+        }
+
         setError(null);
       } catch (err) {
         console.error('Failed to load summary', err);
@@ -97,12 +112,19 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
     }
   };
 
-  const handleDownloadAuditoria = async () => {
+  const handleDownloadAuditoria = async (format: 'pdf' | 'docx' = 'pdf') => {
     try {
-      setDownloading('pdf');
-      const blob = await reportsApi.downloadAuditReportPdf(providerId);
-      downloadBlob(blob, `informe_auditoria_${providerId}.pdf`);
-      showToast('success', 'Informe de Auditoría descargado correctamente');
+      const downloadState = format === 'pdf' ? 'auditoria-pdf' : 'auditoria-docx';
+      setDownloading(downloadState);
+
+      const blob =
+        format === 'pdf'
+          ? await reportsApi.downloadAuditReportPdf(providerId, selectedAssessmentId)
+          : await reportsApi.downloadAuditReportDocx(providerId, selectedAssessmentId);
+
+      const ext = format === 'pdf' ? 'pdf' : 'docx';
+      downloadBlob(blob, `informe_auditoria_${providerId}.${ext}`);
+      showToast('success', `Informe de Auditoría (${ext.toUpperCase()}) descargado correctamente`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al generar informe de auditoría';
       showToast('error', msg);
@@ -317,44 +339,103 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
           </div>
 
           {/* INFORME DE AUDITORÍA OFICIAL (solo para auditor/super_admin) */}
-          {canDownloadAuditReport && (<div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
-            <div className="download-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-                <rect x="9" y="3" width="6" height="4" rx="1" />
-                <line x1="9" y1="12" x2="15" y2="12" />
-                <line x1="9" y1="16" x2="13" y2="16" />
-              </svg>
-            </div>
-            <h3>Informe de Auditoría Oficial</h3>
-            <p>Formato oficial de verificación de condiciones de habilitación según Resolución 3100 de 2019</p>
-            <ul className="download-features">
-              <li>3 condiciones de habilitación</li>
-              <li>Resultados por estándar (TSTH · TSINF · TSDOT · TSMD · TSPP · TSHCR · TSINT)</li>
-              <li>Hallazgos organizados por estándar</li>
-              <li>Concepto de habilitación</li>
-              <li>Espacio para firmas</li>
-            </ul>
-            <button
-              className="btn-download"
-              style={{ background: '#de350b' }}
-              onClick={handleDownloadAuditoria}
-              disabled={!!downloading}
-            >
-              {downloading === 'pdf' ? (
-                <><span className="btn-spinner" />Generando...</>
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Descargar Informe
-                </>
+          {canDownloadAuditReport && (
+            <div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
+              <div className="download-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                  <rect x="9" y="3" width="6" height="4" rx="1" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                  <line x1="9" y1="16" x2="13" y2="16" />
+                </svg>
+              </div>
+              <h3>Informe de Auditoría Oficial</h3>
+              <p>Formato oficial de verificación de condiciones de habilitación según Resolución 3100 de 2019</p>
+
+              {/* Selector de evaluación */}
+              {completedAssessments.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '8px', color: '#172b4d' }}>
+                    Selecciona una evaluación completada:
+                  </label>
+                  <select
+                    value={selectedAssessmentId || ''}
+                    onChange={(e) => setSelectedAssessmentId(e.target.value || undefined)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #dfe1e6',
+                      borderRadius: '4px',
+                      fontSize: '13px',
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <option value="">-- Selecciona evaluación --</option>
+                    {completedAssessments.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.title || a.assessment_version || 'Evaluación'} — {new Date(a.created_at).toLocaleDateString('es-CO')} (
+                        {a.compliance_percent || a.compliance_percentage || 0}%)
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
-            </button>
-          </div>
+
+              <ul className="download-features">
+                <li>3 condiciones de habilitación</li>
+                <li>Resultados por estándar (TSTH · TSINF · TSDOT · TSMD · TSPP · TSHCR · TSINT)</li>
+                <li>Hallazgos organizados por estándar</li>
+                <li>Concepto de habilitación</li>
+                <li>Espacio para firmas</li>
+              </ul>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="btn-download"
+                  style={{ background: '#de350b', flex: 1 }}
+                  onClick={() => handleDownloadAuditoria('pdf')}
+                  disabled={!!downloading}
+                >
+                  {downloading === 'auditoria-pdf' ? (
+                    <>
+                      <span className="btn-spinner" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      PDF
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn-download"
+                  style={{ background: '#0052cc', flex: 1 }}
+                  onClick={() => handleDownloadAuditoria('docx')}
+                  disabled={!!downloading}
+                >
+                  {downloading === 'auditoria-docx' ? (
+                    <>
+                      <span className="btn-spinner" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      Word
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* EXCEL CARD */}

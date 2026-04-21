@@ -66,6 +66,7 @@ export interface Finding {
 export interface Assessment {
   id: string;
   provider_id: string;
+  provider_name?: string;
   service_id: string;
   questionnaire_id: string;
   assessment_version: 'initial' | 'year4' | 'annual' | 'pre-novelty';
@@ -501,6 +502,11 @@ export const reportsApi = {
   downloadAuditReportPdf: (providerId: string, assessmentId?: string) => {
     const qs = assessmentId ? `?assessmentId=${assessmentId}` : '';
     return blob(`/api/providers/${providerId}/reports/auditoria.pdf${qs}`);
+  },
+
+  downloadAuditReportDocx: (providerId: string, assessmentId?: string) => {
+    const qs = assessmentId ? `?assessmentId=${assessmentId}` : '';
+    return blob(`/api/providers/${providerId}/reports/auditoria.docx${qs}`);
   },
 };
 

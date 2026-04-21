@@ -203,6 +203,62 @@ export function createReportsRouter(pool: Pool): Router {
   );
 
   /**
+   * GET /api/providers/:providerId/reports/auditoria.docx
+   * Genera el Informe de Auditoría oficial en formato Word (.docx)
+   * Query param: ?assessmentId=UUID (opcional)
+   */
+  router.get(
+    '/providers/:providerId/reports/auditoria.docx',
+    authMiddleware,
+    reportLimiter,
+    rbacMiddleware(['super_admin', 'auditor']),
+    validateUuidParam('providerId'),
+    async (req: Request, res: Response) => {
+      try {
+        const generatedBy = req.user?.user_id || 'system';
+        const assessmentId = req.query.assessmentId as string | undefined;
+
+        const buffer = await service.generateAuditReportDocx(
+          req.params.providerId,
+          generatedBy,
+          assessmentId
+        );
+
+        const providerResult = await pool.query<{ legal_name: string }>(
+          'SELECT legal_name FROM providers WHERE id = $1',
+          [req.params.providerId]
+        );
+        const providerName = providerResult.rows[0]?.legal_name || 'prestador';
+        const filename = safeFilename(providerName + '_auditoria', 'docx');
+
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        );
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', buffer.length.toString());
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Cache-Control', 'private, no-store');
+
+        logger.info({
+          msg: 'Audit report DOCX generated',
+          provider_id: req.params.providerId,
+          assessment_id: assessmentId,
+          size_bytes: buffer.length,
+          user: generatedBy,
+        });
+
+        res.send(buffer);
+      } catch (err) {
+        logger.error({ msg: 'Failed to generate audit report DOCX', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        const status = message.includes('not found') ? 404 : 500;
+        res.status(status).json({ error: message });
+      }
+    }
+  );
+
+  /**
    * GET /api/providers/:providerId/reports/auditoria/datos
    * Devuelve los datos del informe de auditoría en JSON (para previsualización)
    */
