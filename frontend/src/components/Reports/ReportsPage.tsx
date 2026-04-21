@@ -61,7 +61,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   const [completedAssessments, setCompletedAssessments] = useState<Assessment[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | undefined>(undefined);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(providerId);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(providerId || "");
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -145,16 +145,15 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   };
 
   // Si no hay prestador seleccionado, mostrar selector
-  if (!selectedProviderId && loading) {
-    return (
-      <div className="reports-page reports-loading">
-        <div className="reports-spinner" />
-        <p>Cargando prestadores...</p>
-      </div>
-    );
-  }
-
-  if (!selectedProviderId) {
+  if (!selectedProviderId || selectedProviderId.length === 0) {
+    if (loading) {
+      return (
+        <div className="reports-page reports-loading">
+          <div className="reports-spinner" />
+          <p>Cargando prestadores...</p>
+        </div>
+      );
+    }
     return (
       <div className="reports-page">
         <header className="reports-header">
