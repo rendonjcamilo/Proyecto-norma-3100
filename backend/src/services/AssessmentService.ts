@@ -122,8 +122,8 @@ export class AssessmentService {
       // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, status, created_by)
-        VALUES ($1, $2, $3, $4, 'draft', $5)
+          (provider_id, location_id, service_id, questionnaire_id, status, created_by, started_date, started_by)
+        VALUES ($1, $2, $3, $4, 'draft', $5, NOW(), $5)
         RETURNING
           id, provider_id, location_id, service_id, questionnaire_id, version,
           status, created_by, compliance_pct, created_at
@@ -139,8 +139,14 @@ export class AssessmentService {
 
       const assessment = aResult.rows[0];
 
-      // Note: assessment_metrics and assessment_events tables don't exist yet
-      // Will be created in future phases for tracking metrics and audit trail
+      // 3. Create initial assessment metrics record
+      const metricsQuery = `
+        INSERT INTO assessment_metrics
+          (assessment_id, total_criteria, cumple_count, no_cumple_count, no_aplica_count, compliance_percent, semaforo_color)
+        VALUES ($1, $2, 0, 0, 0, 0, 'rojo')
+      `;
+
+      await client.query(metricsQuery, [assessment.id, totalCriteria]);
 
       await client.query('COMMIT');
 
@@ -625,8 +631,8 @@ ${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
     let query = `
       SELECT
         a.id, a.provider_id, a.location_id, a.service_id, a.questionnaire_id,
-        a.version AS assessment_version, a.status, a.started_date, a.started_by,
-        a.submitted_date, a.submitted_by, a.compliance_percent, a.semaforo_color,
+        a.assessment_version, a.status, a.started_date, a.started_by,
+        a.submitted_at, a.compliance_percent, a.semaforo_color,
         a.hallazgos_generated
       FROM assessments a
       WHERE 1=1
