@@ -14,17 +14,21 @@ Plataforma que permite a los prestadores de salud:
 ### Concepto normativo clave:
 
 **7 Estándares Transversales** (aplican a TODOS los 157 servicios de salud):
-- `TSTH` — Talento Humano (21 criterios)
-- `TSINF` — Información (15 criterios)
-- `TSDOT` — Dotación (12 criterios)
-- `TSMD` — Medicamentos y Dispositivos (10 criterios)
-- `TSPP` — Procesos y Procedimientos (13 criterios)
-- `TSHCR` — Habilitación Conjunta de Recursos (11 criterios)
-- `TSINT` — Integralidad (5 criterios)
+- **Talento Humano** — 25 criterios
+- **Historia Clínica y Registros** — 56 criterios
+- **Dotación** — 63 criterios
+- **Medicamentos, Dispositivos Médicos e Insumos** — 56 criterios
+- **Procesos Prioritarios** — 109 criterios
+- **Infraestructura** — 197 criterios
+- **Interdependencia de Servicios** — 6 criterios
 
-**+ Criterios específicos por servicio:** Consultoría, Urgencias, Hospitalización, Laboratorio, etc.
+**Total:** 512 criterios transversales (todos aplican a todos los servicios)
 
-**Total:** 87 criterios transversales + N criterios por servicio = evaluación completa
+**Modelo de Cuestionario:**
+- 1 cuestionario maestro publicado (sin ligarse a servicio específico)
+- Contiene los 512 criterios
+- Se reutiliza para TODAS las evaluaciones, independientemente del servicio
+- Optimización: reduce redundancia de 157 cuestionarios idénticos a 1 maestro
 
 ## 🛠️ Comandos
 
@@ -81,11 +85,16 @@ docker-compose exec backend npm run migrate:up
 
 **Archivos de esquema BD** (se aplican en orden con `migrate:up`):
 1. `db/schema.sql` — Tablas core (prestadores, sedes, servicios, usuarios, roles, eventos, audit_logs)
-2. `db/evaluation-schema.sql` — `evaluation_standards` (7 transversales cargados aquí), `evaluation_criteria`, cuestionarios, respuestas
+2. `db/evaluation-schema.sql` — `evaluation_standards` (7 transversales), `evaluation_criteria` (512 criterios, todos transversales), cuestionarios, respuestas
 3. `db/schema-phase3.sql` — `assessments`, `assessment_responses_detailed`, `assessment_metrics`, `assessment_events`. También carga los 157 servicios de salud.
 4. `db/findings-workflow-schema.sql`, `db/assessment-execution-schema.sql`, `db/documents-schema.sql`
-5. `db/migrations/` — Migraciones de features (notificaciones, scoring de riesgo, INVIMA, etc.)
-6. `db/seeds/criteria.sql` — 87 criterios transversales (TSTH×21, TSINF×15, TSDOT×12, TSMD×10, TSPP×13, TSHCR×11, TSINT×5)
+5. `db/migrations/` — Migraciones de features (auditor_providers, notificaciones, scoring de riesgo, etc.)
+
+**Cuestionarios:**
+- 1 cuestionario maestro publicado por versión (initial, year4, annual, pre-novelty)
+- Sin ligarse a servicio específico (`service_id IS NULL`)
+- Contiene todos los 512 criterios
+- Se reutiliza para TODAS las evaluaciones (optimización)
 
 ### Frontend — `frontend/src/`
 
@@ -105,9 +114,11 @@ docker-compose exec backend npm run migrate:up
 
 ### Flujo de ejecución de evaluaciones
 
-1. `POST /api/assessments` — crea una evaluación, carga automáticamente el cuestionario publicado para el servicio+versión
-2. `GET /api/questions/:questionnaireId` — retorna array plano de `criterios[]` con `standard_id`, `standard_name`, `is_transversal`
-3. Frontend agrupa criterios por `standard_id` (código derivado del prefijo, ej: `TSTH-001` → `TSTH`)
+1. `POST /api/assessments` — crea evaluación, busca cuestionario maestro publicado por versión (initial, year4, etc.)
+   - AssessmentService.createAssessment() busca: `WHERE version_type = $1 AND status = 'published' AND service_id IS NULL`
+   - Cargan automáticamente los 512 criterios transversales (mismo para todos los servicios)
+2. `GET /api/questions/:questionnaireId` — retorna array de `criterios[]` agrupados por `standard_id` y `standard_name`
+3. Frontend renderiza criterios por estándar (7 tabs: Talento Humano, Historia Clínica, Dotación, Medicamentos, Procesos, Infraestructura, Interdependencia)
 4. `PUT /api/assessments/:id` — guarda lote de respuestas, recalcula % de cumplimiento y semáforo en tiempo real
 5. `POST /api/assessments/:id/submit` — bloquea la evaluación, genera automáticamente `hallazgos` para criterios NC
 
@@ -403,11 +414,12 @@ INSERT INTO events (
 
 ### Cuestionario vs. Evaluación
 
-| Aspecto | Cuestionario | Evaluación |
+| Aspecto | Cuestionario Maestro | Evaluación |
 |---------|-------------|-----------|
-| **Qué es** | Template con criterios (reutilizable) | Instancia completada por un prestador |
-| **Ciclo de vida** | Creado por auditor, publicado, versionado | Inicia, se responde, se cierra |
-| **Datos** | Criterios estáticos | Respuestas dinámicas + hallazgos |
+| **Qué es** | 1 cuestionario con 512 criterios (todos transversales, aplicables a TODO servicio) | Instancia completada por un prestador para un servicio específico |
+| **Ciclo de vida** | 1 por versión (initial, year4, annual, pre-novelty). Publicado una vez. Reutilizable para todas las evaluaciones | Inicia, se responde, se valida, se cierra |
+| **Datos** | 512 criterios estáticos (7 estándares) | Respuestas dinámicas + hallazgos (específicos del prestador+servicio) |
+| **Identificación BD** | `service_id IS NULL`, `version_type = 'initial'` (etc.) | `service_id = X`, `provider_id = Y`, `questionnaire_id = maestro` |
 
 ### Rol del Auditor vs. Prestador
 

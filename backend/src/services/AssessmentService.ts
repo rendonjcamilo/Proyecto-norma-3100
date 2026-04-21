@@ -99,19 +99,20 @@ export class AssessmentService {
     try {
       await client.query('BEGIN');
 
-      // 1. Find published questionnaire for service and version
+      // 1. Find published master questionnaire for version
+      // Master questionnaire (service_id IS NULL) contains all 7 standards + 512 criteria
       const questionnaireQuery = `
         SELECT id, total_criteria
         FROM questionnaires
-        WHERE service_id = $1 AND version_type = $2 AND status = 'published'
+        WHERE version_type = $1 AND status = 'published' AND service_id IS NULL
         LIMIT 1
       `;
 
-      const qResult = await client.query(questionnaireQuery, [serviceId, assessmentVersion]);
+      const qResult = await client.query(questionnaireQuery, [assessmentVersion]);
 
       if (qResult.rows.length === 0) {
         throw new Error(
-          `No published questionnaire found for service ${serviceId} version ${assessmentVersion}`
+          `No published questionnaire found for version ${assessmentVersion}`
         );
       }
 
