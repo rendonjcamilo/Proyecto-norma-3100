@@ -441,13 +441,16 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 const finalProviderId = user?.role === 'auditor' ? formData.providerId : providerId;
 
                 // Intentar crear via API
+                let createdAssessmentId: string | null = null;
                 try {
-                  await assessmentsApi.create({
+                  const createRes = await assessmentsApi.create({
                     providerId: finalProviderId,
                     serviceId: formData.serviceId,
                     questionnaireId: formData.serviceId,
                     assessmentVersion: formData.type,
                   });
+                  createdAssessmentId = createRes.data?.id;
+                  console.log('[DEBUG] Assessment created:', createdAssessmentId);
                 } catch (apiError) {
                   console.error('Error al crear evaluación:', apiError);
                   throw new Error(
@@ -458,7 +461,14 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '' });
 
-                // Recargar evaluaciones desde la API
+                // Si se creó exitosamente, redirigir al cuestionario
+                if (createdAssessmentId) {
+                  console.log('[DEBUG] Redirecting to assessment:', createdAssessmentId);
+                  navigate(`/assessments/${createdAssessmentId}`);
+                  return;
+                }
+
+                // Si no hay ID, recargar lista (fallback)
                 try {
                   let updatedAssessments: Assessment[] = [];
 
@@ -473,9 +483,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                       }
                       updatedAssessments = allAssessments;
                     }
-                  } else if (finalProviderId) {
+                  } else if (providerId) {
                     // Para provider_admin, cargar de su provider
-                    const assessRes = await assessmentsApi.listByProvider(finalProviderId);
+                    const assessRes = await assessmentsApi.listByProvider(providerId);
                     updatedAssessments = (assessRes.data || []) as Assessment[];
                   }
 
