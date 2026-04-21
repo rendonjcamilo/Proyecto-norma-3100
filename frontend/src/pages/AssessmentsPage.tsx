@@ -458,14 +458,30 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '' });
 
-                // Recargar desde localStorage
+                // Recargar evaluaciones desde la API
                 try {
-                  const storedAssessments = localStorage.getItem('assessments');
-                  if (storedAssessments) {
-                    setAssessments(JSON.parse(storedAssessments) as Assessment[]);
+                  let updatedAssessments: Assessment[] = [];
+
+                  if (user?.role === 'auditor' && user?.id) {
+                    // Para auditors, cargar de todos sus providers asignados
+                    const auditResponse = await providersApi.getAuditorProviders(user.id);
+                    if (auditResponse.providers && auditResponse.providers.length > 0) {
+                      const allAssessments: Assessment[] = [];
+                      for (const provider of auditResponse.providers) {
+                        const assessRes = await assessmentsApi.listByProvider(provider.id);
+                        allAssessments.push(...((assessRes.data || []) as Assessment[]));
+                      }
+                      updatedAssessments = allAssessments;
+                    }
+                  } else if (finalProviderId) {
+                    // Para provider_admin, cargar de su provider
+                    const assessRes = await assessmentsApi.listByProvider(finalProviderId);
+                    updatedAssessments = (assessRes.data || []) as Assessment[];
                   }
+
+                  setAssessments(updatedAssessments);
                 } catch (err) {
-                  console.warn('No se pudo recargar lista de evaluaciones');
+                  console.warn('No se pudieron recargar evaluaciones:', err);
                 }
               } catch (error) {
                 console.error('Error creando evaluación:', error);
