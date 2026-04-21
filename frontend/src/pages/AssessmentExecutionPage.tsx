@@ -187,14 +187,16 @@ export const AssessmentExecutionPage: React.FC = () => {
         if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
           const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
           setStandards(grouped);
-        } else if (assessmentData.questionnaire_id) {
-          // Si tiene questionnaire_id pero no los criterios, cargar desde backend
-          const questionnaireRes = await questionnairesApi.getById(assessmentData.questionnaire_id);
+        } else if (assessmentData.questionnaireId) {
+          // Si tiene questionnaireId pero no los criterios, cargar desde backend
+          const questionnaireRes = await questionnairesApi.getById(assessmentData.questionnaireId);
           const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
           setStandards(grouped);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cargar la evaluación';
+        console.error('[AssessmentExecutionPage] Error loading:', err);
+        console.error('[AssessmentExecutionPage] assessmentData:', assessmentData);
         setError(msg);
       } finally {
         setLoading(false);
