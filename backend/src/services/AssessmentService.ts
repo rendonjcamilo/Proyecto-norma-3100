@@ -178,13 +178,22 @@ export class AssessmentService {
    * Get assessment by ID with all responses and metrics
    */
   async getAssessment(assessmentId: string): Promise<Assessment | null> {
+    // Fetch assessment with questionnaire version info
     const query = `
       SELECT
-        a.id, a.provider_id, a.location_id, a.service_id, a.questionnaire_id,
-        a.version AS assessment_version, a.status, a.assigned_date AS started_date, a.created_by AS started_by,
-        a.submitted_at AS submitted_date, NULL AS submitted_by, a.compliance_pct AS compliance_percent,
-        'naranja'::varchar AS semaforo_color, FALSE AS hallazgos_generated
+        a.id,
+        a.provider_id,
+        a.location_id,
+        a.service_id,
+        a.questionnaire_id,
+        COALESCE(q.version_type, 'initial') AS assessment_version,
+        a.status,
+        a.assigned_date AS started_date,
+        a.created_by AS started_by,
+        a.submitted_at AS submitted_date,
+        a.compliance_pct AS compliance_percent
       FROM assessments a
+      LEFT JOIN questionnaires q ON a.questionnaire_id = q.id
       WHERE a.id = $1
     `;
 
@@ -196,51 +205,13 @@ export class AssessmentService {
 
     const assessment = result.rows[0];
 
-    // Fetch responses
-    const responsesQuery = `
-      SELECT
-        id, assessment_id, criterion_id, response_status, description, comments,
-        evidence_file_ids, responded_date, responded_by
-      FROM assessment_responses_detailed
-      WHERE assessment_id = $1
-      ORDER BY responded_date DESC
-    `;
-
-    const responsesResult = await this.pool.query(responsesQuery, [assessmentId]);
-
-    // Fetch metrics
-    const metricsQuery = `
-      SELECT
-        total_criteria, cumple_count, no_cumple_count, no_aplica_count,
-        compliance_percent, semaforo_color, per_standard_metrics
-      FROM assessment_metrics
-      WHERE assessment_id = $1
-    `;
-
-    const metricsResult = await this.pool.query(metricsQuery, [assessmentId]);
-
-    const responses = responsesResult.rows.map((r) => ({
-      criterionId: r.criterion_id,
-      status: r.response_status,
-      description: r.description,
-      comments: r.comments,
-      evidenceFileIds: r.evidence_file_ids,
-      respondedDate: r.responded_date,
-      respondedBy: r.responded_by,
-    }));
-
-    let metrics: AssessmentMetrics | undefined;
-    if (metricsResult.rows.length > 0) {
-      const m = metricsResult.rows[0];
-      metrics = {
-        totalCriteria: m.total_criteria,
-        cumple: m.cumple_count,
-        noCumple: m.no_cumple_count,
-        noAplica: m.no_aplica_count,
-        compliancePercent: m.compliance_percent,
-        semaforo: m.semaforo_color,
-        perStandardMetrics: m.per_standard_metrics,
-      };
+    // Map semáforo based on compliance percentage
+    let semaforo: 'verde' | 'naranja' | 'rojo' = 'naranja';
+    const compliancePct = parseFloat(assessment.compliance_percent) || 0;
+    if (compliancePct >= 80) {
+      semaforo = 'verde';
+    } else if (compliancePct < 50) {
+      semaforo = 'rojo';
     }
 
     return {
@@ -254,12 +225,10 @@ export class AssessmentService {
       startedDate: assessment.started_date,
       startedBy: assessment.started_by,
       submittedDate: assessment.submitted_date,
-      submittedBy: assessment.submitted_by,
-      compliancePercent: assessment.compliance_percent,
-      semaforo: assessment.semaforo_color,
-      hallazgosGenerated: assessment.hallazgos_generated,
-      responses,
-      metrics,
+      submittedBy: null,
+      compliancePercent: compliancePct,
+      semaforo: semaforo,
+      hallazgosGenerated: false,
     };
   }
 
