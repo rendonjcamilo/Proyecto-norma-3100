@@ -121,11 +121,11 @@ export class AssessmentService {
       // 2. Create assessment instance
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, assessment_version, status, started_date, started_by)
-        VALUES ($1, $2, $3, $4, $5, 'in_progress', NOW(), $6)
+          (provider_id, location_id, service_id, questionnaire_id, version, status, created_by)
+        VALUES ($1, $2, $3, $4, $5, 'draft', $6)
         RETURNING
-          id, provider_id, location_id, service_id, questionnaire_id, assessment_version,
-          status, started_date, started_by, compliance_percent, semaforo_color, hallazgos_generated
+          id, provider_id, location_id, service_id, questionnaire_id, version,
+          status, created_by, compliance_pct, created_at
       `;
 
       const aResult = await client.query(assessmentQuery, [
