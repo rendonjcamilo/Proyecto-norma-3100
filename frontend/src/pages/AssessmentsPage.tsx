@@ -126,17 +126,17 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
         setAssessments(loadedAssessments);
 
-        // Cargar servicios de Norma 3100 desde la BD
-        const svcRes = await fetch('/api/norma3100/services');
+        // Cargar servicios reales desde la BD (con UUID)
+        const svcRes = await fetch('/api/services');
         if (svcRes.ok) {
           const data = await svcRes.json();
-          if (data.services && data.services.length > 0) {
-            const formattedServices = data.services.map((s: Norma3100Service) => ({
-              id: `svc-${s.code}`,
+          if (data.data && data.data.length > 0) {
+            const formattedServices = data.data.map((s: any) => ({
+              id: s.id,
               code: s.code,
-              name: `${s.name} (${s.totalCriteria} criterios)`,
-              category: s.groupName,
-              status: 'available'
+              name: s.name,
+              category: s.category,
+              status: s.status
             }));
             setServices(formattedServices);
           }
