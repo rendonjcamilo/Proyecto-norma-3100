@@ -119,10 +119,11 @@ export class AssessmentService {
       const totalCriteria = qResult.rows[0].total_criteria;
 
       // 2. Create assessment instance
+      // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, version, status, created_by)
-        VALUES ($1, $2, $3, $4, $5, 'draft', $6)
+          (provider_id, location_id, service_id, questionnaire_id, status, created_by)
+        VALUES ($1, $2, $3, $4, 'draft', $5)
         RETURNING
           id, provider_id, location_id, service_id, questionnaire_id, version,
           status, created_by, compliance_pct, created_at
@@ -133,7 +134,6 @@ export class AssessmentService {
         locationId,
         serviceId,
         questionnaireId,
-        assessmentVersion,
         userId,
       ]);
 
