@@ -196,6 +196,38 @@ docker-compose ps
 docker-compose exec backend npm run migrate:up
 ```
 
+### ⚠️ ADVERTENCIA CRÍTICA: NUNCA USAR `docker-compose down -v`
+
+**LA BASE DE DATOS POSTGRESQL ES REAL Y CONTIENE DATOS DE PRODUCCIÓN.**
+
+**❌ NUNCA ejecutar:**
+```bash
+docker-compose down -v        # ← ELIMINA TODOS LOS VOLÚMENES (BASE DE DATOS PERDIDA)
+docker-compose down --volumes # ← MISMO EFECTO (DATOS BORRADOS PERMANENTEMENTE)
+```
+
+**✅ Comandos SEGUROS:**
+```bash
+docker-compose down           # ← Solo detiene contenedores (datos persisten en volúmenes)
+docker-compose restart        # ← Reinicia servicios (datos intactos)
+docker-compose restart backend # ← Solo reinicia backend (BD sin tocar)
+```
+
+**Si necesitas resetear la BD (solo en desarrollo):**
+```bash
+# 1. Detener servicios SIN eliminar volúmenes
+docker-compose down
+
+# 2. Eliminar SOLO el volumen de PostgreSQL (no Redis ni otros)
+docker volume rm norma3100-postgres-data
+
+# 3. Recriar todo
+docker-compose up -d
+docker-compose exec backend npm run migrate:up
+```
+
+**Instrucción para Claude:** Si el usuario solicita `docker-compose down -v` o similar, **DETENER y CONFIRMAR** con el usuario antes de ejecutar. La BD real NO debe ser formateada nunca sin confirmación explícita.
+
 ### Acceder a la aplicación
 
 | Servicio | URL | Health |
