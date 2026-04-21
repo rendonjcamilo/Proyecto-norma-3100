@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { reportsApi, assessmentsApi, downloadBlob, Assessment } from '../../services/api';
+import { reportsApi, assessmentsApi, downloadBlob, Assessment, providersApi, Provider } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './ReportsPage.css';
 
@@ -60,6 +60,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [completedAssessments, setCompletedAssessments] = useState<Assessment[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | undefined>(undefined);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(providerId);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -70,9 +72,18 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
     const load = async () => {
       try {
         setLoading(true);
+
+        // Si no hay providerId, cargar lista de prestadores
+        if (!selectedProviderId) {
+          const providersRes = await providersApi.list();
+          setProviders(providersRes.data || []);
+          setLoading(false);
+          return;
+        }
+
         const [summaryRes, assessmentsRes] = await Promise.all([
-          reportsApi.getSummary(providerId),
-          assessmentsApi.listByProvider(providerId),
+          reportsApi.getSummary(selectedProviderId),
+          assessmentsApi.listByProvider(selectedProviderId),
         ]);
         setSummary(summaryRes.data as ReportSummary);
 
@@ -94,15 +105,15 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
       }
     };
     load();
-  }, [providerId]);
+  }, [selectedProviderId]);
 
   const handleDownload = async (format: 'pdf' | 'xlsx') => {
     try {
       setDownloading(format);
       const blob = format === 'pdf'
-        ? await reportsApi.downloadCompliancePdf(providerId)
-        : await reportsApi.downloadComplianceExcel(providerId);
-      downloadBlob(blob, `reporte_cumplimiento_${providerId}.${format}`);
+        ? await reportsApi.downloadCompliancePdf(selectedProviderId)
+        : await reportsApi.downloadComplianceExcel(selectedProviderId);
+      downloadBlob(blob, `reporte_cumplimiento_${selectedProviderId}.${format}`);
       showToast('success', `Reporte ${format.toUpperCase()} descargado correctamente`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : `Error al generar reporte ${format.toUpperCase()}`;
@@ -119,11 +130,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
 
       const blob =
         format === 'pdf'
-          ? await reportsApi.downloadAuditReportPdf(providerId, selectedAssessmentId)
-          : await reportsApi.downloadAuditReportDocx(providerId, selectedAssessmentId);
+          ? await reportsApi.downloadAuditReportPdf(selectedProviderId, selectedAssessmentId)
+          : await reportsApi.downloadAuditReportDocx(selectedProviderId, selectedAssessmentId);
 
       const ext = format === 'pdf' ? 'pdf' : 'docx';
-      downloadBlob(blob, `informe_auditoria_${providerId}.${ext}`);
+      downloadBlob(blob, `informe_auditoria_${selectedProviderId}.${ext}`);
       showToast('success', `Informe de Auditoría (${ext.toUpperCase()}) descargado correctamente`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al generar informe de auditoría';
@@ -132,6 +143,57 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
       setDownloading(null);
     }
   };
+
+  // Si no hay prestador seleccionado, mostrar selector
+  if (!selectedProviderId && loading) {
+    return (
+      <div className="reports-page reports-loading">
+        <div className="reports-spinner" />
+        <p>Cargando prestadores...</p>
+      </div>
+    );
+  }
+
+  if (!selectedProviderId) {
+    return (
+      <div className="reports-page">
+        <header className="reports-header">
+          <div>
+            <h1 className="reports-title">Reportes de Cumplimiento</h1>
+            <p className="reports-subtitle">Selecciona un prestador para generar reportes</p>
+          </div>
+        </header>
+
+        <section style={{ padding: '40px 20px' }}>
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#172b4d' }}>
+              Selecciona un prestador:
+            </label>
+            <select
+              value={selectedProviderId}
+              onChange={(e) => setSelectedProviderId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '1px solid #dfe1e6',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                marginBottom: '24px',
+              }}
+            >
+              <option value="">-- Selecciona prestador --</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.legal_name || p.legalName} (RUT: {p.rut})
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
