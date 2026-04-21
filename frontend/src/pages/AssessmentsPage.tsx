@@ -126,20 +126,14 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
         setAssessments(loadedAssessments);
 
-        // Cargar servicios reales desde la BD (con UUID)
-        const svcRes = await fetch('/api/services');
-        if (svcRes.ok) {
-          const data = await svcRes.json();
-          if (data.data && data.data.length > 0) {
-            const formattedServices = data.data.map((s: any) => ({
-              id: s.id,
-              code: s.code,
-              name: s.name,
-              category: s.category,
-              status: s.status
-            }));
-            setServices(formattedServices);
+        // Cargar servicios reales desde la BD (con UUID, con autenticación JWT)
+        try {
+          const svcData = await servicesApi.getAll();
+          if (svcData.data && svcData.data.length > 0) {
+            setServices(svcData.data);
           }
+        } catch (svcErr) {
+          console.error('Error cargando servicios:', svcErr);
         }
       } catch (err) {
         console.error('Error cargando datos:', err);
