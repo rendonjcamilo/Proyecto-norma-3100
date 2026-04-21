@@ -159,7 +159,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             aggregateType: 'provider',
             eventType: 'provider.created',
             payload: provider as any,
-            userId: user?.user_id,
+            userId: getEventUserId(user?.user_id),
           });
 
           logger.info({
@@ -522,7 +522,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'location',
           eventType: 'location.created',
           payload: location as any,
-          userId: user.user_id,
+          userId: getEventUserId(user.user_id),
         });
 
         logger.info({
@@ -604,7 +604,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           aggregateType: 'location',
           eventType: 'location.updated',
           payload: updated as any,
-          userId: user.user_id,
+          userId: getEventUserId(user.user_id),
         });
 
         res.json(updated);
