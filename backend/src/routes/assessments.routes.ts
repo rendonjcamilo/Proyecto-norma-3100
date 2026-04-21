@@ -387,7 +387,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           }
         }
 
-        if (assessment.status !== 'in_progress') {
+        if (assessment.status !== 'draft') {
           return res.status(400).json({
             error: 'Assessment is already submitted or locked',
           });

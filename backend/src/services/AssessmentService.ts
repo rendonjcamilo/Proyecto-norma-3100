@@ -247,7 +247,7 @@ export class AssessmentService {
     try {
       await client.query('BEGIN');
 
-      // 1. Verify assessment exists and is not submitted
+      // 1. Verify assessment exists
       const assessmentQuery = `
         SELECT status FROM assessments WHERE id = $1
       `;
@@ -258,14 +258,15 @@ export class AssessmentService {
         throw new Error(`Assessment ${assessmentId} not found`);
       }
 
-      if (aResult.rows[0].status !== 'in_progress') {
-        throw new Error('Assessment is submitted/locked and cannot be modified');
+      // Allow recording responses on draft assessments only
+      if (!['draft', 'submitted'].includes(aResult.rows[0].status)) {
+        throw new Error('Assessment is locked and cannot be modified');
       }
 
-      // 2. Save responses
+      // 2. Save responses to criterion response table
       for (const response of responses) {
         const responseQuery = `
-          INSERT INTO assessment_responses_detailed
+          INSERT INTO assessment_criterion_responses
             (assessment_id, criterion_id, response_status, description, comments,
              evidence_file_ids, responded_by)
           VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -275,6 +276,7 @@ export class AssessmentService {
             description = $4,
             comments = $5,
             evidence_file_ids = $6,
+            responded_by = $7,
             updated_at = NOW()
         `;
 
@@ -296,60 +298,23 @@ export class AssessmentService {
       const updateQuery = `
         UPDATE assessments
         SET
-          compliance_percent = $2,
-          semaforo_color = $3,
+          compliance_pct = $2,
           updated_at = NOW()
         WHERE id = $1
         RETURNING
-          id, provider_id, location_id, service_id, questionnaire_id, assessment_version,
-          status, started_date, started_by, submitted_date, submitted_by,
-          compliance_percent, semaforo_color, hallazgos_generated
+          id, provider_id, location_id, service_id, questionnaire_id,
+          status, assigned_date, created_by, submitted_at, compliance_pct
       `;
 
       const updResult = await client.query(updateQuery, [
         assessmentId,
         metrics.compliancePercent,
-        metrics.semaforo,
       ]);
-
-      // 5. Emit event
-      await client.query(
-        `INSERT INTO assessment_events
-          (assessment_id, event_type, description, payload, created_by)
-        VALUES ($1, $2, $3, $4, $5)`,
-        [
-          assessmentId,
-          'assessment.response_updated',
-          `Recorded ${responses.length} response(s)`,
-          JSON.stringify({
-            response_count: responses.length,
-            compliance_percent: metrics.compliancePercent,
-            semaforo: metrics.semaforo,
-          }),
-          userId,
-        ]
-      );
 
       await client.query('COMMIT');
 
       const assessment = updResult.rows[0];
-
-      return {
-        id: assessment.id,
-        providerId: assessment.provider_id,
-        locationId: assessment.location_id,
-        serviceId: assessment.service_id,
-        questionnaireId: assessment.questionnaire_id,
-        assessmentVersion: assessment.assessment_version,
-        status: assessment.status,
-        startedDate: assessment.started_date,
-        startedBy: assessment.started_by,
-        submittedDate: assessment.submitted_date,
-        submittedBy: assessment.submitted_by,
-        compliancePercent: assessment.compliance_percent,
-        semaforo: assessment.semaforo_color,
-        hallazgosGenerated: assessment.hallazgos_generated,
-      };
+      return this.getAssessment(assessmentId);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -371,12 +336,12 @@ export class AssessmentService {
     try {
       await client.query('BEGIN');
 
-      // 1. Verify assessment exists and is in_progress
+      // 1. Verify assessment exists and is in draft
       const assessmentQuery = `
         SELECT
           id, provider_id, service_id, questionnaire_id
         FROM assessments
-        WHERE id = $1 AND status = 'in_progress'
+        WHERE id = $1 AND status = 'draft'
       `;
 
       const aResult = await client.query(assessmentQuery, [assessmentId]);
@@ -392,88 +357,28 @@ export class AssessmentService {
         UPDATE assessments
         SET
           status = 'submitted',
-          submitted_date = NOW(),
-          submitted_by = $2,
+          submitted_at = NOW(),
           updated_at = NOW()
         WHERE id = $1
-        RETURNING
-          id, provider_id, location_id, service_id, questionnaire_id, assessment_version,
-          status, started_date, started_by, submitted_date, submitted_by,
-          compliance_percent, semaforo_color, hallazgos_generated
+        RETURNING id, provider_id, location_id, service_id, questionnaire_id,
+          status, assigned_date, created_by, submitted_at, compliance_pct
       `;
 
-      const submitResult = await client.query(submitQuery, [assessmentId, userId]);
+      const submitResult = await client.query(submitQuery, [assessmentId]);
 
       // 3. Auto-generate hallazgos from NC criteria
       const hallazgos = await this.generateHallazgos(assessmentId, assessment.service_id, userId, client);
 
-      // 4. Update assessment to mark hallazgos as generated
-      await client.query(
-        `UPDATE assessments SET hallazgos_generated = TRUE WHERE id = $1`,
-        [assessmentId]
-      );
-
-      // 5. Emit events
-      await client.query(
-        `INSERT INTO assessment_events
-          (assessment_id, event_type, description, payload, created_by)
-        VALUES ($1, $2, $3, $4, $5)`,
-        [
-          assessmentId,
-          'assessment.submitted',
-          'Assessment submitted for review',
-          JSON.stringify({
-            submitted_by: userId,
-            hallazgos_count: hallazgos.length,
-          }),
-          userId,
-        ]
-      );
-
-      for (const hallazgo of hallazgos) {
-        await client.query(
-          `INSERT INTO assessment_events
-            (assessment_id, event_type, description, payload, created_by)
-          VALUES ($1, $2, $3, $4, $5)`,
-          [
-            assessmentId,
-            'finding.created',
-            `Finding created from criterion ${hallazgo.criterionId}`,
-            JSON.stringify({
-              finding_id: hallazgo.id,
-              severity: hallazgo.severity,
-            }),
-            userId,
-          ]
-        );
-      }
-
-      await client.query('COMMIT');
-
-      const updatedAssessment = submitResult.rows[0];
-
+      // 4. Log the submission
       logger.info({
         msg: 'Assessment submitted',
         assessment_id: assessmentId,
         hallazgos_count: hallazgos.length,
       });
 
-      return {
-        id: updatedAssessment.id,
-        providerId: updatedAssessment.provider_id,
-        locationId: updatedAssessment.location_id,
-        serviceId: updatedAssessment.service_id,
-        questionnaireId: updatedAssessment.questionnaire_id,
-        assessmentVersion: updatedAssessment.assessment_version,
-        status: updatedAssessment.status,
-        startedDate: updatedAssessment.started_date,
-        startedBy: updatedAssessment.started_by,
-        submittedDate: updatedAssessment.submitted_date,
-        submittedBy: updatedAssessment.submitted_by,
-        compliancePercent: updatedAssessment.compliance_percent,
-        semaforo: updatedAssessment.semaforo_color,
-        hallazgosGenerated: true,
-      };
+      await client.query('COMMIT');
+
+      return this.getAssessment(assessmentId);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -494,7 +399,7 @@ export class AssessmentService {
     // Fetch all responses for assessment
     const responsesQuery = `
       SELECT response_status, criterion_id
-      FROM assessment_responses_detailed
+      FROM assessment_criterion_responses
       WHERE assessment_id = $1
     `;
 
@@ -536,12 +441,12 @@ export class AssessmentService {
         es.code as standard_code,
         es.name as standard_name,
         COUNT(ec.id) as total_in_standard,
-        SUM(CASE WHEN adr.response_status = 'C' THEN 1 ELSE 0 END) as cumple_in_standard,
-        SUM(CASE WHEN adr.response_status = 'NC' THEN 1 ELSE 0 END) as noCumple_in_standard,
-        SUM(CASE WHEN adr.response_status = 'NA' THEN 1 ELSE 0 END) as noAplica_in_standard
+        SUM(CASE WHEN acr.response_status = 'C' THEN 1 ELSE 0 END) as cumple_in_standard,
+        SUM(CASE WHEN acr.response_status = 'NC' THEN 1 ELSE 0 END) as noCumple_in_standard,
+        SUM(CASE WHEN acr.response_status = 'NA' THEN 1 ELSE 0 END) as noAplica_in_standard
       FROM evaluation_standards es
       LEFT JOIN evaluation_criteria ec ON es.id = ec.standard_id
-      LEFT JOIN assessment_responses_detailed adr ON ec.id = adr.criterion_id AND adr.assessment_id = $1
+      LEFT JOIN assessment_criterion_responses acr ON ec.id = acr.criterion_id AND acr.assessment_id = $1
       WHERE ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
       GROUP BY es.id, es.code, es.name
       ORDER BY es.code
@@ -621,18 +526,18 @@ export class AssessmentService {
     // 1. Get all NC responses
     const ncResponsesQuery = `
       SELECT
-        adr.id as response_id,
-        adr.criterion_id,
-        adr.description,
-        adr.comments,
+        acr.id as response_id,
+        acr.criterion_id,
+        acr.description,
+        acr.comments,
         ec.code as criterion_code,
         ec.name as criterion_name,
         ec.complexity,
         es.is_transversal
-      FROM assessment_responses_detailed adr
-      JOIN evaluation_criteria ec ON adr.criterion_id = ec.id
+      FROM assessment_criterion_responses acr
+      JOIN evaluation_criteria ec ON acr.criterion_id = ec.id
       JOIN evaluation_standards es ON ec.standard_id = es.id
-      WHERE adr.assessment_id = $1 AND adr.response_status = 'NC'
+      WHERE acr.assessment_id = $1 AND acr.response_status = 'NC'
       ORDER BY ec.code
     `;
 
