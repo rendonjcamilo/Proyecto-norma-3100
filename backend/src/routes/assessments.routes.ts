@@ -27,12 +27,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { providerId, locationId?, serviceId, assessmentVersion }
    * Output: { id, questionnaire, status, etc. }
    * Auto-loads published questionnaire for service
-   * RBAC: provider_admin (own), auditor (assigned), super_admin (any)
+   * RBAC: provider_admin (own), super_admin (any)
+   * NOTE: Norma 3100 art. 5 — only provider can self-evaluate (autoevaluación)
    */
   router.post(
     '/assessments',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    rbacMiddleware(['provider_admin', 'super_admin']),
     providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
@@ -311,12 +312,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { responses: [{ criterionId, status: C/NC/NA, description?, comments?, evidenceFileIds? }] }
    * Recalculates compliance % and semáforo in real-time
    * Allows partial updates (save progress)
-   * RBAC: provider_admin (own), auditor (assigned), super_admin
+   * RBAC: provider_admin (own), super_admin
+   * NOTE: Norma 3100 art. 5 — only provider answers criteria (autoevaluación)
    */
   router.put(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    rbacMiddleware(['provider_admin', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
@@ -724,12 +726,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   /**
    * DELETE /api/assessments/:id
    * Delete an assessment
-   * RBAC: super_admin, auditor
+   * RBAC: super_admin only
+   * NOTE: Auditor cannot delete assessments per Norma 3100 art. 14
    */
   router.delete(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
