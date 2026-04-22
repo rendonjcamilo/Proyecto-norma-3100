@@ -51,7 +51,6 @@ const FALLBACK_SERVICES: Service[] = [
 
 export function AssessmentGeneratorPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [step, setStep] = useState<'service' | 'version' | 'assessment'>(
     'service'
