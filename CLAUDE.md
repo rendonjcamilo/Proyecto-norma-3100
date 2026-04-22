@@ -112,22 +112,54 @@ docker-compose exec backend npm run migrate:up
 
 **Alias de rutas:** `@`, `@components`, `@pages`, `@hooks`, `@services`, `@types`, `@styles` se resuelven todos a `src/`.
 
-### Flujo de ejecución de evaluaciones
+### Flujo de ejecución de evaluaciones (Según Norma 3100)
 
-1. `POST /api/assessments` — crea evaluación, busca cuestionario maestro publicado por versión (initial, year4, etc.)
+**FASE 1: AUTOEVALUACIÓN (provider_admin)**
+1. `POST /api/assessments` — **provider_admin crea evaluación** (Res. 3100 art. 5: "responsabilidad del prestador")
+   - Solo puede crear de su propio prestador
    - AssessmentService.createAssessment() busca: `WHERE version_type = $1 AND status = 'published' AND service_id IS NULL`
-   - Cargan automáticamente los 512 criterios transversales (mismo para todos los servicios)
+   - Cargan automáticamente los 512 criterios transversales
 2. `GET /api/questions/:questionnaireId` — retorna array de `criterios[]` agrupados por `standard_id` y `standard_name`
 3. Frontend renderiza criterios por estándar (7 tabs: Talento Humano, Historia Clínica, Dotación, Medicamentos, Procesos, Infraestructura, Interdependencia)
-4. `PUT /api/assessments/:id` — guarda lote de respuestas, recalcula % de cumplimiento y semáforo en tiempo real
-5. `POST /api/assessments/:id/submit` — bloquea la evaluación, genera automáticamente `hallazgos` para criterios NC
+4. `PUT /api/assessments/:id` — **prestador guarda lote de respuestas**, recalcula % de cumplimiento y semáforo en tiempo real
+5. `POST /api/assessments/:id/submit` — **prestador somete evaluación**, genera automáticamente `hallazgos` para criterios NC
+
+**FASE 2: VERIFICACIÓN (auditor)**
+6. `GET /api/assessments` — auditor ve todas las evaluaciones (todos los prestadores)
+7. `GET /api/assessments/:id/findings` — auditor revisa hallazgos generados
+8. `PUT /api/findings/:id` — **auditor valida hallazgos** (aprueba, rechaza, comenta)
+9. `POST /api/assessments/:id/corrective-actions` — **auditor propone acciones correctivas**
+10. Prestador responde acciones → Auditor valida cierre
 
 ### Control de Acceso por Rol (RBAC)
 
 Tres roles aplicados en middleware del backend (`role.middleware.ts`) y frontend (`useRolePermission`):
-- `provider_admin` — solo lectura/escritura de su prestador
-- `auditor` — lectura de todos los prestadores, puede escribir hallazgos y acciones
-- `super_admin` — acceso total
+
+**`provider_admin` — AUTOEVALUACIÓN (Responsable de evaluar su prestador)**
+- ✅ **Crear y editar evaluaciones** de su prestador
+- ✅ Responder cuestionarios (512 criterios)
+- ✅ Adjuntar evidencias
+- ✅ Enviar/someterlas evaluaciones
+- ✅ Ver hallazgos generados automáticamente
+- ✅ Responder a acciones correctivas propuestas
+- ❌ NO puede crear evaluaciones de otros prestadores
+- ❌ NO puede validar/aprobar hallazgos
+
+**`auditor` — VALIDACIÓN Y VERIFICACIÓN (Verifica las autoevaluaciones)**
+- ✅ **Ver todas las evaluaciones** de todos los prestadores
+- ✅ Revisar respuestas y evidencias del prestador
+- ✅ **Validar hallazgos** (aprobar, rechazar, comentar)
+- ✅ Escribir acciones correctivas
+- ✅ Rastrear cierre de inconformidades
+- ✅ Generar reportes de auditoría
+- ❌ NO crea evaluaciones
+- ❌ NO responde criterios
+
+**`super_admin` — GOBERNANZA TOTAL**
+- ✅ Crear/publicar cuestionarios
+- ✅ Gestionar usuarios y roles
+- ✅ Ver y editar todo
+- ✅ Acceso administrativo completo
 
 ### Conceptos clave del dominio
 
@@ -453,13 +485,15 @@ INSERT INTO events (
 | **Datos** | 512 criterios estáticos (7 estándares) | Respuestas dinámicas + hallazgos (específicos del prestador+servicio) |
 | **Identificación BD** | `service_id IS NULL`, `version_type = 'initial'` (etc.) | `service_id = X`, `provider_id = Y`, `questionnaire_id = maestro` |
 
-### Rol del Auditor vs. Prestador
+### Rol del Auditor vs. Prestador (Según Norma 3100)
 
-| Rol | Permisos | Acciones |
-|-----|---------|---------|
-| **provider_admin** | Su prestador | Ver evaluaciones, responder cuestionarios |
-| **auditor** | Todos los prestadores | Ver todo, validar hallazgos, escribir acciones |
-| **super_admin** | Todos | Crear cuestionarios, gestionar usuarios |
+| Rol | Responsabilidad Normativa | Acciones en Plataforma |
+|-----|--------------------------|----------------------|
+| **provider_admin** | **AUTOEVALUACIÓN** (Res. 3100 art. 5) | Crea, responde y somete evaluaciones de su prestador |
+| **auditor** | **VERIFICACIÓN** (Res. 3100 art. 14-16) | Valida hallazgos, escribe acciones correctivas, NO crea evaluaciones |
+| **super_admin** | **GOBERNANZA** | Gestiona sistema completo |
+
+**Nota normativa clave:** La Resolución 3100 establece que "la autoevaluación es una responsabilidad del prestador de servicios de salud". El auditor realiza verificación POSTERIOR, no autoevaluación.
 
 ---
 

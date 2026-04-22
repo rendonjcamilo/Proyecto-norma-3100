@@ -241,9 +241,9 @@ export class RepsService {
     let novedades: Array<{ tipo: string; fecha: string; descripcion: string }> = [];
     try {
       const sancionesRaw = this.pick(record, 'sanciones');
-      if (sancionesRaw) sanciones = JSON.parse(sancionesRaw);
+      if (sancionesRaw) {sanciones = JSON.parse(sancionesRaw);}
       const novedadesRaw = this.pick(record, 'novedades', 'novedades_recientes');
-      if (novedadesRaw) novedades = JSON.parse(novedadesRaw);
+      if (novedadesRaw) {novedades = JSON.parse(novedadesRaw);}
     } catch (_) {
       // Si no es JSON válido, dejar vacío
     }

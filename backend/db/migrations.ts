@@ -65,6 +65,19 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
       await executeSchemaFile(path.join(__dirname, 'documents-schema.sql'), '06-documents-schema');
       await executeSchemaFile(path.join(__dirname, 'invima-schema.sql'), '07-invima-schema');
 
+      // Execute migrations in chronological order
+      const migrationsDir = path.join(__dirname, 'migrations');
+      if (fs.existsSync(migrationsDir)) {
+        const migrationFiles = fs
+          .readdirSync(migrationsDir)
+          .filter((file) => file.endsWith('.sql'))
+          .sort();
+
+        for (const file of migrationFiles) {
+          await executeSchemaFile(path.join(migrationsDir, file), `migration-${file}`);
+        }
+      }
+
       console.log('Migrations UP completed successfully');
     } else if (direction === 'down') {
       console.log('Running migrations DOWN (rollback)...');

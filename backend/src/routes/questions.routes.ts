@@ -180,8 +180,8 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
         }
 
         const updates: any = {};
-        if (name) updates.name = name;
-        if (status) updates.status = status;
+        if (name) {updates.name = name;}
+        if (status) {updates.status = status;}
 
         const updated = await questionnaireService.updateQuestionnaire(id, updates, userId);
 

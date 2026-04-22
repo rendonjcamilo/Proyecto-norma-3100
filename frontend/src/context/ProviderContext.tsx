@@ -47,15 +47,18 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (user?.role === 'auditor') {
           const response = await providersApi.getMyProviders();
           providersData = (response.data || response.providers || []).map(transformProvider);
+          console.log('[ProviderContext] Auditor providers loaded:', providersData);
         } else if (user?.role === 'provider_admin' && user?.provider_id) {
           // For provider_admin, load only their assigned provider
           const allProviders = await providersApi.list();
           const myProvider = (allProviders.data || []).find((p: ApiProvider) => p.id === user.provider_id);
           providersData = myProvider ? [transformProvider(myProvider)] : [];
+          console.log('[ProviderContext] Provider admin provider loaded:', providersData);
         } else {
           // For super_admin or fallback, load all providers
           const allProviders = await providersApi.list();
           providersData = (allProviders.data || []).map(transformProvider);
+          console.log('[ProviderContext] Super admin providers loaded:', providersData);
         }
 
         setAvailableProviders(providersData);
@@ -72,6 +75,9 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } else {
           setSelectedProviderState(providersData[0] || null);
         }
+      } catch (err) {
+        console.error('[ProviderContext] Error loading providers:', err);
+        // Continue with empty providers rather than crashing
       } finally {
         setIsLoading(false);
       }

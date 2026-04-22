@@ -124,8 +124,8 @@ export class SuficienciaPatrimonialService {
     let razonSolvencia: number | null = null;
     let nivelEndeudamiento: number | null = null;
     if (activoTotal && activoTotal > 0) {
-      if (patrimonioNeto !== undefined) razonSolvencia = Number((patrimonioNeto / activoTotal).toFixed(4));
-      if (pasivoTotal !== undefined) nivelEndeudamiento = Number((pasivoTotal / activoTotal).toFixed(4));
+      if (patrimonioNeto !== undefined) {razonSolvencia = Number((patrimonioNeto / activoTotal).toFixed(4));}
+      if (pasivoTotal !== undefined) {nivelEndeudamiento = Number((pasivoTotal / activoTotal).toFixed(4));}
     }
 
     // Determinar si cumple la condición

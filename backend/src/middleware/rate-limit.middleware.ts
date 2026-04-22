@@ -1,33 +1,45 @@
 /**
  * Rate Limiting Middleware
  * Protects endpoints from brute-force and abuse
+ * Disabled in development mode to allow rapid testing
  */
 
 import rateLimit from 'express-rate-limit';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
 
+// Passthrough middleware for development (no rate limiting)
+const noOpLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
+
 // Standard API rate limiter: 1000 requests / 15 minutes per IP (increased for development)
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 1000,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: {
-    error: 'Too Many Requests',
-    message: 'Has excedido el límite de peticiones. Intenta de nuevo en 15 minutos.',
-    retryAfter: '15 minutes',
-  },
-  handler: (req: Request, res: Response, _next, options) => {
-    logger.warn({
-      msg: 'Rate limit exceeded',
-      ip: req.ip,
-      path: req.path,
-      method: req.method,
-    });
-    res.status(options.statusCode).json(options.message);
-  },
-});
+const createApiLimiter = () => {
+  if (process.env.NODE_ENV === 'development') {
+    return noOpLimiter;
+  }
+
+  return rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: {
+      error: 'Too Many Requests',
+      message: 'Has excedido el límite de peticiones. Intenta de nuevo en 15 minutos.',
+      retryAfter: '15 minutes',
+    },
+    handler: (req: Request, res: Response, _next, options) => {
+      logger.warn({
+        msg: 'Rate limit exceeded',
+        ip: req.ip,
+        path: req.path,
+        method: req.method,
+      });
+      res.status(options.statusCode).json(options.message);
+    },
+  });
+};
+
+export const apiLimiter = createApiLimiter();
 
 // Strict rate limiter for authentication endpoints: 5 attempts / 15 min
 export const authLimiter = rateLimit({

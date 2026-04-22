@@ -389,7 +389,7 @@ export class FindingModel {
   ): Promise<CorrectiveAction> {
     // Get old status first
     const oldAction = await this.getCorrectiveActionById(id);
-    if (!oldAction) throw new Error(`Action ${id} not found`);
+    if (!oldAction) {throw new Error(`Action ${id} not found`);}
 
     // Record status history
     await this.recordActionStatusHistory(id, oldAction.status, status, updated_by, reason);

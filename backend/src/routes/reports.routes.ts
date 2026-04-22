@@ -283,7 +283,7 @@ export function createReportsRouter(pool: Pool): Router {
 
   /**
    * GET /api/reports/global-summary
-   * Get global metrics for super_admin dashboard (MVP - mock data)
+   * Get global metrics for super_admin dashboard (real data from database)
    */
   router.get(
     '/reports/global-summary',
@@ -291,13 +291,47 @@ export function createReportsRouter(pool: Pool): Router {
     rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
-        // MVP: Return mock data
+        // 1. Count total active providers
+        const providersResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM providers WHERE status = $1',
+          ['active']
+        );
+        const totalProviders = parseInt(providersResult.rows[0]?.count || '0', 10);
+
+        // 2. Count total active auditors
+        const auditorsResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE LOWER(r.name) = $1 AND u.status = $2',
+          ['auditor', 'active']
+        );
+        const totalAuditors = parseInt(auditorsResult.rows[0]?.count || '0', 10);
+
+        // 3. Count assessments in progress (draft or submitted status)
+        const assessmentsResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM assessments WHERE status IN ($1, $2, $3)',
+          ['draft', 'in_progress', 'submitted']
+        );
+        const assessmentsInProgress = parseInt(assessmentsResult.rows[0]?.count || '0', 10);
+
+        // 4. Count critical findings that are open or in progress
+        const findingsResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM findings WHERE severity = $1 AND status IN ($2, $3)',
+          ['critical', 'open', 'in_progress']
+        );
+        const criticalFindings = parseInt(findingsResult.rows[0]?.count || '0', 10);
+
+        // 5. Calculate average compliance rate (from completed/submitted assessments only)
+        const complianceResult = await pool.query<{ avg: number | null }>(
+          'SELECT AVG(CAST(compliance_pct AS FLOAT)) as avg FROM assessments WHERE status IN ($1, $2) AND compliance_pct > 0',
+          ['submitted', 'reviewed']
+        );
+        const avgComplianceRate = complianceResult.rows[0]?.avg ? Math.round(complianceResult.rows[0].avg * 10) / 10 : 0;
+
         res.json({
-          totalProviders: 12,
-          totalAuditors: 5,
-          assessmentsInProgress: 8,
-          criticalFindings: 3,
-          avgComplianceRate: 73.5,
+          totalProviders,
+          totalAuditors,
+          assessmentsInProgress,
+          criticalFindings,
+          avgComplianceRate,
         });
       } catch (err) {
         logger.error({ msg: 'Failed to get global summary', error: err instanceof Error ? err.message : String(err) });

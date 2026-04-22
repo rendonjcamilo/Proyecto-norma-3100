@@ -446,7 +446,7 @@ export class ReportService {
       'SELECT id, legal_name, rut, city, department FROM providers WHERE id = $1',
       [providerId]
     );
-    if (provResult.rows.length === 0) throw new Error('Provider not found');
+    if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
 
     // Obtener los 7 estándares transversales (DISTINCT para evitar duplicados)
@@ -721,7 +721,7 @@ export class ReportService {
         y += 20;
 
         data.estandares.forEach((est) => {
-          if (est.hallazgos.length === 0) return;
+          if (est.hallazgos.length === 0) {return;}
           if (y > 650) { doc.addPage(); y = 50; }
 
           doc.fillColor(COLORS.text).fontSize(11).font('Helvetica-Bold')

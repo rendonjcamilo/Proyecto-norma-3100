@@ -97,6 +97,24 @@ CREATE INDEX idx_invima_verificaciones_provider_id ON invima_verificaciones(prov
 CREATE INDEX idx_invima_verificaciones_consultado_por ON invima_verificaciones(consultado_por);
 CREATE INDEX idx_invima_verificaciones_created_at ON invima_verificaciones(created_at DESC);
 
+-- ─── INVIMA CONSULTAS LOG ───
+-- Historial de todas las consultas de lookup a datos.gov.co
+
+CREATE TABLE IF NOT EXISTS invima_consultas_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  numero_registro VARCHAR(50) NOT NULL,
+  usuario_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  fuente VARCHAR(50), -- datos_gov, cache_local, externo, ninguna
+  resultado VARCHAR(50), -- encontrado, no_encontrado, error
+  tiempo_respuesta_ms INTEGER,
+  error_detalle TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_invima_consultas_log_numero ON invima_consultas_log(numero_registro);
+CREATE INDEX idx_invima_consultas_log_usuario_id ON invima_consultas_log(usuario_id);
+CREATE INDEX idx_invima_consultas_log_created_at ON invima_consultas_log(created_at DESC);
+
 -- ─── VISTAS ───
 
 -- Vista que resume el estado INVIMA por prestador

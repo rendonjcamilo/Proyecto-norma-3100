@@ -455,7 +455,7 @@ export class AssessmentModel {
   async calculateCompliancePercentage(assessment_id: string): Promise<number> {
     // Get all questions for this assessment
     const assessment = await this.getAssessmentById(assessment_id);
-    if (!assessment) throw new Error('Assessment not found');
+    if (!assessment) {throw new Error('Assessment not found');}
 
     const responses = await this.getResponsesByAssessment(assessment_id);
 

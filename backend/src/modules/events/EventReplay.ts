@@ -122,7 +122,7 @@ export class EventReplay {
   ): Record<string, unknown> {
     return {
       ...state,
-      status: (event.payload as Record<string, unknown>).status,
+      status: (event.payload).status,
       statusChangedAt: event.timestamp,
     };
   }
@@ -154,7 +154,7 @@ export class EventReplay {
       ...state,
       findings: findings.map((f) =>
         f.id === event.aggregateId
-          ? { ...f, status: (event.payload as Record<string, unknown>).status }
+          ? { ...f, status: (event.payload).status }
           : f
       ),
     };
@@ -187,7 +187,7 @@ export class EventReplay {
       ...state,
       actions: actions.map((a) =>
         a.id === event.aggregateId
-          ? { ...a, status: (event.payload as Record<string, unknown>).status }
+          ? { ...a, status: (event.payload).status }
           : a
       ),
     };

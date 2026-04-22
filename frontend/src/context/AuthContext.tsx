@@ -64,15 +64,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithMock = async (email: string, role: User['role']) => {
     // Development only: login without credentials
+    const userId = `mock-${Date.now()}`;
     const mockUser: User = {
-      id: `mock-${Date.now()}`,
+      id: userId,
       email,
       role,
       first_name: 'Mock',
       last_name: 'User',
-      provider_id: role === 'provider_admin' ? 'f47ac10b-58cc-4372-a567-0e02b2c3d479' : '',
+      provider_id: role === 'provider_admin' ? 'f47ac10b-58cc-4372-a567-0e02b2c3d479' :
+                   role === 'auditor' ? '7a3dba1a-0fb1-4c22-ab6c-67695a6f5813' : '', // Yurladis Torres auditor ID for testing
     };
-    localStorage.setItem('auth_token', 'mock-token');
+
+    // Create a fake JWT token with proper claims for development
+    // Format: header.payload.signature (all base64url encoded)
+    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const payload = btoa(JSON.stringify({
+      sub: userId,
+      user_id: userId,
+      role,
+      provider_id: mockUser.provider_id,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 86400,
+      jti: `mock-${Date.now()}`,
+    })).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const signature = 'mock-signature'; // No validation in dev mode
+    const mockToken = `${header}.${payload}.${signature}`;
+
+    localStorage.setItem('auth_token', mockToken);
     localStorage.setItem('auth_user', JSON.stringify(mockUser));
     setUser(mockUser);
   };

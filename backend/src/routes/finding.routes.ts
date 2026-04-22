@@ -286,7 +286,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
         const action_number = `ACC-${Date.now()}`;
 
         // Calculate default due date based on severity
-        let calculatedDueDate = new Date();
+        const calculatedDueDate = new Date();
         if (finding.severity === 'critical') {
           calculatedDueDate.setDate(calculatedDueDate.getDate() + 14);
         } else if (finding.severity === 'major') {

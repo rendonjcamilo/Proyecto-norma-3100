@@ -11,6 +11,7 @@ import {
   type RepsResumen,
 } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
+import { useProvider } from '../context/ProviderContext';
 import './RepsPage.css';
 
 interface RepsPageProps {
@@ -26,6 +27,22 @@ const ESTADO_COLORS: Record<string, string> = {
 };
 
 export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
+  // Validate providerId early - MUST NOT PROCEED IF EMPTY
+  if (!providerId || providerId === '' || providerId.trim() === '') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        color: '#d32f2f',
+        fontSize: '16px',
+      }}>
+        ⚠️ Cargando... Por favor selecciona un prestador
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState<'estado' | 'historial' | 'diferencias' | 'servicios'>('estado');
   const [loading, setLoading] = useState(true);
   const [codigoHabilitacion, setCodigoHabilitacion] = useState('');
@@ -43,7 +60,15 @@ export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
     setTimeout(() => setToast(null), 4000);
   };
 
+  const { isLoading: providerLoading } = useProvider();
+
   const loadTabData = useCallback(async () => {
+    // Don't load if providerId is empty
+    if (!providerId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const [resumenRes, historialRes, ultimaRes] = await Promise.all([
@@ -64,8 +89,11 @@ export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
   }, [providerId]);
 
   useEffect(() => {
-    loadTabData();
-  }, [loadTabData]);
+    // Wait for provider context to finish loading before attempting API calls
+    if (!providerLoading) {
+      loadTabData();
+    }
+  }, [loadTabData, providerLoading]);
 
   // ─── CONSULTAR EN REPS ───
   const handleConsultar = async (e: React.FormEvent) => {

@@ -177,7 +177,7 @@ export class DocumentService {
    */
   async retrieveFile(documentId: string): Promise<{ buffer: Buffer; filename: string; mime_type: string } | null> {
     const doc = await this.model.getDocumentById(documentId);
-    if (!doc) return null;
+    if (!doc) {return null;}
 
     const absolutePath = path.join(STORAGE_ROOT, doc.storage_path);
     try {

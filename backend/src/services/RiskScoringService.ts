@@ -222,8 +222,8 @@ export class RiskScoringService {
           .slice(Math.floor(trends.length / 2))
           .reduce((sum, t) => sum + t.score, 0) / (trends.length - Math.floor(trends.length / 2));
 
-        if (secondHalf < firstHalf - 5) trend = 'improving';
-        else if (secondHalf > firstHalf + 5) trend = 'worsening';
+        if (secondHalf < firstHalf - 5) {trend = 'improving';}
+        else if (secondHalf > firstHalf + 5) {trend = 'worsening';}
       }
 
       return {
@@ -399,7 +399,7 @@ export class RiskScoringService {
   private calculateOverduePoints(
     actions: ActionData[]
   ): { overduePoints: number; daysOverdue: number } {
-    if (actions.length === 0) return { overduePoints: 0, daysOverdue: 0 };
+    if (actions.length === 0) {return { overduePoints: 0, daysOverdue: 0 };}
 
     // Use most recent action
     const action = actions[0];
@@ -483,9 +483,9 @@ export class RiskScoringService {
   private determinRiskLevel(
     score: number
   ): 'crítica' | 'alta' | 'media' | 'baja' {
-    if (score >= 80) return 'crítica';
-    if (score >= 60) return 'alta';
-    if (score >= 40) return 'media';
+    if (score >= 80) {return 'crítica';}
+    if (score >= 60) {return 'alta';}
+    if (score >= 40) {return 'media';}
     return 'baja';
   }
 

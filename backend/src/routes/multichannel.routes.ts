@@ -468,7 +468,7 @@ export function createMultiChannelRouter(pool: Pool): Router {
               templateName,
               variables: variables || {},
             });
-            if (result.id) deliveryIds.push(result.id);
+            if (result.id) {deliveryIds.push(result.id);}
           } else if (channel === 'sms' && user.phone_number) {
             const result = await smsService.sendSMS({
               userId: user.id,
@@ -477,7 +477,7 @@ export function createMultiChannelRouter(pool: Pool): Router {
               templateName,
               variables: variables || {},
             });
-            if (result.id) deliveryIds.push(result.id);
+            if (result.id) {deliveryIds.push(result.id);}
           }
         } catch (err) {
           logger.error('Failed to send notification to user', {

@@ -341,7 +341,7 @@ export class EmailService {
    * Populate template with variables
    */
   private populateTemplate(template: string, variables?: Record<string, any>): string {
-    if (!variables) return template;
+    if (!variables) {return template;}
 
     let result = template;
     Object.entries(variables).forEach(([key, value]) => {

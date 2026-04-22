@@ -12,6 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles,
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  console.log('[ProtectedRoute] Rendering:', { isAuthenticated, isLoading, userRole: user?.role, requiredRoles });
 
   if (isLoading) {
     return (
@@ -33,6 +34,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+    console.error('[ProtectedRoute] Permission denied', {
+      userRole: user.role,
+      requiredRoles,
+      user: { id: user.id, email: user.email, role: user.role }
+    });
     return (
       <div style={{
         display: 'flex',
@@ -43,6 +49,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         color: '#c33',
       }}>
         ❌ No tienes permisos para acceder a esta página
+        <div style={{ fontSize: '12px', marginTop: '10px', color: '#999' }}>
+          (Tu rol: <code>{user.role}</code>, Requeridos: <code>{requiredRoles.join(', ')}</code>)
+        </div>
       </div>
     );
   }

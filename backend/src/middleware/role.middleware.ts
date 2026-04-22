@@ -77,7 +77,7 @@ export function providerAccessMiddleware(pool: Pool, providerIdKeys: string[] = 
       let providerId: string | null = null;
       for (const key of providerIdKeys) {
         providerId = req.body[key] || req.params[key] || req.query[key];
-        if (providerId) break;
+        if (providerId) {break;}
       }
 
       // If no provider ID in request, let handler decide (some endpoints might not need it)

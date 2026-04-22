@@ -293,7 +293,7 @@ export class HistoriaClinicaService {
     cumple: boolean;
   }> | null> {
     const verificaciones = await this.listByProvider(providerId, 1);
-    if (verificaciones.length === 0) return null;
+    if (verificaciones.length === 0) {return null;}
 
     const v = verificaciones[0];
     return [

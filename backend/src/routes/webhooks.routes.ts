@@ -99,7 +99,7 @@ export function createWebhooksRouter(pool: Pool): Router {
       for (const event of events) {
         const payload: EmailWebhookPayload = event;
 
-        if (!payload.messageId) continue;
+        if (!payload.messageId) {continue;}
 
         const status =
           payload.event === 'delivered'
@@ -110,14 +110,14 @@ export function createWebhooksRouter(pool: Pool): Router {
                 ? 'bounced'
                 : null;
 
-        if (!status) continue;
+        if (!status) {continue;}
 
         const result = await pool.query(
           `SELECT id FROM email_deliveries WHERE provider_message_id = $1`,
           [payload.messageId]
         );
 
-        if (result.rows.length === 0) continue;
+        if (result.rows.length === 0) {continue;}
 
         const deliveryId = result.rows[0].id;
 

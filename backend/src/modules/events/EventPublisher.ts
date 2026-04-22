@@ -87,7 +87,7 @@ export class EventPublisher {
    */
   unsubscribe(eventType: string, subscriber: EventSubscriber): void {
     const subs = this.subscribers.get(eventType);
-    if (!subs) return;
+    if (!subs) {return;}
 
     const index = subs.indexOf(subscriber);
     if (index > -1) {

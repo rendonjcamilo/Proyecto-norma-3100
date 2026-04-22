@@ -173,7 +173,7 @@ export function getTokenJti(token: string): string | null {
  */
 export function isTokenExpired(token: string): boolean {
   const decoded = decodeToken(token);
-  if (!decoded) return true;
+  if (!decoded) {return true;}
 
   const now = Math.floor(Date.now() / 1000);
   return decoded.exp < now;

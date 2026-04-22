@@ -100,20 +100,26 @@ interface InvimaProviderSummary {
 // ─────────────────────────────────────────────
 
 // Dataset IDs en datos.gov.co por tipo de producto
-// IMPORTANTE: Verificar vigencia en https://www.datos.gov.co/browse?q=INVIMA
+// Actualizado 2026-04-22 con campos correctos verificados contra la API
 const DATASETS_POR_TIPO: Record<string, Array<{ id: string; campo: string }>> = {
   medicamento: [
-    { id: 'i7cb-6bkz', campo: 'numero_registro' },
-    { id: 'qhv6-en9v', campo: 'expediente' },
+    { id: 'qj5z-zabx', campo: 'expediente' }, // Medicamentos — buscar por expediente
+    { id: 'qj5z-zabx', campo: 'registrosanitario' }, // Intenta registrosanitario completo (INVIMA 2011M-XXX)
   ],
   dispositivo_medico: [
-    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+    { id: 'y4qt-w6tk', campo: 'expediente' }, // Dispositivos Médicos
   ],
   cosmetico: [
-    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+    { id: 'qj5z-zabx', campo: 'expediente' }, // Usa dataset medicamentos
+  ],
+  aditivo: [
+    { id: 'nrmr-kbqq', campo: 'expediente' }, // Aditivos
+  ],
+  alimento: [
+    { id: 'uhs6-qp53', campo: 'expediente' }, // Establecimientos alimentos
   ],
   desconocido: [
-    { id: 'i7cb-6bkz', campo: 'numero_registro' },
+    { id: 'qj5z-zabx', campo: 'expediente' }, // Fallback a medicamentos
   ],
 };
 
@@ -386,16 +392,16 @@ export class InvimaService {
       numero_registro: this.pick(record, 'numero_registro', 'expediente') || '',
       nombre_producto: this.pick(record, 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre') || null,
       categoria: this.inferCategoria(record),
-      tipo_registro: this.pick(record, 'tipo_registro', 'modalidad') || null,
-      estado: this.mapEstado(this.pick(record, 'estado', 'estado_registro') || ''),
-      titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social') || null,
+      // tipo_registro removed — column doesn't exist in schema
+      estado: this.mapEstado(this.pick(record, 'estado', 'estado_registro', 'estadoregistro') || ''),
+      titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social', 'nombrerol') || null,
       titular_fabricante: this.pick(record, 'fabricante') || null,
       titular_importador: this.pick(record, 'importador') || null,
       pais_origen: this.pick(record, 'pais_fabricante', 'pais') || null,
-      principios_activos: this.pick(record, 'principio_activo', 'composicion', 'ingrediente_activo', 'sustancia_activa') || null,
-      presentaciones_autorizadas: this.pick(record, 'presentacion', 'presentaciones') || null,
-      fecha_emision: this.pick(record, 'fecha_expedicion', 'fecha_emision', 'fecha_otorgamiento') || null,
-      fecha_vencimiento: this.pick(record, 'fecha_vencimiento', 'vigencia_hasta', 'vence', 'fecha_expiracion') || null,
+      principios_activos: this.pick(record, 'principio_activo', 'composicion', 'ingrediente_activo', 'sustancia_activa', 'principioactivo') || null,
+      presentaciones_autorizadas: this.pick(record, 'presentacion', 'presentaciones', 'unidadreferencia') || null,
+      fecha_emision: this.pick(record, 'fecha_expedicion', 'fecha_emision', 'fecha_otorgamiento', 'fechaexpedicion') || null,
+      fecha_vencimiento: this.pick(record, 'fecha_vencimiento', 'vigencia_hasta', 'vence', 'fecha_expiracion', 'fechavencimiento') || null,
       datos_crudos: record,
     };
   }
@@ -456,48 +462,31 @@ export class InvimaService {
   async upsertRegistro(data: Partial<InvimaRegistro> & { numero_registro: string }): Promise<InvimaRegistro> {
     const result = await this.pool.query(
       `INSERT INTO invima_registros (
-        numero_registro, tipo_registro, estado, nombre_producto, categoria,
-        principios_activos, presentaciones_autorizadas, clasificacion_riesgo,
-        titular_registro, titular_fabricante, titular_importador, pais_origen,
-        fecha_emision, fecha_vencimiento, fuente_datos, datos_crudos, ultima_consulta, observaciones
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW(),$17)
+        numero_registro, nombre_producto, estado, categoria,
+        principios_activos, clasificacion_riesgo, titular_registro,
+        fecha_vencimiento, datos_completos
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       ON CONFLICT (numero_registro) DO UPDATE SET
-        tipo_registro = COALESCE(EXCLUDED.tipo_registro, invima_registros.tipo_registro),
-        estado = COALESCE(EXCLUDED.estado, invima_registros.estado),
         nombre_producto = COALESCE(EXCLUDED.nombre_producto, invima_registros.nombre_producto),
+        estado = COALESCE(EXCLUDED.estado, invima_registros.estado),
         categoria = COALESCE(EXCLUDED.categoria, invima_registros.categoria),
         principios_activos = COALESCE(EXCLUDED.principios_activos, invima_registros.principios_activos),
-        presentaciones_autorizadas = COALESCE(EXCLUDED.presentaciones_autorizadas, invima_registros.presentaciones_autorizadas),
         clasificacion_riesgo = COALESCE(EXCLUDED.clasificacion_riesgo, invima_registros.clasificacion_riesgo),
         titular_registro = COALESCE(EXCLUDED.titular_registro, invima_registros.titular_registro),
-        titular_fabricante = COALESCE(EXCLUDED.titular_fabricante, invima_registros.titular_fabricante),
-        titular_importador = COALESCE(EXCLUDED.titular_importador, invima_registros.titular_importador),
-        pais_origen = COALESCE(EXCLUDED.pais_origen, invima_registros.pais_origen),
-        fecha_emision = COALESCE(EXCLUDED.fecha_emision, invima_registros.fecha_emision),
         fecha_vencimiento = COALESCE(EXCLUDED.fecha_vencimiento, invima_registros.fecha_vencimiento),
-        fuente_datos = EXCLUDED.fuente_datos,
-        datos_crudos = EXCLUDED.datos_crudos,
-        ultima_consulta = NOW(),
-        updated_at = NOW()
+        datos_completos = EXCLUDED.datos_completos,
+        consultado_en = NOW()
       RETURNING *`,
       [
         data.numero_registro,
-        data.tipo_registro || null,
-        data.estado || 'desconocido',
         data.nombre_producto || null,
+        data.estado || 'desconocido',
         data.categoria || null,
         data.principios_activos || null,
-        data.presentaciones_autorizadas || null,
         data.clasificacion_riesgo || null,
         data.titular_registro || null,
-        data.titular_fabricante || null,
-        data.titular_importador || null,
-        data.pais_origen || null,
-        data.fecha_emision || null,
         data.fecha_vencimiento || null,
-        data.fuente_datos || 'manual',
         data.datos_crudos ? JSON.stringify(data.datos_crudos) : null,
-        data.observaciones || null,
       ]
     );
 

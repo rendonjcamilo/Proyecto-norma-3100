@@ -388,13 +388,13 @@ export class NotificationService {
     switch (type) {
       case 'action.overdue':
       case 'finding.overdue':
-        if (!preferences.enable_overdue) return false;
+        if (!preferences.enable_overdue) {return false;}
         break;
       case 'risk.alert':
-        if (!preferences.enable_high_risk) return false;
+        if (!preferences.enable_high_risk) {return false;}
         break;
       case 'verification.required':
-        if (!preferences.enable_verification) return false;
+        if (!preferences.enable_verification) {return false;}
         break;
     }
 
