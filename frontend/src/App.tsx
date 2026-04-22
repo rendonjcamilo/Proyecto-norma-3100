@@ -108,13 +108,45 @@ const AuditorNotificationsWrapper = () => {
 };
 
 const InvimaWrapper = () => {
-  const { selectedProvider } = useProvider();
-  return <InvimaPage providerId={selectedProvider?.id || ""} />;
+  const { selectedProvider, isLoading } = useProvider();
+
+  if (isLoading || !selectedProvider) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px',
+        color: '#666',
+        fontSize: '16px',
+      }}>
+        {isLoading ? 'Cargando prestador...' : '⚠️ Por favor selecciona un prestador en el menú superior'}
+      </div>
+    );
+  }
+
+  return <InvimaPage providerId={selectedProvider.id} />;
 };
 
 const RepsWrapper = () => {
-  const { selectedProvider } = useProvider();
-  return <RepsPage providerId={selectedProvider?.id || ""} />;
+  const { selectedProvider, isLoading } = useProvider();
+
+  if (isLoading || !selectedProvider) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px',
+        color: '#666',
+        fontSize: '16px',
+      }}>
+        {isLoading ? 'Cargando prestador...' : '⚠️ Por favor selecciona un prestador en el menú superior'}
+      </div>
+    );
+  }
+
+  return <RepsPage providerId={selectedProvider.id} />;
 };
 
 function AppContent(): JSX.Element {
@@ -233,7 +265,7 @@ function AppContent(): JSX.Element {
             {/* INVIMA */}
             <Route
               path="/invima"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
             />
 
             {/* REPS */}
