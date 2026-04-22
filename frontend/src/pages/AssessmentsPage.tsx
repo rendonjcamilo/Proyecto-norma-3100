@@ -242,16 +242,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </button>
           )}
           {can('assessments', 'create') && (
-            <button className="page-btn-primary" onClick={async () => {
-              // Load auditor's providers if auditor
-              if (user?.role === 'auditor' && user?.id) {
-                try {
-                  const res = await providersApi.getAuditorProviders(user.id);
-                  setAuditorsProviders(res.providers || []);
-                } catch (err) {
-                  console.error('Error loading auditor providers:', err);
-                }
-              }
+            <button className="page-btn-primary" onClick={() => {
               setShowCreateModal(true);
             }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -556,9 +547,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 return;
               }
 
-              // Para auditors, validar que seleccionen prestador
-              if (user?.role === 'auditor' && !formData.providerId) {
-                setModalError('Por favor selecciona un prestador');
+              // RBAC: Auditor cannot create assessments (Norma 3100 art. 5)
+              if (user?.role === 'auditor') {
+                setModalError('Auditor no puede crear evaluaciones. Solo el prestador puede autoevaluar (Norma 3100 art. 5).');
                 return;
               }
 
@@ -572,8 +563,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               try {
                 setIsSubmitting(true);
 
-                // Usar el providerId seleccionado (para auditors) o el prop (para provider_admin)
-                const finalProviderId = user?.role === 'auditor' ? formData.providerId : providerId;
+                // Only provider_admin can create (with their own provider)
+                const finalProviderId = providerId;
 
                 // Intentar crear via API
                 let createdAssessmentId: string | null = null;
@@ -653,40 +644,6 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   placeholder="Ej: Evaluación Norma 3100 2026"
                 />
               </div>
-
-              {user?.role === 'auditor' && (
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
-                    Prestador <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <select
-                    value={formData.providerId}
-                    onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: formData.providerId ? '1px solid #ddd' : '2px solid #ef4444',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      backgroundColor: formData.providerId ? 'white' : '#fee2e2',
-                    }}
-                  >
-                    <option value="">-- Selecciona un prestador --</option>
-                    {auditorsProviders.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.legal_name} ({p.rut})
-                      </option>
-                    ))}
-                  </select>
-                  {!formData.providerId && (
-                    <small style={{ color: '#ef4444', display: 'block', marginTop: '4px' }}>
-                      Debes seleccionar un prestador para continuar
-                    </small>
-                  )}
-                </div>
-              )}
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
