@@ -34,7 +34,7 @@ const navigation: NavSection[] = [
       { to: '/', icon: 'dashboard', label: 'Dashboard', roles: ALL_ROLES },
       { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin'] },
       { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['auditor', 'provider_admin'] },
-      { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ['super_admin'] },
+      { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ['auditor'] },
     ],
   },
   {
