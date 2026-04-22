@@ -595,7 +595,7 @@ export class InvimaService {
               ir.categoria, ir.titular_registro, ir.principios_activos,
               ir.clasificacion_riesgo, ir.fecha_vencimiento AS vencimiento_registro
        FROM provider_invima_items pi
-       JOIN invima_registros ir ON ir.id = pi.invima_registro_id
+       JOIN invima_registros ir ON ir.numero_registro = pi.invima_registro_id
        WHERE ${whereClause}
        ORDER BY
          CASE pi.semaforo
@@ -756,7 +756,7 @@ export class InvimaService {
     const result = await this.pool.query(
       `SELECT pi.*, ir.numero_registro, ir.nombre_producto, ir.estado AS estado_registro, ir.categoria
        FROM provider_invima_items pi
-       JOIN invima_registros ir ON ir.id = pi.invima_registro_id
+       JOIN invima_registros ir ON ir.numero_registro = pi.invima_registro_id
        WHERE pi.provider_id = $1
          AND pi.activo = TRUE
          AND pi.fecha_vencimiento_lote IS NOT NULL
