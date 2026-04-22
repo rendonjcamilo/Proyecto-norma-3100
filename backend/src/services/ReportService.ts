@@ -449,11 +449,11 @@ export class ReportService {
     if (provResult.rows.length === 0) throw new Error('Provider not found');
     const provider = provResult.rows[0];
 
-    // Obtener los 7 estándares transversales
+    // Obtener los 7 estándares transversales (DISTINCT para evitar duplicados)
     const estandaresResult = await this.pool.query<{
       id: string; code: string; name: string;
     }>(
-      `SELECT id, code, name FROM evaluation_standards
+      `SELECT DISTINCT ON (code) id, code, name FROM evaluation_standards
        WHERE is_transversal = TRUE ORDER BY code`,
     ).catch(() => ({ rows: [] }));
 
@@ -778,262 +778,215 @@ export class ReportService {
   }
 
   /**
-   * Genera el DOCX del Informe de Auditoría oficial según Res. 3100
-   * Estructura: portada → condiciones habilitación → resultado por estándar → hallazgos → concepto
+   * Genera el DOCX del Informe de Auditoría oficial según Res. 3100 (MODELO 2023)
+   * Estructura: encabezado narrativo → datos prestador → introducción → estándares+hallazgos → concepto → firmas
    */
   async generateAuditReportDocx(providerId: string, generatedBy: string, assessmentId?: string): Promise<Buffer> {
     const data = await this.gatherAuditReportData(providerId, assessmentId);
+    const fecha = data.fechaInforme.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const children = [
+      // ── ENCABEZADO NARRATIVO ──────────────────────────────────────
+      new Paragraph({
+        text: 'INFORME DE AUDITORÍA EN HABILITACIÓN',
+        spacing: { after: 240 },
+      }),
+
+      new Paragraph({
+        text: `En el Municipio de ${data.provider.city} (${data.provider.department.substring(0, 1).toUpperCase()}${data.provider.department.substring(1).toLowerCase()}) el día ${fecha.split(' ')[0]} de ${fecha.split(' ')[2]}, se realizó auditoría del Cumplimiento de las Condiciones del Sistema Único de Habilitación conforme a lo previsto en el Decreto 1011 de 2006, Resolución 3100 de 2019 y demás normatividad aplicable vigente.`,
+        spacing: { after: 240 },
+      }),
+
+      // ── DATOS DEL PRESTADOR ───────────────────────────────────────
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Nombre o razón social', bold: true })] }),
+              new TableCell({ children: [new Paragraph(data.provider.legal_name)] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'NIT/Cédula', bold: true })] }),
+              new TableCell({ children: [new Paragraph(data.provider.rut)] }),
+            ],
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Municipio', bold: true })] }),
+              new TableCell({ children: [new Paragraph(`${data.provider.city} (${data.provider.department})`)] }),
+            ],
+          }),
+        ],
+      }),
+
+      new Paragraph({ text: '', spacing: { after: 240 } }),
+
+      // ── INTRODUCCIÓN ──────────────────────────────────────────────
+      new Paragraph({
+        text: 'A continuación, se relacionan solamente los criterios incumplidos o hallazgos:',
+        spacing: { after: 240 },
+      }),
+
+      // ── CONDICIONES TÉCNICO-CIENTÍFICAS (ESTÁNDARES + HALLAZGOS) ──
+      ...data.estandares.flatMap((est, idx) => {
+        const numEstandar = idx + 1;
+        const paragraphs: any[] = [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${numEstandar}. ESTÁNDAR DE ${est.nombre.toUpperCase()}:`,
+                bold: true,
+              }),
+            ],
+            spacing: { before: 240, after: 120 },
+          }),
+        ];
+
+        if (est.hallazgos.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              text: 'Hallazgos:',
+              bold: true,
+              spacing: { after: 100 },
+            })
+          );
+
+          est.hallazgos.forEach((h) => {
+            paragraphs.push(
+              new Paragraph({
+                text: h.descripcion,
+                spacing: { after: 100 },
+              })
+            );
+          });
+        } else {
+          paragraphs.push(
+            new Paragraph({
+              text: 'Sin hallazgos identificados.',
+              spacing: { after: 100 },
+            })
+          );
+        }
+
+        return paragraphs;
+      }),
+
+      // ── TABLA DE RESULTADOS POR ESTÁNDAR ──────────────────────────
+      new Paragraph({
+        text: 'RESULTADOS POR ESTÁNDAR',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 360, after: 240 },
+      }),
+
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Estándar', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: 'C', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: 'NC', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: 'NA', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: '% Cumpl.', bold: true })] }),
+              new TableCell({ children: [new Paragraph({ text: 'Semáforo', bold: true })] }),
+            ],
+          }),
+          ...data.estandares.map(
+            (est) =>
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph(`${est.codigo} — ${est.nombre}`)] }),
+                  new TableCell({ children: [new Paragraph(est.cumple.toString())] }),
+                  new TableCell({ children: [new Paragraph(est.noCumple.toString())] }),
+                  new TableCell({ children: [new Paragraph(est.noAplica.toString())] }),
+                  new TableCell({ children: [new Paragraph(`${est.porcentajeCumplimiento}%`)] }),
+                  new TableCell({
+                    children: [
+                      new Paragraph({
+                        text: est.semaforo === 'verde' ? '🟢 VERDE' : est.semaforo === 'naranja' ? '🟡 NARANJA' : '🔴 ROJO',
+                      }),
+                    ],
+                  }),
+                ],
+              })
+          ),
+        ],
+      }),
+
+      // ── CONCEPTO DE HABILITACIÓN ──────────────────────────────────
+      new Paragraph({ text: '', spacing: { after: 360 } }),
+
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `CONCEPTO: ${
+              data.conceptoHabilitacion === 'habilitado'
+                ? 'HABILITADO'
+                : data.conceptoHabilitacion === 'habilitado_condicionado'
+                ? 'HABILITADO CON CONDICIONAMIENTOS'
+                : 'NO HABILITADO'
+            }`,
+            bold: true,
+            size: 28,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+      }),
+
+      new Paragraph({
+        text: `Porcentaje de cumplimiento: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 360 },
+      }),
+
+      // ── FIRMAS ───────────────────────────────────────────────────
+      new Paragraph({
+        text: 'FIRMAS',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 240, after: 240 },
+      }),
+
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [
+                  new Paragraph(''),
+                  new Paragraph(''),
+                  new Paragraph({ text: 'Auditor Líder', alignment: AlignmentType.CENTER }),
+                ],
+              }),
+              new TableCell({
+                children: [
+                  new Paragraph(''),
+                  new Paragraph(''),
+                  new Paragraph({
+                    text: 'Representante Legal del Prestador',
+                    alignment: AlignmentType.CENTER,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+
+      // ── PIE DE PÁGINA ────────────────────────────────────────────
+      new Paragraph({
+        text: `Informe generado el ${data.fechaInforme.toLocaleString('es-CO')} · Sistema de Gestión Norma 3100 · Resolución 3100 de 2019`,
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 360 },
+      }),
+    ];
 
     const doc = new Document({
-      sections: [
-        {
-          children: [
-            // ── PORTADA ──────────────────────────────────────────────
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: 'INFORME DE AUDITORÍA DE HABILITACIÓN',
-                  bold: true,
-                  size: 56,
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 240 },
-            }),
-
-            new Paragraph({
-              text: 'Resolución 3100 de 2019 — Ministerio de Salud y Protección Social',
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 240 },
-            }),
-
-            // Info del prestador
-            new Paragraph({
-              text: `Prestador: ${data.provider.legal_name}`,
-              spacing: { after: 120 },
-            }),
-            new Paragraph({
-              text: `NIT/RUT: ${data.provider.rut}`,
-              spacing: { after: 120 },
-            }),
-            new Paragraph({
-              text: `Municipio: ${data.provider.city}, ${data.provider.department}`,
-              spacing: { after: 120 },
-            }),
-            new Paragraph({
-              text: `Fecha del Informe: ${data.fechaInforme.toLocaleDateString('es-CO')}`,
-              spacing: { after: 120 },
-            }),
-            new Paragraph({
-              text: `Generado por: ${generatedBy}`,
-              spacing: { after: 360 },
-            }),
-
-            // Concepto de habilitación
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text:
-                    data.conceptoHabilitacion === 'habilitado'
-                      ? 'HABILITADO'
-                      : data.conceptoHabilitacion === 'habilitado_condicionado'
-                      ? 'HABILITADO CON CONDICIONAMIENTOS'
-                      : 'NO HABILITADO',
-                  bold: true,
-                  size: 56,
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 120 },
-            }),
-
-            new Paragraph({
-              text: `Porcentaje global de cumplimiento Condición 3: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`,
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 480 },
-            }),
-
-            // ── 3 CONDICIONES DE HABILITACIÓN ────────────────────────
-            new Paragraph({
-              text: '1. CONDICIONES DE HABILITACIÓN',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 240, after: 240 },
-            }),
-
-            new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: [
-                new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph('Condición')] }),
-                    new TableCell({ children: [new Paragraph('Descripción')] }),
-                    new TableCell({ children: [new Paragraph('Estado')] }),
-                  ],
-                }),
-                new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph('Capacidad Técnico-Administrativa')] }),
-                    new TableCell({
-                      children: [
-                        new Paragraph('Acreditación jurídica, uso de suelo, REPS activo, manual de procesos y PAMEC.'),
-                      ],
-                    }),
-                    new TableCell({
-                      children: [
-                        new Paragraph(
-                          data.resumenCondiciones.condicion1CumpleTecnicoAdministrativa === null
-                            ? 'PENDIENTE'
-                            : data.resumenCondiciones.condicion1CumpleTecnicoAdministrativa
-                            ? 'CUMPLE'
-                            : 'NO CUMPLE'
-                        ),
-                      ],
-                    }),
-                  ],
-                }),
-                new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph('Suficiencia Patrimonial')] }),
-                    new TableCell({
-                      children: [
-                        new Paragraph('Estados financieros, póliza RC, declaración de renta, certificación bancaria.'),
-                      ],
-                    }),
-                    new TableCell({
-                      children: [
-                        new Paragraph(
-                          data.resumenCondiciones.condicion2CumpleSuficienciaPatrimonial === null
-                            ? 'PENDIENTE'
-                            : data.resumenCondiciones.condicion2CumpleSuficienciaPatrimonial
-                            ? 'CUMPLE'
-                            : 'NO CUMPLE'
-                        ),
-                      ],
-                    }),
-                  ],
-                }),
-                new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph('Capacidad Tecnológica y Científica')] }),
-                    new TableCell({
-                      children: [
-                        new Paragraph(
-                          `7 estándares transversales evaluados. Cumplimiento global: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`
-                        ),
-                      ],
-                    }),
-                    new TableCell({
-                      children: [
-                        new Paragraph(
-                          data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica >= 80 ? 'CUMPLE' : 'NO CUMPLE'
-                        ),
-                      ],
-                    }),
-                  ],
-                }),
-              ],
-            }),
-
-            // ── RESULTADOS POR ESTÁNDAR ──────────────────────────────
-            new Paragraph({
-              text: '2. RESULTADOS POR ESTÁNDAR TRANSVERSAL',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 360, after: 240 },
-            }),
-
-            new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: [
-                new TableRow({
-                  children: [
-                    new TableCell({ children: [new Paragraph('Estándar')] }),
-                    new TableCell({ children: [new Paragraph('C')] }),
-                    new TableCell({ children: [new Paragraph('NC')] }),
-                    new TableCell({ children: [new Paragraph('NA')] }),
-                    new TableCell({ children: [new Paragraph('% Cumpl.')] }),
-                    new TableCell({ children: [new Paragraph('Semáforo')] }),
-                  ],
-                }),
-                ...data.estandares.map(
-                  (est) =>
-                    new TableRow({
-                      children: [
-                        new TableCell({ children: [new Paragraph(`${est.codigo} — ${est.nombre}`)] }),
-                        new TableCell({ children: [new Paragraph(est.cumple.toString())] }),
-                        new TableCell({ children: [new Paragraph(est.noCumple.toString())] }),
-                        new TableCell({ children: [new Paragraph(est.noAplica.toString())] }),
-                        new TableCell({ children: [new Paragraph(`${est.porcentajeCumplimiento}%`)] }),
-                        new TableCell({ children: [new Paragraph(est.semaforo.toUpperCase())] }),
-                      ],
-                    })
-                ),
-              ],
-            }),
-
-            // ── HALLAZGOS POR ESTÁNDAR ───────────────────────────────
-            new Paragraph({
-              text: '3. HALLAZGOS IDENTIFICADOS POR ESTÁNDAR',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 360, after: 240 },
-            }),
-
-            ...data.estandares.flatMap((est) => {
-              if (est.hallazgos.length === 0) return [];
-              return [
-                new Paragraph({
-                  children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, bold: true })],
-                  spacing: { before: 120, after: 120 },
-                }),
-                ...est.hallazgos.map(
-                  (h, i) =>
-                    new Paragraph({
-                      text: `${i + 1}. ${h.descripcion} [Severidad: ${h.severidad.toUpperCase()}]`,
-                      spacing: { after: 100 },
-                    })
-                ),
-              ];
-            }),
-
-            // ── FIRMAS ───────────────────────────────────────────────
-            new Paragraph({
-              text: 'FIRMAS',
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 360, after: 240 },
-            }),
-
-            new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: [
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [
-                        new Paragraph(''),
-                        new Paragraph(''),
-                        new Paragraph('Auditor Líder'),
-                      ],
-                    }),
-                    new TableCell({
-                      children: [
-                        new Paragraph(''),
-                        new Paragraph(''),
-                        new Paragraph('Representante Legal del Prestador'),
-                      ],
-                    }),
-                  ],
-                }),
-              ],
-            }),
-
-            // ── PIE DE PÁGINA ────────────────────────────────────────
-            new Paragraph({
-              text: `Informe generado el ${data.fechaInforme.toLocaleString('es-CO')} · Sistema de Gestión Norma 3100 · Resolución 3100 de 2019`,
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 240 },
-            }),
-          ],
-        },
-      ],
+      sections: [{ children }],
     });
 
     return Packer.toBuffer(doc);

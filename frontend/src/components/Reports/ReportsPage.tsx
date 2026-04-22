@@ -62,7 +62,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   const [completedAssessments, setCompletedAssessments] = useState<Assessment[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | undefined>(undefined);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(providerId || "");
+  // Para auditors: permitir cambiar de prestador. Para otros: usar el preseleccionado
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(isAuditor ? "" : (providerId || ""));
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });

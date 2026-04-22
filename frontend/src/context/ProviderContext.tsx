@@ -46,7 +46,7 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // If auditor, load their assigned providers from API
         if (user?.role === 'auditor') {
           const response = await providersApi.getMyProviders();
-          providersData = (response.providers || []).map(transformProvider);
+          providersData = (response.data || response.providers || []).map(transformProvider);
         } else if (user?.role === 'provider_admin' && user?.provider_id) {
           // For provider_admin, load only their assigned provider
           const allProviders = await providersApi.list();

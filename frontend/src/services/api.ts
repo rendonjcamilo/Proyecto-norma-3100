@@ -334,16 +334,39 @@ export const findingsApi = {
   },
 
   getById: (id: string) =>
-    get<{ data: Finding }>(`/api/findings/${id}`),
+    get<{ data: Finding & { actions?: any[] } }>(`/api/findings/${id}`),
 
   create: (payload: { providerId: string; title: string; description: string; severity: FindingSeverity; dueDate: string; criterionId?: string }) =>
     post<{ data: Finding }>('/api/findings', payload),
+
+  update: (id: string, payload: { title?: string; description?: string; severity?: FindingSeverity; due_date?: string; status?: FindingStatus }) =>
+    put<{ data: Finding }>(`/api/findings/${id}`, payload),
+
+  delete: (id: string) =>
+    request<{ success: boolean }>('DELETE', `/api/findings/${id}`),
 
   updateStatus: (id: string, status: FindingStatus, notes?: string) =>
     put<{ data: Finding }>(`/api/findings/${id}/status`, { status, notes }),
 
   getRiskScore: (id: string) =>
     get<{ data: { score: number; trend: string } }>(`/api/findings/${id}/risk`),
+
+  // Corrective Actions
+  createAction: (findingId: string, payload: { title: string; description: string; assigned_to?: string; due_date?: string; priority?: string }) =>
+    post<{ data: any }>(`/api/findings/${findingId}/actions`, payload),
+
+  listActions: (params?: { finding_id?: string; status?: string; assigned_to?: string }) => {
+    const qs = params
+      ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
+      : '';
+    return get<{ data: any[]; total: number }>(`/api/actions${qs}`);
+  },
+
+  updateAction: (actionId: string, payload: { status?: string; title?: string; description?: string; due_date?: string }) =>
+    put<{ data: any }>(`/api/actions/${actionId}`, payload),
+
+  deleteAction: (actionId: string) =>
+    request<{ success: boolean }>('DELETE', `/api/actions/${actionId}`),
 };
 
 // ─────────────────────────────────────────────
