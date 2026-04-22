@@ -42,7 +42,6 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   onChange,
   readOnly = false,
 }) => {
-  console.log('CriterionInput rendered:', { code: criterion.code, name: criterion.name, description: criterion.description });
   const [localResponse, setLocalResponse] = useState<CriterionResponse>(
     response || { criterionId: criterion.id, status: 'C' }
   );
