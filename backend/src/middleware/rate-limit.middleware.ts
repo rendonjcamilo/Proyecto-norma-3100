@@ -78,15 +78,15 @@ export const webhookLimiter = rateLimit({
   },
 });
 
-// Report generation limiter: 10 / 5 min (expensive operation)
+// Report generation limiter: 100 / 15 min (allows development/testing)
 export const reportLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 10,
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
     error: 'Report Generation Limit',
-    message: 'Has excedido el límite de generación de reportes. Intenta en 5 minutos.',
-    retryAfter: '5 minutes',
+    message: 'Has excedido el límite de generación de reportes. Intenta en 15 minutos.',
+    retryAfter: '15 minutes',
   },
 });
