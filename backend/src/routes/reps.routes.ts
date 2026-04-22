@@ -19,12 +19,13 @@ export function createRepsRouter(pool: Pool): Router {
   /**
    * GET /api/reps/consultar/:codigoHabilitacion
    * Consulta datos.gov.co SODA API por código de habilitación
-   * Roles: super_admin, auditor
+   * Roles: auditor
+   * NOTE: Norma 3100 - only auditor verifies REPS registrations
    */
   router.get(
     '/reps/consultar/:codigoHabilitacion',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const { codigoHabilitacion } = req.params;
@@ -56,12 +57,12 @@ export function createRepsRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/reps/ultima
    * Obtener última verificación del prestador
-   * Roles: todos (super_admin, auditor, provider_admin)
+   * Roles: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/reps/ultima',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -83,12 +84,12 @@ export function createRepsRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/reps/historial
    * Obtener historial de verificaciones del prestador
-   * Roles: todos (super_admin, auditor, provider_admin)
+   * Roles: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/reps/historial',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -106,12 +107,13 @@ export function createRepsRouter(pool: Pool): Router {
   /**
    * POST /api/providers/:providerId/reps/verificaciones
    * Registrar nueva verificación REPS
-   * Roles: super_admin, auditor
+   * Roles: auditor
+   * NOTE: Norma 3100 - only auditor records REPS verifications
    */
   router.post(
     '/providers/:providerId/reps/verificaciones',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -142,12 +144,12 @@ export function createRepsRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/reps/resumen
    * Resumen de estado REPS del prestador (última verificación, diferencias, sanciones)
-   * Roles: todos
+   * Roles: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/reps/resumen',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
