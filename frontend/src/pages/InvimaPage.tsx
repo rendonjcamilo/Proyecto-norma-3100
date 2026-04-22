@@ -54,6 +54,22 @@ const ALERTA_TIPO_COLORS: Record<string, string> = {
 };
 
 export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
+  // Validate providerId early
+  if (!providerId || providerId.trim() === '') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px',
+        color: '#d32f2f',
+        fontSize: '16px',
+      }}>
+        ⚠️ Por favor selecciona un prestador en el menú superior
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState<'inventario' | 'por-vencer' | 'alertas' | 'exportar'>('inventario');
   const [items, setItems] = useState<ProviderInvimaItem[]>([]);
   const [porVencer, setPorVencer] = useState<ProviderInvimaItem[]>([]);
