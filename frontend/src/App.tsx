@@ -271,7 +271,7 @@ function AppContent(): JSX.Element {
             {/* REPS */}
             <Route
               path="/reps"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
             />
 
             {/* Catch-all */}
