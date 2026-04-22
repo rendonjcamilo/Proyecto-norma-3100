@@ -19,12 +19,13 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/invima/lookup/:numeroRegistro
    * Busca en cache local → datos.gov.co → devuelve datos del registro
-   * Rol: super_admin, auditor, provider_admin
+   * Rol: auditor, provider_admin
+   * NOTE: Norma 3100 - only provider and auditor have INVIMA responsibilities
    */
   router.get(
     '/invima/lookup/:numeroRegistro',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { numeroRegistro } = req.params;
@@ -58,11 +59,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/invima/registros/search?q=...
    * Buscar registros en cache local
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/invima/registros/search',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const q = (req.query.q as string) || '';
@@ -84,11 +86,13 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * POST /api/invima/registros
    * Crear/actualizar un registro manualmente
+   * Rol: provider_admin only
+   * NOTE: Only provider registers their own medicaments/devices per Norma 3100
    */
   router.post(
     '/invima/registros',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { numeroRegistro, ...data } = req.body;
@@ -129,11 +133,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/invima/items
    * Listar medicamentos/dispositivos del proveedor con datos INVIMA
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/invima/items',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -156,11 +161,13 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * POST /api/providers/:providerId/invima/items
    * Agregar medicamento/dispositivo al inventario del proveedor
+   * Rol: provider_admin only
+   * NOTE: Only provider adds items to their inventory per Norma 3100 art. (TSMD)
    */
   router.post(
     '/providers/:providerId/invima/items',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -191,11 +198,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * DELETE /api/providers/:providerId/invima/items/:itemId
    * Desactivar un item del inventario
+   * Rol: provider_admin only
    */
   router.delete(
     '/providers/:providerId/invima/items/:itemId',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { itemId } = req.params;
@@ -215,11 +223,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/invima/resumen
    * Resumen de cumplimiento TSMD del proveedor
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/invima/resumen',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -235,11 +244,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/invima/por-vencer
    * Items próximos a vencer (semáforo)
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/invima/por-vencer',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -258,11 +268,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/invima/alertas
    * Listar alertas de farmacovigilancia/tecnovigilancia
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/invima/alertas',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { tipo, numero, sinRevisar, limit } = req.query;
@@ -285,11 +296,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * POST /api/invima/alertas
    * Registrar una nueva alerta INVIMA
+   * Rol: auditor, provider_admin
    */
   router.post(
     '/invima/alertas',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { numeroRegistro, tipoAlerta, titulo, descripcion, severidad, fechaAlerta, fuente } = req.body;
@@ -319,11 +331,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * PUT /api/invima/alertas/:id/revisar
    * Marcar alerta como revisada
+   * Rol: auditor, provider_admin
    */
   router.put(
     '/invima/alertas/:id/revisar',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
@@ -348,11 +361,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * GET /api/providers/:providerId/invima/export.csv
    * Exportar inventario INVIMA a CSV
+   * Rol: auditor, provider_admin
    */
   router.get(
     '/providers/:providerId/invima/export.csv',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    rbacMiddleware(['auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
