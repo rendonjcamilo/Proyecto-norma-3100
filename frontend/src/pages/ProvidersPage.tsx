@@ -570,22 +570,40 @@ export const ProvidersPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="dashboard-form-group">
-                <label htmlFor="auditor_id">Asignar Auditor {!editingId && '*'}</label>
-                <select
-                  id="auditor_id"
-                  value={formData.auditor_id}
-                  onChange={(e) => setFormData({ ...formData, auditor_id: e.target.value })}
-                  disabled={creating}
-                >
-                  <option value="">-- Seleccionar auditor --</option>
-                  {auditors.map((auditor) => (
-                    <option key={auditor.id} value={auditor.id}>
-                      {auditor.first_name} {auditor.last_name} ({auditor.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!editingId && (
+                <div className="dashboard-form-group">
+                  <div style={{
+                    padding: '12px',
+                    background: '#e3f2fd',
+                    borderLeft: '4px solid #0066cc',
+                    borderRadius: '4px',
+                    color: '#333',
+                  }}>
+                    <p style={{ margin: 0, fontSize: '14px' }}>
+                      ✓ Te asignarás automáticamente como auditor de este prestador al crearlo.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {editingId && (
+                <div className="dashboard-form-group">
+                  <label htmlFor="auditor_id">Auditor Adicional (opcional)</label>
+                  <select
+                    id="auditor_id"
+                    value={formData.auditor_id}
+                    onChange={(e) => setFormData({ ...formData, auditor_id: e.target.value })}
+                    disabled={creating}
+                  >
+                    <option value="">-- Asignar otro auditor --</option>
+                    {auditors.map((auditor) => (
+                      <option key={auditor.id} value={auditor.id}>
+                        {auditor.first_name} {auditor.last_name} ({auditor.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Admin section - only show on create, not on edit */}
               {!editingId && (

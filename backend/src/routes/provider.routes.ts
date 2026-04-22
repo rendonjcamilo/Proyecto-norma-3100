@@ -29,12 +29,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * POST /api/providers
    * Create a new provider
-   * Only super_admin can create providers
+   * Only auditor can create providers and manage them
    */
   router.post(
     '/providers',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const {
@@ -148,6 +148,14 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
               now,
               now,
             ]
+          );
+
+          // 3. Auto-assign auditor to the provider they just created
+          await client.query(
+            `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (auditor_id, provider_id) DO NOTHING`,
+            [user?.user_id, provider.id, user?.user_id]
           );
 
           // Commit transaction
@@ -429,12 +437,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
   /**
    * PUT /api/providers/:id/status
-   * Change provider status
+   * Change provider status (auditor only)
    */
   router.put(
     '/providers/:id/status',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const { status } = req.body;
@@ -619,12 +627,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
   /**
    * POST /api/providers/:providerId/assign-auditor
-   * Assign an auditor to a provider (super_admin only)
+   * Assign an auditor to a provider (auditor only)
    */
   router.post(
     '/providers/:providerId/assign-auditor',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const { auditorId } = req.body;
@@ -678,12 +686,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
   /**
    * DELETE /api/providers/:providerId/auditors/:auditorId
-   * Remove auditor from provider (super_admin only)
+   * Remove auditor from provider (auditor only)
    */
   router.delete(
     '/providers/:providerId/auditors/:auditorId',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
         const user = (req as any).user;
