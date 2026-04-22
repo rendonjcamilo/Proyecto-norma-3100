@@ -22,6 +22,7 @@ import { createRiskScoringRouter } from './routes/risk-scoring.routes.js';
 import { createSuficienciaPatrimonialRouter } from './routes/suficiencia-patrimonial.routes.js';
 import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js';
 import { createInvimaRouter } from './routes/invima.routes.js';
+import { createRepsRouter } from './routes/reps.routes.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createLocationsRouter } from './routes/locations.routes.js';
@@ -168,6 +169,9 @@ app.use('/api', apiLimiter, createSuficienciaPatrimonialRouter(pool));
 // Estándar TSHCR: Historia Clínica y Registros (Res. 3100/2019, Cap. 11 + Res. 1995/1999)
 app.use('/api', apiLimiter, createHistoriaClinicaRouter(pool));
 app.use('/api', apiLimiter, createInvimaRouter(pool));
+
+// REPS: Registro Especial de Prestadores (Condición 1 — datos.gov.co SODA API)
+app.use('/api', apiLimiter, createRepsRouter(pool));
 
 // Norma 3100 JSON-based assessments (no database required)
 app.use('/api', apiLimiter, createNorma3100Router());

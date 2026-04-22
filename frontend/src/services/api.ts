@@ -712,6 +712,83 @@ export const invimaApi = {
 };
 
 // ─────────────────────────────────────────────
+// REPS (Registro Especial de Prestadores)
+// ─────────────────────────────────────────────
+
+export interface RepsRegistroData {
+  codigo_habilitacion: string;
+  nombre_prestador: string;
+  nit: string;
+  municipio: string;
+  departamento: string;
+  tipo_prestador: string;
+  nivel_atencion: string;
+  estado_habilitacion: 'habilitado' | 'deshabilitado' | 'en_tramite' | 'suspendido' | 'sin_verificar';
+  fecha_habilitacion?: string;
+  servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
+  capacidad_instalada?: Record<string, number>;
+  sanciones?: Array<{ tipo: string; fecha: string; descripcion: string }>;
+  novedades?: Array<{ tipo: string; fecha: string; descripcion: string }>;
+}
+
+export interface RepsConsultaResult {
+  found: boolean;
+  source: string;
+  data: RepsRegistroData | null;
+  error?: string;
+}
+
+export interface RepsVerificacion {
+  id: string;
+  provider_id: string;
+  fecha_consulta: string;
+  consultado_por?: string;
+  reps_codigo_habilitacion: string;
+  reps_nombre_prestador: string;
+  reps_nit: string;
+  reps_municipio: string;
+  reps_departamento: string;
+  reps_tipo_prestador: string;
+  reps_nivel_atencion: string;
+  estado_habilitacion: string;
+  fecha_habilitacion?: string;
+  servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
+  capacidad_instalada?: Record<string, number>;
+  diferencias_encontradas: Array<{ campo: string; valor_reps: string; valor_declarado: string }>;
+  tiene_diferencias: boolean;
+  sanciones?: Array<{ tipo: string; fecha: string; descripcion: string }>;
+  novedades?: Array<{ tipo: string; fecha: string; descripcion: string }>;
+  observaciones?: string;
+  created_at: string;
+}
+
+export interface RepsResumen {
+  estado_habilitacion: string;
+  ultima_verificacion: string | null;
+  dias_desde_verificacion: number | null;
+  tiene_diferencias: boolean;
+  tiene_sanciones: boolean;
+  servicios_habilitados_count: number;
+}
+
+export const repsApi = {
+  consultar: (codigoHabilitacion: string) =>
+    get<{ data: RepsConsultaResult }>(`/api/reps/consultar/${encodeURIComponent(codigoHabilitacion)}`),
+
+  getUltimaVerificacion: (providerId: string) =>
+    get<{ data: RepsVerificacion | null }>(`/api/providers/${providerId}/reps/ultima`),
+
+  getHistorial: (providerId: string) =>
+    get<{ data: RepsVerificacion[]; total: number }>(`/api/providers/${providerId}/reps/historial`),
+
+  registrar: (providerId: string, datosReps: RepsRegistroData) =>
+    post<{ data: RepsVerificacion; message: string }>(`/api/providers/${providerId}/reps/verificaciones`, { datosReps }),
+
+  getResumen: (providerId: string) =>
+    get<{ data: RepsResumen }>(`/api/providers/${providerId}/reps/resumen`),
+};
+
+// ─────────────────────────────────────────────
 // NOTIFICACIONES
 // ─────────────────────────────────────────────
 

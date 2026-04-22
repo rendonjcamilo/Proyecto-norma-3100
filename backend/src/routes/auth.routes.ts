@@ -157,14 +157,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.role, user.provider_id);
-    const refreshToken = generateRefreshToken(user.id);
-
-    // TODO: Create session in Redis
-
-    logger.info({ user_id: user.id, email }, 'User logged in successfully');
-
     // Convert role from DB format (ADMIN, AUDITOR, PROVIDER_ADMIN) to API format (super_admin, auditor, provider_admin)
     const roleMap: { [key: string]: string } = {
       'ADMIN': 'super_admin',
@@ -172,6 +164,14 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       'PROVIDER_ADMIN': 'provider_admin',
     };
     const apiRole = roleMap[user.role] || user.role.toLowerCase();
+
+    // Generate tokens using converted role (lowercase snake_case)
+    const accessToken = generateAccessToken(user.id, apiRole, user.provider_id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    // TODO: Create session in Redis
+
+    logger.info({ user_id: user.id, email }, 'User logged in successfully');
 
     res.status(200).json({
       access_token: accessToken,

@@ -17,6 +17,7 @@ import { AuditorsPage } from "./pages/AuditorsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { QuestionnairesPage } from "./pages/QuestionnairesPage";
 import { InvimaPage } from "./pages/InvimaPage";
+import { RepsPage } from "./pages/RepsPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
 import { SmsTemplateEditor } from "./components/Notifications/SmsTemplateEditor";
@@ -109,6 +110,11 @@ const AuditorNotificationsWrapper = () => {
 const InvimaWrapper = () => {
   const { selectedProvider } = useProvider();
   return <InvimaPage providerId={selectedProvider?.id || ""} />;
+};
+
+const RepsWrapper = () => {
+  const { selectedProvider } = useProvider();
+  return <RepsPage providerId={selectedProvider?.id || ""} />;
 };
 
 function AppContent(): JSX.Element {
@@ -227,7 +233,13 @@ function AppContent(): JSX.Element {
             {/* INVIMA */}
             <Route
               path="/invima"
-              element={<ProtectedRoute requiredRoles={["super_admin", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
+            />
+
+            {/* REPS */}
+            <Route
+              path="/reps"
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
             />
 
             {/* Catch-all */}
