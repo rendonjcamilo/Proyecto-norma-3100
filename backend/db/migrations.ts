@@ -63,6 +63,7 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
       await executeSchemaFile(path.join(__dirname, 'assessment-execution-schema.sql'), '04-assessment-execution-schema');
       await executeSchemaFile(path.join(__dirname, 'findings-workflow-schema.sql'), '05-findings-workflow-schema');
       await executeSchemaFile(path.join(__dirname, 'documents-schema.sql'), '06-documents-schema');
+      await executeSchemaFile(path.join(__dirname, 'invima-schema.sql'), '07-invima-schema');
 
       console.log('Migrations UP completed successfully');
     } else if (direction === 'down') {
