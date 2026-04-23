@@ -9,11 +9,15 @@ import './EmailTemplateEditor.css';
 
 interface EmailTemplate {
   id?: string;
-  name: string;
+  name?: string;
+  template_name?: string;
   subject: string;
-  body: string;
+  body?: string;
+  html_body?: string;
+  text_body?: string;
   variables?: string[];
   createdAt?: string;
+  updated_at?: string;
   updatedAt?: string;
 }
 
@@ -68,7 +72,12 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       const response = await axios.get(`/api/multichannel/email/templates`, {
         headers: { 'x-user-id': userId },
       });
-      setTemplates(response.data.templates || []);
+      const templates = (response.data.templates || []).map((t: any) => ({
+        ...t,
+        name: t.name || t.template_name,
+        body: t.body || t.html_body,
+      }));
+      setTemplates(templates);
     } catch (error) {
       console.error('Failed to fetch templates:', error);
       setMessage('Error cargando plantillas');
