@@ -194,6 +194,40 @@
   cursor: not-allowed;
 }
 
+/* ── Action buttons with text (table actions) ────────────────── */
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.actionBtn:hover:not(:disabled) {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.actionBtnDanger:hover:not(:disabled) {
+  border-color: #f43f5e !important;
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+}
+
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ── Modal primary button ────────────────────────────────────── */
 .btnPrimary {
   display: inline-flex;
@@ -219,6 +253,14 @@
 .btnPrimary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ── Cell truncation ─────────────────────────────────────────── */
+.cellTruncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */

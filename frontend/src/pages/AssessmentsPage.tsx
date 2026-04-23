@@ -227,8 +227,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
             Gestión de Cumplimiento
           </span>
-          <h1 className="aud-hero-title">Evaluaciones</h1>
-          <p className="aud-hero-subtitle">Auditorías y evaluaciones de cumplimiento Norma 3100</p>
+          <h1 className="aud-hero-title">{user?.role === 'auditor' ? 'Auditoría' : 'Evaluaciones'}</h1>
+          <p className="aud-hero-subtitle">{user?.role === 'auditor' ? 'Auditorías de cumplimiento Norma 3100' : 'Auditorías y evaluaciones de cumplimiento Norma 3100'}</p>
         </div>
         <div className="aud-hero-actions" style={{ display: 'flex', gap: '8px' }}>
           {can('assessments', 'delete') && assessments.length > 0 && (
@@ -246,7 +246,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Nueva Evaluación
+              {user?.role === 'auditor' ? 'Nueva Auditoría' : 'Nueva Evaluación'}
             </button>
           )}
         </div>
@@ -392,8 +392,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
             return (
               <>
-                {draftAssessments.length > 0 && renderGrid(draftAssessments, 'Evaluaciones en curso', draftAssessments.length)}
-                {completedAssessments.length > 0 && renderGrid(completedAssessments, 'Evaluaciones completadas', completedAssessments.length)}
+                {draftAssessments.length > 0 && renderGrid(draftAssessments, user?.role === 'auditor' ? 'Auditorías en curso' : 'Evaluaciones en curso', draftAssessments.length)}
+                {completedAssessments.length > 0 && renderGrid(completedAssessments, user?.role === 'auditor' ? 'Auditorías completadas' : 'Evaluaciones completadas', completedAssessments.length)}
               </>
             );
           })()}
@@ -463,7 +463,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             width: '90%',
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
           }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Nueva Evaluación</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>{user?.role === 'auditor' ? 'Nueva Auditoría' : 'Nueva Evaluación'}</h2>
 
             {modalError && (
               <div style={{
@@ -656,7 +656,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>Tipo de Evaluación</label>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>{user?.role === 'auditor' ? 'Tipo de Auditoría' : 'Tipo de Evaluación'}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -705,7 +705,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     opacity: isSubmitting ? 0.6 : 1,
                   }}
                 >
-                  {isSubmitting ? 'Creando...' : 'Crear Evaluación'}
+                  {isSubmitting ? 'Creando...' : user?.role === 'auditor' ? 'Crear Auditoría' : 'Crear Evaluación'}
                 </button>
               </div>
             </form>

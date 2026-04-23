@@ -88,6 +88,7 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
     standardMap.get(c.standard_id)!.criteria.push({
       id: c.id,
       code: c.code,
+      number: (c as any).number || undefined,
       name,
       description,
       evidenceRequirement: c.evidence_requirement || '',

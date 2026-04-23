@@ -35,6 +35,7 @@ interface Assessment {
 interface Criterion {
   id: string;
   code: string;
+  number?: string;
   name: string;
   description: string;
   evidenceRequirement: string;
@@ -118,7 +119,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       if (responses.size > 0 && !readOnly) {
         await handleSave();
       }
-    }, 30000); // 30 seconds
+    }, 60000); // 60 seconds
 
     return () => clearInterval(autoSaveInterval);
   }, [responses, readOnly, handleSave]);
@@ -381,7 +382,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
             <CriterionInput
               key={criterion.id}
               criterion={criterion}
-              number={index + 1}
+              number={criterion.number || String(index + 1)}
               response={responses.get(criterion.id)}
               onChange={(response) => onResponseChange(criterion.id, response)}
               readOnly={readOnly}

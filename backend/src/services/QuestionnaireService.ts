@@ -183,7 +183,7 @@ export class QuestionnaireService {
       INNER JOIN evaluation_criteria ec ON qc.criterion_id = ec.id
       INNER JOIN evaluation_standards es ON ec.standard_id = es.id
       WHERE qc.questionnaire_id = $1
-      ORDER BY es.is_transversal DESC, es.code, ec.number
+      ORDER BY es.is_transversal DESC, es.code, ec.code
     `;
 
     const criteriaResult = await this.pool.query(criteriaQuery, [questionnaireId]);
@@ -448,7 +448,7 @@ export class QuestionnaireService {
           FROM evaluation_criteria ec
           INNER JOIN evaluation_standards es ON ec.standard_id = es.id
           WHERE ec.standard_id = $1 AND ec.service_id = $2 AND ec.status = 'active'
-          ORDER BY ec.number
+          ORDER BY ec.code
         `;
 
         const criteriaResult = await this.pool.query(criteriaQuery, [std.id, serviceId]);

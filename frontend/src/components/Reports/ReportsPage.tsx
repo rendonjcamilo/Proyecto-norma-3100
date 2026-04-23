@@ -339,7 +339,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
           )}
 
           {/* Top findings preview */}
-          {summary.topFindings.length > 0 && (
+          {(summary.topFindings ?? []).length > 0 && (
             <div className="preview-findings">
               <h3>Hallazgos Prioritarios ({summary.topFindings.length})</h3>
               <ul className="findings-list">

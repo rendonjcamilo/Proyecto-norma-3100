@@ -111,9 +111,6 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
         <div className="criterion-details">
           <div className="criterion-code">
             {criterion.code}
-            <span className={`complexity-badge ${complexityColor[criterion.complexity]}`}>
-              {criterion.complexity}
-            </span>
           </div>
           <h5 className="criterion-name">{criterion.name}</h5>
           <p className="criterion-description">{criterion.description}</p>

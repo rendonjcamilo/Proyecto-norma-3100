@@ -17,6 +17,8 @@ import { UsersPage } from "./pages/UsersPage";
 import { QuestionnairesPage } from "./pages/QuestionnairesPage";
 import { InvimaPage } from "./pages/InvimaPage";
 import { RepsPage } from "./pages/RepsPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
 import { SmsTemplateEditor } from "./components/Notifications/SmsTemplateEditor";
@@ -101,19 +103,40 @@ const AuditorNotificationsWrapper = () => {
 };
 
 const InvimaWrapper = () => {
-  const { selectedProvider, isLoading } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider, isLoading } = useProvider();
 
-  if (isLoading || !selectedProvider) {
+  if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '400px',
-        color: '#666',
-        fontSize: '16px',
-      }}>
-        {isLoading ? 'Cargando prestador...' : '⚠️ Por favor selecciona un prestador en el menú superior'}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#666', fontSize: '16px' }}>
+        Cargando prestador...
+      </div>
+    );
+  }
+
+  if (!selectedProvider) {
+    if (availableProviders.length === 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#888', fontSize: '15px', flexDirection: 'column', gap: '8px' }}>
+          <span>⚠️ No tienes prestadores asignados.</span>
+          <span style={{ fontSize: '13px' }}>Contacta al administrador para que te asigne un prestador.</span>
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', flexDirection: 'column', gap: '16px' }}>
+        <span style={{ color: '#666', fontSize: '15px' }}>⚠️ Selecciona un prestador para continuar</span>
+        <select
+          onChange={(e) => {
+            const p = availableProviders.find(p => p.id === e.target.value);
+            if (p) setSelectedProvider(p);
+          }}
+          style={{ padding: '8px 16px', borderRadius: '8px', border: '1.5px solid #c7d2fe', fontSize: '14px', color: '#374151', cursor: 'pointer' }}
+        >
+          <option value="">— Seleccionar prestador —</option>
+          {availableProviders.map(p => (
+            <option key={p.id} value={p.id}>{p.legalName}</option>
+          ))}
+        </select>
       </div>
     );
   }
@@ -122,19 +145,40 @@ const InvimaWrapper = () => {
 };
 
 const RepsWrapper = () => {
-  const { selectedProvider, isLoading } = useProvider();
+  const { selectedProvider, availableProviders, setSelectedProvider, isLoading } = useProvider();
 
-  if (isLoading || !selectedProvider) {
+  if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '400px',
-        color: '#666',
-        fontSize: '16px',
-      }}>
-        {isLoading ? 'Cargando prestador...' : '⚠️ Por favor selecciona un prestador en el menú superior'}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#666', fontSize: '16px' }}>
+        Cargando prestador...
+      </div>
+    );
+  }
+
+  if (!selectedProvider) {
+    if (availableProviders.length === 0) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#888', fontSize: '15px', flexDirection: 'column', gap: '8px' }}>
+          <span>⚠️ No tienes prestadores asignados.</span>
+          <span style={{ fontSize: '13px' }}>Contacta al administrador para que te asigne un prestador.</span>
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', flexDirection: 'column', gap: '16px' }}>
+        <span style={{ color: '#666', fontSize: '15px' }}>⚠️ Selecciona un prestador para continuar</span>
+        <select
+          onChange={(e) => {
+            const p = availableProviders.find(p => p.id === e.target.value);
+            if (p) setSelectedProvider(p);
+          }}
+          style={{ padding: '8px 16px', borderRadius: '8px', border: '1.5px solid #c7d2fe', fontSize: '14px', color: '#374151', cursor: 'pointer' }}
+        >
+          <option value="">— Seleccionar prestador —</option>
+          {availableProviders.map(p => (
+            <option key={p.id} value={p.id}>{p.legalName}</option>
+          ))}
+        </select>
       </div>
     );
   }
@@ -148,7 +192,13 @@ function AppContent(): JSX.Element {
   const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
 
   if (!isAuthenticated) {
-    return <LoginPage />;
+    return (
+      <Routes>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<LoginPage />} />
+      </Routes>
+    );
   }
 
   return (

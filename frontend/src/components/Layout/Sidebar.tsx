@@ -269,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                           <span className="nav-icon">
                             <Icon name={item.icon} />
                           </span>
-                          <span className="nav-label">{item.label}</span>
+                          <span className="nav-label">{item.to === '/assessments' && user?.role === 'auditor' ? 'Auditorías' : item.label}</span>
                           {item.badge && (
                             <span className="nav-badge">{item.badge}</span>
                           )}

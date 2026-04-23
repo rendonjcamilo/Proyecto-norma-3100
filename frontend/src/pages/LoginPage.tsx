@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, loginWithMock, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,75 +29,108 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-box">
-          <div className="login-header">
-            <h1>Norma 3100</h1>
-            <p>Sistema de Gestión de Cumplimiento</p>
+    <div className="lp-root">
+
+      {/* ── Panel izquierdo — hero ───────────────────────────── */}
+      <div className="lp-hero">
+        <div className="lp-orb lp-orb-1" />
+        <div className="lp-orb lp-orb-2" />
+        <div className="lp-orb lp-orb-3" />
+
+        <div className="lp-hero-content">
+          <span className="lp-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none">
+              <circle cx="3" cy="3" r="3" fill="#818cf8" />
+            </svg>
+            Resolución 3100 · MinSalud Colombia
+          </span>
+
+          <h1 className="lp-hero-title">
+            Sistema de<br />
+            <span>Gestión de</span><br />
+            Cumplimiento
+          </h1>
+
+          <p className="lp-hero-subtitle">
+            Plataforma de autoevaluación y auditoría para prestadores
+            de servicios de salud bajo la Norma 3100.
+          </p>
+
+          <div className="lp-features">
+            <div className="lp-feature-item">
+              <div className="lp-feature-dot" />
+              512 criterios transversales evaluados
+            </div>
+            <div className="lp-feature-item">
+              <div className="lp-feature-dot" />
+              7 estándares de habilitación
+            </div>
+            <div className="lp-feature-item">
+              <div className="lp-feature-dot" />
+              Rastreo de hallazgos y acciones correctivas
+            </div>
+            <div className="lp-feature-item">
+              <div className="lp-feature-dot" />
+              Informes de auditoría descargables
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Panel derecho — formulario ───────────────────────── */}
+      <div className="lp-form-panel">
+        <div className="lp-card">
+          <div className="lp-card-header">
+            <h2 className="lp-card-title">Iniciar sesión</h2>
+            <p className="lp-card-subtitle">Ingresa tus credenciales para continuar</p>
           </div>
 
-          <form onSubmit={handleLogin} className="login-form">
-            <div className="dashboard-form-group">
-              <label htmlFor="email">Correo electrónico</label>
+          <form onSubmit={handleLogin} className="lp-form">
+            <div className="lp-field">
+              <label htmlFor="email" className="lp-label">Correo electrónico</label>
               <input
                 id="email"
                 type="email"
+                className="lp-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="correo@ejemplo.com"
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
-            <div className="dashboard-form-group">
-              <label htmlFor="password">Contraseña</label>
+            <div className="lp-field">
+              <label htmlFor="password" className="lp-label">Contraseña</label>
               <input
                 id="password"
                 type="password"
+                className="lp-input"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </div>
 
-            {error && <div className="error-message">{error}</div>}
+            {error && <div className="lp-error">{error}</div>}
 
-            <button type="submit" disabled={isLoading} className="login-btn">
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            <button type="submit" disabled={isLoading} className="lp-submit-btn">
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
+
+            <div className="lp-forgot">
+              <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+            </div>
           </form>
 
-          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #ccc' }}>
-            <p style={{ fontSize: '12px', color: '#666' }}>🔧 Dev: Login Mock</p>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => { loginWithMock('dev@test.com', 'super_admin'); navigate('/'); }}
-                style={{ padding: '8px 12px', fontSize: '12px', flex: 1, minWidth: '100px' }}
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => { loginWithMock('dev@test.com', 'auditor'); navigate('/'); }}
-                style={{ padding: '8px 12px', fontSize: '12px', flex: 1, minWidth: '100px' }}
-              >
-                Auditor
-              </button>
-              <button
-                type="button"
-                onClick={() => { loginWithMock('dev@test.com', 'provider_admin'); navigate('/'); }}
-                style={{ padding: '8px 12px', fontSize: '12px', flex: 1, minWidth: '100px' }}
-              >
-                Provider
-              </button>
-            </div>
+          <div className="lp-card-footer">
+            <p>Sistema restringido a usuarios autorizados.<br />Norma 3100 · Ministerio de Salud de Colombia</p>
           </div>
-
         </div>
       </div>
+
     </div>
   );
 };

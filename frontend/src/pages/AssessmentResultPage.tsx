@@ -158,8 +158,11 @@ export function AssessmentResultPage() {
         <h2>Cumplimiento por Estándar</h2>
         <div className={styles.standardsList}>
           {metrics.complianceByStandard.map((standard) => {
-            const color =
-              standard.compliancePercent >= 80
+            // -1 = sin criterios aplicables (todo NA) — no se evalúa
+            const isNA = standard.compliancePercent === -1;
+            const color = isNA
+              ? 'na'
+              : standard.compliancePercent >= 80
                 ? 'verde'
                 : standard.compliancePercent >= 50
                   ? 'naranja'
@@ -170,21 +173,21 @@ export function AssessmentResultPage() {
                 <div className={styles.standardHeader}>
                   <h3>{standard.name}</h3>
                   <span className={`${styles.badge} ${styles['badge-' + color]}`}>
-                    {Math.round(standard.compliancePercent * 100) / 100}%
+                    {isNA ? 'N/A' : `${Math.round(standard.compliancePercent * 100) / 100}%`}
                   </span>
                 </div>
                 <div className={styles.progressBar}>
                   <div
                     className={`${styles.progress} ${styles['progress-' + color]}`}
                     style={{
-                      width: `${Math.min(standard.compliancePercent, 100)}%`,
+                      width: isNA ? '0%' : `${Math.min(standard.compliancePercent, 100)}%`,
                     }}
                   ></div>
                 </div>
                 <div className={styles.standardStats}>
                   <span>✓ {standard.cumple}</span>
                   <span>✗ {standard.noCumple}</span>
-                  <span>— {standard.noAplica}</span>
+                  <span>— {standard.noAplica} {isNA && <em style={{ fontSize: '0.75em', color: '#94a3b8' }}>(no aplica)</em>}</span>
                 </div>
               </div>
             );

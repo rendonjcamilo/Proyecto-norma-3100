@@ -7,18 +7,23 @@ import {
   decodeToken,
   isTokenExpired,
 } from '../services/jwt.service.js';
-import { validatePasswordPolicy, comparePassword } from '../services/password.service.js';
+import { validatePasswordPolicy, comparePassword, hashPassword } from '../services/password.service.js';
 import { UserService } from '../services/user.service.js';
+import { PasswordRecoveryService } from '../services/password-recovery.service.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
 
-// Initialize UserService with database pool
-// Note: In production, this should be dependency-injected
+// Initialize services with database pool
 let userService: UserService;
+let passwordRecoveryService: PasswordRecoveryService;
+let dbPool: Pool;
+
 export function setUserService(pool: Pool) {
   userService = new UserService(pool);
+  passwordRecoveryService = new PasswordRecoveryService(pool);
+  dbPool = pool;
 }
 
 /**
@@ -342,6 +347,134 @@ router.post('/logout', authMiddleware, (req: Request, res: Response): void => {
       error: 'Internal Server Error',
       message: 'Failed to logout',
     });
+  }
+});
+
+/**
+ * POST /auth/forgot-password
+ * Solicita recuperación de contraseña por email
+ * Body: { email }
+ */
+router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: 'Bad Request', message: 'El correo electrónico es requerido' });
+      return;
+    }
+
+    // Siempre responder OK para no revelar si el email existe (seguridad)
+    const genericResponse = {
+      message: 'Si el correo existe en el sistema, recibirás las instrucciones para restablecer tu contraseña.',
+    };
+
+    const user = await userService.getUserByEmail(email);
+    if (!user) {
+      logger.warn({ email }, 'forgot-password: email not found (silenced)');
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    if (user.status !== 'active') {
+      logger.warn({ email }, 'forgot-password: inactive user (silenced)');
+      res.status(200).json(genericResponse);
+      return;
+    }
+
+    // Crear token de recuperación
+    const { token, expiresAt } = await passwordRecoveryService.createRecoveryToken(user.id);
+
+    // Construir enlace de reset
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}&uid=${user.id}`;
+
+    // Intentar enviar email si el proveedor está configurado
+    const emailProvider = process.env.EMAIL_PROVIDER;
+    if (emailProvider && emailProvider !== 'none') {
+      try {
+        const firstName = user.first_name || user.email.split('@')[0];
+        const result = await dbPool.query(
+          `SELECT id FROM email_templates WHERE name = 'password-reset' AND is_active = true LIMIT 1`
+        );
+        if (result.rows.length > 0) {
+          // Insertar entrega de email en cola (patrón multichannel existente)
+          await dbPool.query(
+            `INSERT INTO email_deliveries (id, recipient_email, recipient_name, template_name, variables, status, created_at, updated_at)
+             VALUES (gen_random_uuid(), $1, $2, 'password-reset', $3::jsonb, 'pending', NOW(), NOW())`,
+            [user.email, firstName, JSON.stringify({ name: firstName, reset_link: resetLink, expiry_minutes: '60' })]
+          );
+        }
+      } catch (emailErr) {
+        logger.error({ error: emailErr instanceof Error ? emailErr.message : emailErr }, 'Error al encolar email de recuperación');
+      }
+    }
+
+    // En desarrollo: siempre loguear el enlace para facilitar pruebas
+    logger.info({ email, resetLink, expiresAt }, '🔑 Password reset link generated (dev)');
+
+    res.status(200).json(genericResponse);
+  } catch (err) {
+    logger.error({ error: err instanceof Error ? err.message : err }, 'forgot-password error');
+    res.status(500).json({ error: 'Internal Server Error', message: 'Error al procesar la solicitud' });
+  }
+});
+
+/**
+ * POST /auth/reset-password
+ * Restablece la contraseña usando el token de recuperación
+ * Body: { token, userId, newPassword }
+ */
+router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, userId, newPassword } = req.body;
+
+    if (!token || !userId || !newPassword) {
+      res.status(400).json({ error: 'Bad Request', message: 'Token, userId y nueva contraseña son requeridos' });
+      return;
+    }
+
+    // Validar política de contraseña
+    const passwordValidation = validatePasswordPolicy(newPassword);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'La contraseña no cumple los requisitos mínimos de seguridad',
+        details: passwordValidation.errors,
+      });
+      return;
+    }
+
+    // Validar token
+    const validation = await passwordRecoveryService.validateRecoveryToken(token, userId);
+    if (!validation.valid) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: validation.error === 'Token expired'
+          ? 'El enlace ha vencido. Solicita uno nuevo.'
+          : 'El enlace no es válido o ya fue utilizado.',
+      });
+      return;
+    }
+
+    // Hash de la nueva contraseña
+    const newHash = await hashPassword(newPassword);
+
+    // Actualizar contraseña en BD
+    await dbPool.query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [newHash, userId]
+    );
+
+    // Marcar token como usado
+    await passwordRecoveryService.consumeRecoveryToken(token, userId);
+
+    logger.info({ userId }, 'Password reset successfully');
+
+    res.status(200).json({ message: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión.' });
+  } catch (err) {
+    logger.error({ error: err instanceof Error ? err.message : err }, 'reset-password error');
+    res.status(500).json({ error: 'Internal Server Error', message: 'Error al restablecer la contraseña' });
   }
 });
 

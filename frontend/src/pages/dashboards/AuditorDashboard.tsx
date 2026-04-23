@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { providersApi } from '@services/api';
 import { useAuth } from '@context/AuthContext';
 
+
 interface ProviderWithMetrics {
   id: string;
   legal_name: string;
@@ -47,14 +48,17 @@ export function AuditorDashboard(): JSX.Element {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const response = await providersApi.getAuditorProviders(user.id);
+      const [response, kpis] = await Promise.all([
+        providersApi.getAuditorProviders(user.id),
+        providersApi.getAuditorMetrics(user.id).catch(() => null),
+      ]);
       setProviders((response.providers || []) as ProviderWithMetrics[]);
       setMetrics({
         totalProviders: response.count || 0,
-        pendingEvaluations: 0,
-        criticalFindings: 0,
-        avgComplianceRate: 0,
-        actionsRequired: 0,
+        pendingEvaluations: kpis?.pendingEvaluations ?? 0,
+        criticalFindings: kpis?.criticalFindings ?? 0,
+        avgComplianceRate: kpis?.avgComplianceRate ?? 0,
+        actionsRequired: kpis?.actionsRequired ?? 0,
       });
     } catch (err) {
       console.error('Error loading auditor providers:', err);
@@ -71,7 +75,7 @@ export function AuditorDashboard(): JSX.Element {
   };
 
   const getBadgeLabel = (rate?: number) => {
-    if (!rate) return 'Sin evaluar';
+    if (!rate) return 'Sin auditorías';
     if (rate >= 80) return '✓ Conforme';
     if (rate >= 50) return '⚠ Parcial';
     return '✗ No conforme';
@@ -147,7 +151,7 @@ export function AuditorDashboard(): JSX.Element {
           </div>
           <div className="adb-kpi-body">
             <div className="adb-kpi-value">{metrics.pendingEvaluations}</div>
-            <div className="adb-kpi-label">Eval. Pendientes</div>
+            <div className="adb-kpi-label">Audit. Pendientes</div>
           </div>
           <div className="adb-kpi-glow" />
         </div>
@@ -262,7 +266,7 @@ export function AuditorDashboard(): JSX.Element {
                     Ver Detalles
                   </a>
                   <a href={`/assessments?provider=${provider.id}`} className="adb-btn-outline">
-                    Evaluaciones
+                    Auditorías
                   </a>
                 </div>
               </div>

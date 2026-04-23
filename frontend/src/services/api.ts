@@ -263,6 +263,12 @@ export const authApi = {
     ),
 
   logout: () => post<void>('/auth/logout', {}),
+
+  forgotPassword: (email: string) =>
+    post<{ message: string }>('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, userId: string, newPassword: string) =>
+    post<{ message: string }>('/auth/reset-password', { token, userId, newPassword }),
 };
 
 // ─────────────────────────────────────────────
@@ -316,6 +322,9 @@ export const providersApi = {
 
   getAuditorProviders: (auditorId: string) =>
     get<{ auditor_id: string; count: number; providers: Provider[] }>(`/api/auditors/${auditorId}/providers`),
+
+  getAuditorMetrics: (auditorId: string) =>
+    get<{ pendingEvaluations: number; criticalFindings: number; avgComplianceRate: number; actionsRequired: number }>(`/api/auditors/${auditorId}/metrics`),
 
   removeAuditorFromProvider: (providerId: string, auditorId: string) =>
     request<{ success: boolean }>('DELETE', `/api/providers/${providerId}/auditors/${auditorId}`),

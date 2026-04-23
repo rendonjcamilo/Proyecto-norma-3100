@@ -383,8 +383,10 @@ export class Norma3100Service {
 
     const totalCriteria = allCriteria.length;
     const evaluatedCriteria = cumple + noCumple + noAplica;
+    // Fórmula Norma 3100: NA no entra en el denominador (no se evalúa)
+    const aplicables = cumple + noCumple;
     const compliancePercent =
-      evaluatedCriteria > 0 ? (cumple / evaluatedCriteria) * 100 : 0;
+      aplicables > 0 ? (cumple / aplicables) * 100 : 0;
 
     // Determine semáforo color
     let semaforo: 'verde' | 'naranja' | 'rojo';
@@ -456,13 +458,14 @@ export class Norma3100Service {
       }
     }
 
-    // Calculate percentages
+    // Fórmula Norma 3100: NA no entra en el denominador
+    // -1 indica "sin criterios aplicables" (todo NA) → el frontend muestra "N/A"
     for (const standard of Object.values(byStandard)) {
-      const evaluated = standard.cumple + standard.noCumple + standard.noAplica;
+      const aplicables = standard.cumple + standard.noCumple;
       standard.compliancePercent =
-        evaluated > 0 ? (standard.cumple / evaluated) * 100 : 0;
-      standard.compliancePercent =
-        Math.round(standard.compliancePercent * 100) / 100;
+        aplicables > 0
+          ? Math.round((standard.cumple / aplicables) * 10000) / 100
+          : -1;
     }
 
     return Object.values(byStandard);

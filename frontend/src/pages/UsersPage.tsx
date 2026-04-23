@@ -286,56 +286,62 @@ export function UsersPage(): JSX.Element {
 
         {error && <div className={styles.alert}>{error}</div>}
 
-        <div className="dashboard-table-container">
-          <table className="dashboard-table">
+        <div className="dashboard-table-container" style={{ overflowX: 'auto' }}>
+          <table className="dashboard-table" style={{ minWidth: '860px' }}>
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Nombre</th>
-              <th>Rol</th>
-              <th>Prestador</th>
-              <th>Estado</th>
-              <th>Creado</th>
-              <th>Acciones</th>
+              <th style={{ width: '22%' }}>Email</th>
+              <th style={{ width: '18%' }}>Nombre</th>
+              <th style={{ width: '12%' }}>Rol</th>
+              <th style={{ width: '18%' }}>Prestador</th>
+              <th style={{ width: '9%' }}>Estado</th>
+              <th style={{ width: '9%' }}>Creado</th>
+              <th style={{ width: '12%' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.emptyState}>
+                <td colSpan={7} className={styles.emptyState}>
                   No hay usuarios registrados
                 </td>
               </tr>
             ) : (
               users.map((user) => (
                 <tr key={user.id}>
-                  <td>{user.email}</td>
-                  <td>{user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : '—'}</td>
+                  <td className={styles.cellTruncate} title={user.email}>{user.email}</td>
+                  <td className={styles.cellTruncate} title={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : '—'}>
+                    {user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : '—'}
+                  </td>
                   <td><span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '11px', fontWeight: '700', borderRadius: '9999px', letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--brand-primary)', color: 'white' }}>{getRoleLabel(user.role)}</span></td>
-                  <td className="dashboard-table-cell-muted">
+                  <td className={`dashboard-table-cell-muted ${styles.cellTruncate}`} title={user.provider_id ? providers.find(p => p.id === user.provider_id)?.legal_name || user.provider_id : '—'}>
                     {user.provider_id
                       ? providers.find(p => p.id === user.provider_id)?.legal_name || user.provider_id
                       : '—'}
                   </td>
                   <td><span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '11px', fontWeight: '700', borderRadius: '9999px', letterSpacing: '0.06em', textTransform: 'uppercase', background: user.status === 'active' ? '#dcfce7' : '#fee2e2', color: user.status === 'active' ? '#166534' : '#991b1b' }}>{getStatusLabel(user.status)}</span></td>
                   <td>{new Date(user.created_at).toLocaleDateString('es-CO')}</td>
-                  <td style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className={styles.iconBtn}
-                      title="Editar usuario"
-                      disabled={loading}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteUser(user)}
-                      className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-                      title="Eliminar usuario"
-                      disabled={loading || deleting}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                    </button>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className={styles.actionBtn}
+                        title="Editar usuario"
+                        disabled={loading}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user)}
+                        className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                        title="Eliminar usuario"
+                        disabled={loading || deleting}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

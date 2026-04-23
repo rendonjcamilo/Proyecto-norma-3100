@@ -179,7 +179,7 @@ export class ReportService {
         compliancePercentage,
       },
       documentCompliance: docCompliance,
-      topFindings: topResult.rows.map(r => ({
+      topFindings: (topResult.rows || []).map(r => ({
         title: r.title,
         severity: r.severity,
         riskScore: parseFloat(r.risk_score) || 0,
@@ -439,8 +439,8 @@ export class ReportService {
       cumple: number;
       noCumple: number;
       noAplica: number;
-      porcentajeCumplimiento: number;
-      semaforo: 'verde' | 'naranja' | 'rojo';
+      porcentajeCumplimiento: number; // -1 = sin criterios aplicables (todo NA)
+      semaforo: 'verde' | 'naranja' | 'rojo' | 'na';
       hallazgos: Array<{ criterio: string; descripcion: string; tipo: string; severidad: string }>;
     }>;
     resumenCondiciones: {
@@ -509,15 +509,16 @@ export class ReportService {
       }
 
       const aplicables = metricas.cumple + metricas.noCumple;
-      const pct = aplicables > 0 ? Math.round((metricas.cumple / aplicables) * 100) : 0;
-      const semaforo: 'verde' | 'naranja' | 'rojo' =
-        pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
+      // -1 indica "sin criterios aplicables" (todo NA) — no se evalúa
+      const pct = aplicables > 0 ? Math.round((metricas.cumple / aplicables) * 100) : -1;
+      const semaforo: 'verde' | 'naranja' | 'rojo' | 'na' =
+        pct === -1 ? 'na' : pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
 
       // Hallazgos NC de este estándar
       const hallazgosResult = await this.pool.query<{
         title: string; criterion_code: string; severity: string; status: string;
       }>(
-        `SELECT COALESCE(NULLIF(f.title, ''), LEFT(f.description, 120)) AS title,
+        `SELECT COALESCE(NULLIF(f.title, ''), f.description) AS title,
                 COALESCE(ec.code, '') AS criterion_code,
                 f.severity, f.status
          FROM findings f
@@ -557,9 +558,10 @@ export class ReportService {
     ).catch(() => ({ rows: [] }));
 
     const totalHallazgosAbiertos = estandares.reduce((s, e) => s + e.noCumple, 0);
-    const totalCriterios = estandares.reduce((s, e) => s + e.totalCriterios, 0);
     const totalCumple = estandares.reduce((s, e) => s + e.cumple, 0);
-    const pctGlobal = totalCriterios > 0 ? Math.round((totalCumple / totalCriterios) * 100) : 0;
+    // Fórmula Norma 3100: solo criterios aplicables (C + NC), NA no entra en el denominador
+    const totalAplicables = estandares.reduce((s, e) => s + e.cumple + e.noCumple, 0);
+    const pctGlobal = totalAplicables > 0 ? Math.round((totalCumple / totalAplicables) * 100) : 0;
 
     const condicion2Cumple = sp2.rows[0]?.cumple_suficiencia ?? null;
     const conceptoHabilitacion =
@@ -712,16 +714,18 @@ export class ReportService {
           const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
           doc.rect(50, y, W, 24).fill(bg);
 
+          const esNA = est.semaforo === 'na';
           const semColor = est.semaforo === 'verde' ? COLORS.success :
-            est.semaforo === 'naranja' ? COLORS.warning : COLORS.danger;
+            est.semaforo === 'naranja' ? COLORS.warning :
+            est.semaforo === 'na' ? COLORS.muted : COLORS.danger;
 
           doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
             .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
           doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
           doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
           doc.fillColor(COLORS.muted).text(est.noAplica.toString(), 342, y + 7, { width: 30, align: 'center' });
-          doc.fillColor(COLORS.text).font('Helvetica-Bold').text(`${est.porcentajeCumplimiento}%`, 378, y + 7, { width: 60, align: 'center' });
-          doc.fillColor(semColor).text(est.semaforo.toUpperCase(), 444, y + 7, { width: 70, align: 'center' });
+          doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 378, y + 7, { width: 60, align: 'center' });
+          doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 444, y + 7, { width: 70, align: 'center' });
           y += 24;
         });
 
@@ -914,11 +918,11 @@ export class ReportService {
                   new TableCell({ children: [new Paragraph(est.cumple.toString())] }),
                   new TableCell({ children: [new Paragraph(est.noCumple.toString())] }),
                   new TableCell({ children: [new Paragraph(est.noAplica.toString())] }),
-                  new TableCell({ children: [new Paragraph(`${est.porcentajeCumplimiento}%`)] }),
+                  new TableCell({ children: [new Paragraph(est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`)] }),
                   new TableCell({
                     children: [
                       new Paragraph({
-                        text: est.semaforo === 'verde' ? '🟢 VERDE' : est.semaforo === 'naranja' ? '🟡 NARANJA' : '🔴 ROJO',
+                        text: est.semaforo === 'verde' ? '🟢 VERDE' : est.semaforo === 'naranja' ? '🟡 NARANJA' : est.semaforo === 'na' ? '⚪ NO APLICA' : '🔴 ROJO',
                       }),
                     ],
                   }),

@@ -816,6 +816,83 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
     }
   );
 
+  /**
+   * GET /api/auditors/:auditorId/metrics
+   * KPI metrics for the auditor dashboard
+   */
+  router.get(
+    '/auditors/:auditorId/metrics',
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        const { auditorId } = req.params;
+
+        // IDs de prestadores asignados al auditor
+        const providerIds = await pool.query<{ provider_id: string }>(
+          `SELECT provider_id FROM auditor_providers WHERE auditor_id = $1`,
+          [auditorId]
+        );
+
+        if (providerIds.rows.length === 0) {
+          return res.json({
+            pendingEvaluations: 0,
+            criticalFindings: 0,
+            avgComplianceRate: 0,
+            actionsRequired: 0,
+          });
+        }
+
+        const ids = providerIds.rows.map(r => r.provider_id);
+        const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+
+        // Evaluaciones pendientes (in_progress o submitted)
+        const pendingRes = await pool.query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count FROM assessments
+           WHERE provider_id IN (${placeholders})
+             AND status IN ('in_progress', 'submitted')`,
+          ids
+        );
+
+        // Hallazgos críticos o altos abiertos
+        const criticalRes = await pool.query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count FROM findings
+           WHERE provider_id IN (${placeholders})
+             AND severity IN ('crítica', 'alta', 'critical', 'high')
+             AND status NOT IN ('cerrada', 'closed')`,
+          ids
+        );
+
+        // Cumplimiento promedio de evaluaciones completadas
+        const avgRes = await pool.query<{ avg: string }>(
+          `SELECT ROUND(AVG(compliance_pct), 0)::text AS avg FROM assessments
+           WHERE provider_id IN (${placeholders})
+             AND status = 'submitted'
+             AND compliance_pct IS NOT NULL`,
+          ids
+        );
+
+        // Acciones correctivas pendientes de respuesta
+        const actionsRes = await pool.query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count FROM corrective_actions ca
+           JOIN findings f ON ca.finding_id = f.id
+           WHERE f.provider_id IN (${placeholders})
+             AND ca.status IN ('pending', 'open')`,
+          ids
+        ).catch(() => ({ rows: [{ count: '0' }] }));
+
+        res.json({
+          pendingEvaluations: parseInt(pendingRes.rows[0]?.count || '0'),
+          criticalFindings: parseInt(criticalRes.rows[0]?.count || '0'),
+          avgComplianceRate: parseInt(avgRes.rows[0]?.avg || '0'),
+          actionsRequired: parseInt(actionsRes.rows[0]?.count || '0'),
+        });
+      } catch (err) {
+        logger.error({ msg: 'Error fetching auditor metrics', error: err instanceof Error ? err.message : String(err) });
+        res.status(500).json({ error: 'Failed to fetch metrics' });
+      }
+    }
+  );
+
   // ===== GEOGRAPHY ROUTES =====
 
   /**
