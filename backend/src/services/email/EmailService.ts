@@ -357,7 +357,7 @@ export class EmailService {
    */
   public async getActiveTemplates(): Promise<EmailTemplate[]> {
     const query = `
-      SELECT id, template_name, subject, html_body as htmlBody, text_body as textBody, variables, language, is_active as isActive, created_at as createdAt, updated_at as updatedAt
+      SELECT id, template_name, subject, html_body, text_body, variables, language, is_active, created_at, updated_at
       FROM email_templates
       WHERE is_active = true
       ORDER BY created_at DESC;
@@ -370,8 +370,10 @@ export class EmailService {
         template_name: row.template_name,
         templateName: row.template_name,
         subject: row.subject,
-        htmlBody: row.htmlbody,
-        textBody: row.textbody,
+        html_body: row.html_body,
+        htmlBody: row.html_body,
+        text_body: row.text_body,
+        textBody: row.text_body,
         variables: row.variables ? (typeof row.variables === 'string' ? JSON.parse(row.variables) : row.variables) : [],
         language: row.language,
         is_active: row.is_active,
