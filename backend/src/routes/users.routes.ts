@@ -11,15 +11,16 @@ export function createUsersRouter(pool: Pool): Router {
 
   /**
    * GET /api/users
-   * List all users (super_admin only)
+   * List all users (super_admin and auditor)
+   * Auditor can list to find auditors for notifications
    */
   router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
 
-      // Only super_admin can list users
-      if (user?.role !== 'super_admin') {
-        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can list users' });
+      // Allow super_admin and auditor to list users
+      if (user?.role !== 'super_admin' && user?.role !== 'auditor') {
+        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin and auditor can list users' });
         return;
       }
 
@@ -41,16 +42,18 @@ export function createUsersRouter(pool: Pool): Router {
 
   /**
    * POST /api/users
-   * Create a new user with role (super_admin only)
+   * Create a new user with role
+   * super_admin can create: super_admin, auditor
+   * auditor can create: provider_admin
    * Body: { email, password, confirm_password, role, provider_id?, first_name?, last_name? }
    */
   router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
       const user = (req as any).user;
 
-      // Only super_admin can create users
-      if (user?.role !== 'super_admin') {
-        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can create users' });
+      // Allow super_admin and auditor to create users
+      if (user?.role !== 'super_admin' && user?.role !== 'auditor') {
+        res.status(403).json({ error: 'Forbidden', message: 'Only super_admin and auditor can create users' });
         return;
       }
 
@@ -73,12 +76,29 @@ export function createUsersRouter(pool: Pool): Router {
         return;
       }
 
+      // Determine which roles the current user can create
+      let allowedRoles: string[] = [];
+      if (user?.role === 'super_admin') {
+        allowedRoles = ['super_admin', 'auditor'];
+      } else if (user?.role === 'auditor') {
+        allowedRoles = ['provider_admin'];
+      }
+
       // Validate role
       const validRoles = ['super_admin', 'auditor', 'provider_admin'];
       if (role && !validRoles.includes(role)) {
         res.status(400).json({
           error: 'Bad Request',
           message: `Invalid role. Must be one of: ${validRoles.join(', ')}`,
+        });
+        return;
+      }
+
+      // Check if user has permission to create this role
+      if (role && !allowedRoles.includes(role)) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: `Your role (${user?.role}) cannot create users with role '${role}'. Allowed roles: ${allowedRoles.join(', ')}`,
         });
         return;
       }
@@ -165,6 +185,15 @@ export function createUsersRouter(pool: Pool): Router {
       // Only super_admin can update users
       if (user?.role !== 'super_admin') {
         res.status(403).json({ error: 'Forbidden', message: 'Only super_admin can update users' });
+        return;
+      }
+
+      // If changing role, validate it's an allowed role for super_admin
+      if (role && role !== 'provider_admin' && !['super_admin', 'auditor'].includes(role)) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: `Super_admin can only update users to roles: super_admin, auditor. Cannot change to '${role}'`,
+        });
         return;
       }
 

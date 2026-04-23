@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@context/AuthContext';
 import { usersApi, providersApi, User, Provider, UserRole } from '@services/api';
 import styles from './UsersPage.module.css';
 
@@ -40,6 +41,7 @@ const isPasswordValid = (password: string) => {
 };
 
 export function UsersPage(): JSX.Element {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,18 @@ export function UsersPage(): JSX.Element {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Get roles that current user can create based on their role
+  const getAvailableRoles = (): UserRole[] => {
+    if (currentUser?.role === 'super_admin') {
+      return ['super_admin', 'auditor'];
+    } else if (currentUser?.role === 'auditor') {
+      return ['provider_admin'];
+    }
+    return [];
+  };
+
+  const availableRoles = getAvailableRoles();
 
   useEffect(() => {
     fetchUsers();
@@ -182,6 +196,12 @@ export function UsersPage(): JSX.Element {
 
     if (!/[!@#$%^&*]/.test(formData.password)) {
       setCreateError('Contraseña debe contener al menos un carácter especial (!@#$%^&*)');
+      return;
+    }
+
+    // Validate that user has permission to create this role
+    if (!availableRoles.includes(formData.role)) {
+      setCreateError(`Tu rol (${currentUser?.role}) no puede crear usuarios con rol '${formData.role}'. Roles permitidos: ${availableRoles.map(r => ROLE_LABELS[r]).join(', ')}`);
       return;
     }
 
@@ -376,9 +396,11 @@ export function UsersPage(): JSX.Element {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole, provider_id: '' })}
                   disabled={creatingUser}
                 >
-                  <option value="provider_admin">Prestador de Servicio</option>
-                  <option value="auditor">Auditor</option>
-                  <option value="super_admin">Administrador</option>
+                  {availableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -515,9 +537,9 @@ export function UsersPage(): JSX.Element {
                   onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as UserRole, provider_id: '' })}
                   disabled={creatingUser}
                 >
-                  <option value="provider_admin">Prestador de Servicio</option>
-                  <option value="auditor">Auditor</option>
+                  {/* Super admin can only edit users to super_admin or auditor roles */}
                   <option value="super_admin">Administrador</option>
+                  <option value="auditor">Auditor</option>
                 </select>
               </div>
 
