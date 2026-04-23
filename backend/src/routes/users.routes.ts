@@ -26,7 +26,7 @@ export function createUsersRouter(pool: Pool): Router {
 
       const result = await pool.query(`
         SELECT
-          u.id, u.email, r.name AS role, u.provider_id, u.first_name, u.last_name,
+          u.id, u.email, LOWER(r.name) AS role, u.provider_id, u.first_name, u.last_name,
           u.status, u.created_at, u.updated_at
         FROM users u
         LEFT JOIN roles r ON u.role_id = r.id
@@ -283,7 +283,7 @@ export function createUsersRouter(pool: Pool): Router {
       // Fetch all users
       const result = await pool.query(`
         SELECT
-          u.id, u.email, r.name AS role, u.provider_id, u.first_name, u.last_name,
+          u.id, u.email, LOWER(r.name) AS role, u.provider_id, u.first_name, u.last_name,
           u.status, u.created_at, u.updated_at
         FROM users u
         LEFT JOIN roles r ON u.role_id = r.id

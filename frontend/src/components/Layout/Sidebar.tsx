@@ -59,7 +59,6 @@ const navigation: NavSection[] = [
     roles: ['super_admin'],
     items: [
       { to: '/users', icon: 'users', label: 'Usuarios', roles: ['super_admin'] },
-      { to: '/auditors', icon: 'auditors', label: 'Auditores', roles: ['super_admin'] },
       { to: '/questionnaires', icon: 'questionnaires', label: 'Cuestionarios', roles: ['super_admin'] },
       { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['super_admin'] },
       { to: '/notifications/sms-templates', icon: 'sms', label: 'Plantillas SMS', roles: ['super_admin'] },

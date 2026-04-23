@@ -13,7 +13,6 @@ import { AssessmentExecutionPage } from "./pages/AssessmentExecutionPage";
 import { AssessmentGeneratorPage } from "./pages/AssessmentGeneratorPage";
 import { AssessmentResultPage } from "./pages/AssessmentResultPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
-import { AuditorsPage } from "./pages/AuditorsPage";
 import { UsersPage } from "./pages/UsersPage";
 import { QuestionnairesPage } from "./pages/QuestionnairesPage";
 import { InvimaPage } from "./pages/InvimaPage";
@@ -196,12 +195,6 @@ function AppContent(): JSX.Element {
             <Route
               path="/providers"
               element={<ProtectedRoute requiredRoles={["auditor"]}><ProvidersPage /></ProtectedRoute>}
-            />
-
-            {/* Auditors */}
-            <Route
-              path="/auditors"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><AuditorsPage /></ProtectedRoute>}
             />
 
             {/* Users */}
