@@ -50,7 +50,12 @@ export const AuditorNotificationSender: React.FC = () => {
   const loadProviders = async () => {
     try {
       setLoading(true);
-      const response = await providersApi.getMyProviders();
+      // Load only providers assigned to this auditor
+      if (!user?.id) {
+        setProviders([]);
+        return;
+      }
+      const response = await providersApi.getAuditorProviders(user.id);
       setProviders(response.providers || []);
     } catch (err) {
       console.error('Error loading providers:', err);
@@ -119,8 +124,8 @@ export const AuditorNotificationSender: React.FC = () => {
   };
 
   const handleSend = async () => {
-    if (!selectedProvider || !selectedTemplate || !channel) {
-      setMessage('Por favor selecciona prestador, plantilla y canal');
+    if (!selectedTemplate || !channel || providers.length === 0) {
+      setMessage('Por favor selecciona plantilla y canal (debe tener al menos un prestador asignado)');
       setMessageType('error');
       return;
     }
@@ -129,16 +134,18 @@ export const AuditorNotificationSender: React.FC = () => {
       setSending(true);
       const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate;
 
-      await notificationsApi.sendToProvider({
-        providerId: selectedProvider,
-        templateName: template.template_name,
-        channel,
-        variables,
-      });
+      // Send to all assigned providers
+      for (const provider of providers) {
+        await notificationsApi.sendToProvider({
+          providerId: provider.id,
+          templateName: template.template_name,
+          channel,
+          variables,
+        });
+      }
 
-      setMessage(`✓ Notificaciones enviadas exitosamente`);
+      setMessage(`✓ Notificaciones enviadas a ${providers.length} prestador(es) exitosamente`);
       setMessageType('success');
-      setSelectedProvider('');
       setSelectedTemplate('');
       setVariables({});
       setPreview('');
@@ -195,22 +202,21 @@ export const AuditorNotificationSender: React.FC = () => {
               </div>
             </div>
 
-            {/* Provider Select */}
+            {/* Auditor Info */}
             <div className="ans-form-group">
-              <label htmlFor="provider">Prestador</label>
-              <select
-                id="provider"
-                value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Seleccionar prestador...</option>
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.legal_name}
-                  </option>
-                ))}
-              </select>
+              <label>Auditor</label>
+              <div style={{
+                padding: '12px',
+                background: '#f0f0f0',
+                borderRadius: '4px',
+                color: '#333',
+                fontWeight: '500',
+              }}>
+                👤 {user?.first_name} {user?.last_name} ({user?.email})
+              </div>
+              <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                Se enviará a todos tus prestadores asignados ({providers.length})
+              </small>
             </div>
 
             {/* Template Select */}
@@ -257,7 +263,7 @@ export const AuditorNotificationSender: React.FC = () => {
               <button
                 className="ans-send-btn"
                 onClick={handleSend}
-                disabled={sending || !selectedProvider || !selectedTemplate}
+                disabled={sending || providers.length === 0 || !selectedTemplate}
               >
                 {sending ? '📤 Enviando...' : '📤 Enviar Notificación'}
               </button>
