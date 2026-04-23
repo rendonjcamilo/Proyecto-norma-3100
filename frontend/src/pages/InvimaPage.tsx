@@ -314,17 +314,28 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
       {toast && <div className={`invima-toast invima-toast-${toast.type}`}>{toast.message}</div>}
 
       {/* HEADER */}
-      <header className="invima-header">
-        <div>
-          <h1 className="dashboard-title">Registros INVIMA</h1>
-          <p>Estándar TSMD — Medicamentos, Dispositivos Médicos e Insumos</p>
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Estándar TSMD
+          </span>
+          <h1 className="aud-hero-title">Registros INVIMA</h1>
+          <p className="aud-hero-subtitle">Consulta y gestión de registros sanitarios de medicamentos y dispositivos médicos</p>
         </div>
         {can('invima', 'create') && (
-          <button className="invima-btn-primary" onClick={() => setShowAddModal(true)}>
-            + Agregar Medicamento/Dispositivo
-          </button>
+          <div className="aud-hero-actions">
+            <button className="aud-hero-btn" onClick={() => setShowAddModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Agregar Medicamento/Dispositivo
+            </button>
+          </div>
         )}
-      </header>
+        <div className="aud-hero-orb" />
+      </div>
 
       {/* RESUMEN CARDS */}
       {summary && (
