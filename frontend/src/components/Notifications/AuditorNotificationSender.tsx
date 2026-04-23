@@ -191,7 +191,7 @@ export const AuditorNotificationSender: React.FC = () => {
         {/* Header */}
         <div className="ans-header">
           <h2>Enviar notificación</h2>
-          <p>Comunícate con los usuarios del prestador seleccionado</p>
+          <p>Comunícate con el auditor seleccionado</p>
         </div>
 
         {/* Message */}
