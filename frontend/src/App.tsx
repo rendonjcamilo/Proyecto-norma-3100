@@ -20,7 +20,6 @@ import { RepsPage } from "./pages/RepsPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
 import { SmsTemplateEditor } from "./components/Notifications/SmsTemplateEditor";
-import { PushTemplateEditor } from "./components/Notifications/PushTemplateEditor";
 import { MultiChannelPreferences } from "./components/Notifications/MultiChannelPreferences";
 import { NotificationAnalyticsDashboard } from "./components/Notifications/NotificationAnalyticsDashboard";
 import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
@@ -80,11 +79,6 @@ const EmailTemplateEditorWrapper = () => {
 const SmsTemplateEditorWrapper = () => {
   const { user } = useAuth();
   return <SmsTemplateEditor userId={user?.id || ""} />;
-};
-
-const PushTemplateEditorWrapper = () => {
-  const { user } = useAuth();
-  return <PushTemplateEditor userId={user?.id || ""} />;
 };
 
 const MultiChannelPreferencesWrapper = () => {
@@ -229,10 +223,6 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/sms-templates"
               element={<ProtectedRoute requiredRoles={["super_admin"]}><SmsTemplateEditorWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/push-templates"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><PushTemplateEditorWrapper /></ProtectedRoute>}
             />
             <Route
               path="/notifications/preferences"

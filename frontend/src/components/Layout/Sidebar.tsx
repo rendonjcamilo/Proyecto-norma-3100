@@ -62,7 +62,6 @@ const navigation: NavSection[] = [
       { to: '/questionnaires', icon: 'questionnaires', label: 'Cuestionarios', roles: ['super_admin'] },
       { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['super_admin'] },
       { to: '/notifications/sms-templates', icon: 'sms', label: 'Plantillas SMS', roles: ['super_admin'] },
-      { to: '/notifications/push-templates', icon: 'push', label: 'Plantillas Push', roles: ['super_admin'] },
     ],
   },
 ];
