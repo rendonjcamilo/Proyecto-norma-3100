@@ -144,7 +144,7 @@ const RepsWrapper = () => {
 
 function AppContent(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
 
   if (!isAuthenticated) {
@@ -155,7 +155,7 @@ function AppContent(): JSX.Element {
     <div className="app-layout">
       <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
       <div className="app-main">
-        <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} providers={availableProviders} selectedProvider={selectedProvider} onSelectProvider={setSelectedProvider} />
+        <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} providers={availableProviders} selectedProvider={selectedProvider} onSelectProvider={setSelectedProvider} userRole={user?.role} />
         <main className="app-content">
           <Routes>
             {/* Dashboard */}

@@ -16,6 +16,7 @@ interface TopBarProps {
   providers?: Provider[];
   selectedProvider?: Provider | null;
   onSelectProvider?: (provider: Provider) => void;
+  userRole?: string;
 }
 
 const routeTitles: Record<string, { title: string; subtitle: string }> = {
@@ -75,6 +76,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   providers = [],
   selectedProvider = null,
   onSelectProvider = () => {},
+  userRole = 'provider_admin',
 }) => {
   const location = useLocation();
   const meta = routeTitles[location.pathname] || routeTitles['/'];
@@ -100,7 +102,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <h1 className="topbar-title">{meta.title}</h1>
 
-        {providers.length > 0 && (
+        {providers.length > 0 && userRole !== 'super_admin' && (
           <ProviderSelector
             providers={providers}
             selectedProvider={selectedProvider}
