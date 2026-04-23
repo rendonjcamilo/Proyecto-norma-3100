@@ -181,15 +181,15 @@ export const AssessmentExecutionPage: React.FC = () => {
         }
 
         setAssessment(assessmentData);
-        setInitialResponses(mapBackendResponses(assessmentData.responses));
+        setInitialResponses(mapBackendResponses(assessment.responses));
 
         // 2. Si viene del JSON model, construir standards desde criterios del questionnaire
-        if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
-          const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
+        if (assessment.questionnaire && assessment.questionnaire.criteria) {
+          const grouped = groupCriteriaByStandard(assessment.questionnaire.criteria);
           setStandards(grouped);
-        } else if (assessmentData.questionnaireId) {
+        } else if (assessment.questionnaireId) {
           // Si tiene questionnaireId pero no los criterios, cargar desde backend
-          const questionnaireRes = await questionnairesApi.getById(assessmentData.questionnaireId);
+          const questionnaireRes = await questionnairesApi.getById(assessment.questionnaireId);
           const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
           setStandards(grouped);
         }
