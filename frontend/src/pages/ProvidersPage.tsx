@@ -345,30 +345,35 @@ export const ProvidersPage: React.FC = () => {
   }
 
   return (
-    <div className="page-container">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Prestadores</h1>
-          <p className="page-subtitle">
-            Gestión de prestadores de servicios de salud registrados
-          </p>
+    <div className="page-container aud-page">
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Gestión de Prestadores
+          </span>
+          <h1 className="aud-hero-title">Prestadores de Salud</h1>
+          <p className="aud-hero-subtitle">Administración y seguimiento de prestadores habilitados</p>
         </div>
-        <button
-          className="page-btn-primary"
-          onClick={() => {
-            setEditingId(null);
-            setFormData(INITIAL_FORM);
-            setCreateError(null);
-            setShowModal(true);
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Nuevo Prestador
-        </button>
-      </header>
+        <div className="aud-hero-actions">
+          <button
+            className="aud-hero-btn"
+            onClick={() => {
+              setEditingId(null);
+              setFormData(INITIAL_FORM);
+              setCreateError(null);
+              setShowModal(true);
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nuevo Prestador
+          </button>
+        </div>
+        <div className="aud-hero-orb" />
+      </div>
 
       {/* Search */}
       <div className="search-section">

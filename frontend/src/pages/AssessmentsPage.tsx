@@ -220,32 +220,29 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   }
 
   return (
-    <div className="page-container">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Evaluaciones</h1>
-          <p className="page-subtitle">
-            Autoevaluaciones de cumplimiento según Norma 3100 de 2019
-          </p>
+    <div className="page-container aud-page">
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Gestión de Cumplimiento
+          </span>
+          <h1 className="aud-hero-title">Evaluaciones</h1>
+          <p className="aud-hero-subtitle">Auditorías y evaluaciones de cumplimiento Norma 3100</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="aud-hero-actions" style={{ display: 'flex', gap: '8px' }}>
           {can('assessments', 'delete') && assessments.length > 0 && (
             <button
-              className={`page-btn-primary ${selectionMode ? 'active' : ''}`}
+              className="aud-hero-btn"
               onClick={toggleSelectionMode}
-              style={{
-                background: selectionMode ? '#de350b' : '#0052cc',
-                borderColor: selectionMode ? '#de350b' : 'transparent',
-              }}
+              style={selectionMode ? { background: '#de350b', boxShadow: '0 4px 12px rgba(222,53,11,0.32)' } : undefined}
             >
               {selectionMode ? '✕ Cancelar Selección' : '✓ Seleccionar'}
             </button>
           )}
           {can('assessments', 'create') && (
-            <button className="page-btn-primary" onClick={() => {
-              setShowCreateModal(true);
-            }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <button className="aud-hero-btn" onClick={() => { setShowCreateModal(true); }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -253,7 +250,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </button>
           )}
         </div>
-      </header>
+        <div className="aud-hero-orb" />
+      </div>
 
       {assessments.length === 0 ? (
         <div className="empty-state">

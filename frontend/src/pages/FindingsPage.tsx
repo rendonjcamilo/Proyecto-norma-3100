@@ -251,24 +251,29 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
   }
 
   return (
-    <div className="page-container">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">Hallazgos</h1>
-          <p className="page-subtitle">
-            Seguimiento y gestión de hallazgos de cumplimiento Norma 3100
-          </p>
+    <div className="page-container aud-page">
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Gestión de Cumplimiento
+          </span>
+          <h1 className="aud-hero-title">Hallazgos</h1>
+          <p className="aud-hero-subtitle">Registro y seguimiento de no conformidades y oportunidades de mejora</p>
         </div>
         {can('findings', 'create') && (
-          <button className="page-btn-primary" onClick={() => setShowCreateModal(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Nuevo Hallazgo
-          </button>
+          <div className="aud-hero-actions">
+            <button className="aud-hero-btn" onClick={() => setShowCreateModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Nuevo Hallazgo
+            </button>
+          </div>
         )}
-      </header>
+        <div className="aud-hero-orb" />
+      </div>
 
       {/* Filtros */}
       <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
