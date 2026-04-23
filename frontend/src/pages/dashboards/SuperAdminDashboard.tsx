@@ -66,31 +66,11 @@ export function SuperAdminDashboard(): JSX.Element {
           <div className="kpi-label">Auditores Activos</div>
           <div className="kpi-value">{summary?.totalAuditors || 0}</div>
         </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Evaluaciones en Curso</div>
-          <div className="kpi-value">{summary?.assessmentsInProgress || 0}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Hallazgos Críticos</div>
-          <div className="kpi-value critical">{summary?.criticalFindings || 0}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Cumplimiento Promedio</div>
-          <div className="kpi-value">{summary?.avgComplianceRate || 0}%</div>
-        </div>
       </div>
 
       <div className="dashboard-section">
         <h2 className="section-title">Accesos rápidos de administración</h2>
         <div className="quick-access-grid">
-          <a href="/providers" className="quick-access-card">
-            <div className="card-icon">🏥</div>
-            <div className="card-label">Prestadores de Salud</div>
-          </a>
-
           <a href="/questionnaires" className="quick-access-card">
             <div className="card-icon">📋</div>
             <div className="card-label">Cuestionarios</div>
