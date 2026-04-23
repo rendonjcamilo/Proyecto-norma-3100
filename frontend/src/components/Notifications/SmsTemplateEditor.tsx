@@ -71,7 +71,12 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
       const response = await axios.get(`/api/multichannel/sms/templates`, {
         headers: { 'x-user-id': userId },
       });
-      setTemplates(response.data.templates || []);
+      const templates = (response.data.templates || []).map((t: any) => ({
+        ...t,
+        name: t.name || t.template_name,
+        content: t.content || t.message_template,
+      }));
+      setTemplates(templates);
     } catch (error) {
       console.error('Failed to fetch templates:', error);
       setMessage('Error cargando plantillas');
