@@ -53,7 +53,7 @@ export const AuditorNotificationSender: React.FC = () => {
     if (selectedTemplate) {
       generatePreview();
     }
-  }, [selectedTemplate, variables, selectedProvider, channel]);
+  }, [selectedTemplate, variables, channel]);
 
   const loadAuditors = async () => {
     try {
@@ -118,8 +118,7 @@ export const AuditorNotificationSender: React.FC = () => {
     const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate | undefined;
     if (!template) return;
 
-    const providerName =
-      providers.find((p) => p.id === selectedProvider)?.legal_name || 'Prestador';
+    const providerName = providers.length > 0 ? 'Prestadores' : 'Prestador';
     const auditorName = user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : 'Auditor';
 
     const defaultVars: PreviewData = {
