@@ -6,7 +6,7 @@
 import './dashboards.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useProvider } from '@context/ProviderContext';
-import { assessmentsApi, findingsApi, documentsApi } from '@services/api';
+import { reportsApi } from '@services/api';
 
 interface ComplianceMetrics {
   compliance_rate: number;
@@ -48,21 +48,26 @@ export function ProviderDashboard(): JSX.Element {
       setLoading(true);
       setError(null);
 
-      const assessmentsRes = await assessmentsApi.listByProvider(selectedProvider.id);
-      const findingsRes = await findingsApi.listByProvider(selectedProvider.id);
-
-      const openFindings = findingsRes.data?.filter((f: any) => f.status === 'open' || f.status === 'abierta').length || 0;
-      const inProgressFindings = findingsRes.data?.filter((f: any) => f.status === 'in_progress' || f.status === 'en_proceso').length || 0;
-      const resolvedFindings = findingsRes.data?.filter((f: any) => f.status === 'resolved' || f.status === 'cerrada').length || 0;
-
-      const complianceRate = assessmentsRes.data?.[0]?.compliance_percentage || assessmentsRes.data?.[0]?.compliance_percent || 0;
+      // Import reportsApi
+      const { reportsApi } = await import('@services/api');
+      const dashboardRes = await reportsApi.getDashboardSummary(selectedProvider.id);
 
       setMetrics({
-        compliance_rate: complianceRate,
-        open_findings: openFindings,
-        in_progress_findings: inProgressFindings,
-        resolved_findings: resolvedFindings,
-        pending_actions: Math.max(0, openFindings - inProgressFindings),
+        compliance_rate: dashboardRes.compliance_rate,
+        open_findings: dashboardRes.open_findings,
+        in_progress_findings: dashboardRes.in_progress_findings,
+        resolved_findings: dashboardRes.resolved_findings,
+        pending_actions: dashboardRes.pending_actions,
+      });
+    } catch (err) {
+      console.error('Error loading metrics:', err);
+      // Set default metrics with zeros instead of failing
+      setMetrics({
+        compliance_rate: 0,
+        open_findings: 0,
+        in_progress_findings: 0,
+        resolved_findings: 0,
+        pending_actions: 0,
       });
     } finally {
       setLoading(false);
@@ -89,8 +94,8 @@ export function ProviderDashboard(): JSX.Element {
     return <div className="dashboard-error">No hay prestador seleccionado</div>;
   }
 
-  if (!metrics) {
-    return <div className="dashboard-error">No hay datos de métricas disponibles</div>;
+  if (!metrics && loading) {
+    return <div className="dashboard-loading">Cargando métricas...</div>;
   }
 
   return (

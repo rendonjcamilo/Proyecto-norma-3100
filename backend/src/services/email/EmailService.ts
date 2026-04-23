@@ -353,6 +353,40 @@ export class EmailService {
   }
 
   /**
+   * Get all active email templates
+   */
+  public async getActiveTemplates(): Promise<EmailTemplate[]> {
+    const query = `
+      SELECT id, template_name, subject, html_body as htmlBody, text_body as textBody, variables, language, is_active as isActive, created_at as createdAt, updated_at as updatedAt
+      FROM email_templates
+      WHERE is_active = true
+      ORDER BY created_at DESC;
+    `;
+
+    try {
+      const result = await this.pool.query<any>(query);
+      return result.rows.map((row) => ({
+        id: row.id,
+        template_name: row.template_name,
+        templateName: row.template_name,
+        subject: row.subject,
+        htmlBody: row.htmlbody,
+        textBody: row.textbody,
+        variables: row.variables ? (typeof row.variables === 'string' ? JSON.parse(row.variables) : row.variables) : [],
+        language: row.language,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      })) as EmailTemplate[];
+    } catch (error) {
+      logger.error('Failed to get active email templates', {
+        error: (error as Error).message,
+      });
+      return [];
+    }
+  }
+
+  /**
    * Retry failed deliveries
    */
   public async retryFailedDeliveries(maxRetries: number = 3): Promise<number> {

@@ -345,6 +345,38 @@ export class SMSService {
   }
 
   /**
+   * Get all active SMS templates
+   */
+  public async getActiveTemplates(): Promise<SMSTemplate[]> {
+    const query = `
+      SELECT id, template_name, message_template, variables, language, is_active, created_at, updated_at
+      FROM sms_templates
+      WHERE is_active = true
+      ORDER BY created_at DESC;
+    `;
+
+    try {
+      const result = await this.pool.query<any>(query);
+      return result.rows.map((row) => ({
+        id: row.id,
+        template_name: row.template_name,
+        templateName: row.template_name,
+        message_template: row.message_template,
+        variables: row.variables ? (typeof row.variables === 'string' ? JSON.parse(row.variables) : row.variables) : [],
+        language: row.language,
+        is_active: row.is_active,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      })) as SMSTemplate[];
+    } catch (error) {
+      logger.error('Failed to get active SMS templates', {
+        error: (error as Error).message,
+      });
+      return [];
+    }
+  }
+
+  /**
    * Populate template with variables
    */
   private populateTemplate(template: string, variables?: Record<string, any>): string {

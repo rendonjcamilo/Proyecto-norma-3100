@@ -340,5 +340,60 @@ export function createReportsRouter(pool: Pool): Router {
     }
   );
 
+  /**
+   * GET /api/providers/:providerId/reports/dashboard-summary
+   * Get provider dashboard metrics (real data for provider_admin dashboard)
+   */
+  router.get(
+    '/providers/:providerId/reports/dashboard-summary',
+    authMiddleware,
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { providerId } = req.params;
+
+        // 1. Count open findings
+        const openFindingsResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM findings WHERE provider_id = $1 AND status IN ($2, $3)',
+          [providerId, 'open', 'abierta']
+        );
+        const openFindings = parseInt(openFindingsResult.rows[0]?.count || '0', 10);
+
+        // 2. Count in-progress findings
+        const inProgressResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM findings WHERE provider_id = $1 AND status IN ($2, $3)',
+          [providerId, 'in_progress', 'en_proceso']
+        );
+        const inProgressFindings = parseInt(inProgressResult.rows[0]?.count || '0', 10);
+
+        // 3. Count resolved findings
+        const resolvedResult = await pool.query<{ count: string }>(
+          'SELECT COUNT(*) as count FROM findings WHERE provider_id = $1 AND status IN ($2, $3)',
+          [providerId, 'resolved', 'cerrada']
+        );
+        const resolvedFindings = parseInt(resolvedResult.rows[0]?.count || '0', 10);
+
+        // 4. Get latest assessment compliance rate
+        const complianceResult = await pool.query<{ compliance_pct: number }>(
+          'SELECT COALESCE(MAX(compliance_pct), 0) as compliance_pct FROM assessments WHERE provider_id = $1 AND status != $2',
+          [providerId, 'draft']
+        );
+        const complianceRate = complianceResult.rows[0]?.compliance_pct || 0;
+
+        res.json({
+          compliance_rate: Math.round(complianceRate),
+          open_findings: openFindings,
+          in_progress_findings: inProgressFindings,
+          resolved_findings: resolvedFindings,
+          pending_actions: Math.max(0, openFindings - inProgressFindings),
+          document_compliance: 0,
+        });
+      } catch (err) {
+        logger.error({ msg: 'Failed to get provider dashboard summary', error: err instanceof Error ? err.message : String(err) });
+        res.status(500).json({ error: 'Failed to get provider dashboard summary' });
+      }
+    }
+  );
+
   return router;
 }

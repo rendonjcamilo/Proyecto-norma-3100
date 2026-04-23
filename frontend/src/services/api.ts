@@ -506,6 +506,11 @@ export const reportsApi = {
   getSummary: (providerId: string) =>
     get<{ data: ComplianceSummary }>(`/api/providers/${providerId}/reports/summary`),
 
+  getDashboardSummary: (providerId: string) =>
+    get<{ compliance_rate: number; open_findings: number; in_progress_findings: number; resolved_findings: number; pending_actions: number; document_compliance: number }>(
+      `/api/providers/${providerId}/reports/dashboard-summary`
+    ),
+
   getGlobalSummary: () =>
     get<{ totalProviders: number; totalAuditors: number; assessmentsInProgress: number; criticalFindings: number; avgComplianceRate: number }>(
       '/api/reports/global-summary'
