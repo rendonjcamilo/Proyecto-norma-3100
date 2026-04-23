@@ -152,12 +152,17 @@ export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
       {toast && <div className={`reps-toast reps-toast-${toast.type}`}>{toast.message}</div>}
 
       {/* HEADER */}
-      <header className="reps-header">
-        <div>
-          <h1 className="dashboard-title">REPS — Registro Especial de Prestadores</h1>
-          <p>Estado de habilitación y servicios autorizados</p>
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Habilitación
+          </span>
+          <h1 className="aud-hero-title">REPS</h1>
+          <p className="aud-hero-subtitle">Registro Especial de Prestadores de Servicios de Salud</p>
         </div>
-      </header>
+        <div className="aud-hero-orb" />
+      </div>
 
       {/* ESTADO CARD */}
       {resumen && (
