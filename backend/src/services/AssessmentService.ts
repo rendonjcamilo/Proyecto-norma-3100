@@ -149,6 +149,31 @@ export class AssessmentService {
 
       await client.query(metricsQuery, [assessment.id, totalCriteria]);
 
+      // 4. Pre-poblar todas las respuestas con NA por defecto
+      // Así el usuario parte de 512/512 y solo edita lo que necesite
+      await client.query(`
+        INSERT INTO assessment_responses_detailed
+          (assessment_id, criterion_id, response_status, description, comments, responded_by)
+        SELECT $1, qc.criterion_id, 'NA', '', '', $3
+        FROM questionnaire_criteria qc
+        WHERE qc.questionnaire_id = $2
+        ON CONFLICT DO NOTHING
+      `, [assessment.id, questionnaireId, userId]);
+
+      // 5. Actualizar métricas iniciales: todos en NA
+      await client.query(`
+        UPDATE assessment_metrics
+        SET no_aplica_count = $2,
+            compliance_percent = 0,
+            semaforo_color = 'rojo'
+        WHERE assessment_id = $1
+      `, [assessment.id, totalCriteria]);
+
+      // 6. Actualizar compliance_pct en assessments
+      await client.query(`
+        UPDATE assessments SET compliance_pct = 0 WHERE id = $1
+      `, [assessment.id]);
+
       await client.query('COMMIT');
 
       logger.info({

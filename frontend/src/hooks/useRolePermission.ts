@@ -28,7 +28,7 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
   assessments: {
     canCreate: ['super_admin', 'auditor'],
     canEdit: ['super_admin', 'auditor'],
-    canDelete: ['super_admin'],
+    canDelete: ['super_admin', 'auditor'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin'],
   },
@@ -75,11 +75,11 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
     canManage: ['super_admin'],
   },
   templates: {
-    canCreate: ['super_admin'],
-    canEdit: ['super_admin'],
-    canDelete: ['super_admin'],
-    canView: ['super_admin'],
-    canManage: ['super_admin'],
+    canCreate: ['super_admin', 'auditor'],
+    canEdit: ['super_admin', 'auditor'],
+    canDelete: ['super_admin', 'auditor'],
+    canView: ['super_admin', 'auditor'],
+    canManage: ['super_admin', 'auditor'],
   },
   invima: {
     canCreate: ['provider_admin'],

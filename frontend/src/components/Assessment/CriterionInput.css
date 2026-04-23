@@ -23,6 +23,26 @@
   opacity: 0.8;
 }
 
+/* Criterios encabezado de lista (terminan en ":") — no evaluables */
+.criterion-input.criterion-section-header {
+  background: #f0f4ff;
+  border-left: 4px solid #4f6bed;
+  border-color: #c7d2fe;
+}
+
+.criterion-input.criterion-section-header .criterion-name {
+  color: #3730a3;
+  font-size: 0.95rem;
+}
+
+.criterion-header-note {
+  font-size: 0.78rem;
+  color: #6366f1;
+  font-style: italic;
+  margin: 4px 0 0 0;
+  padding-left: 2px;
+}
+
 .criterion-header {
   display: flex;
   gap: 15px;

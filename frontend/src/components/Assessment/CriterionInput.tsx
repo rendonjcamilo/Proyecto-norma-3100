@@ -81,6 +81,29 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   const isDescriptionValid = localResponse.status !== 'NC' || (localResponse.description && localResponse.description.length >= 10);
   const hasError = localResponse.status === 'NC' && !isDescriptionValid;
 
+  // Criterios que terminan en ":" son encabezados de lista — no son evaluables por sí solos
+  const isHeader = criterion.name.trimEnd().endsWith(':');
+
+  if (isHeader) {
+    return (
+      <div className="criterion-input criterion-section-header">
+        <div className="criterion-header">
+          <div className="criterion-number">{number}.</div>
+          <div className="criterion-details">
+            <div className="criterion-code">{criterion.code}</div>
+            <h5 className="criterion-name">{criterion.name}</h5>
+            {criterion.description && (
+              <p className="criterion-description">{criterion.description}</p>
+            )}
+          </div>
+        </div>
+        <p className="criterion-header-note">
+          Los ítems siguientes detallan las condiciones específicas a evaluar.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={`criterion-input ${hasError ? 'error' : ''} ${readOnly ? 'read-only' : ''}`}>
       <div className="criterion-header">

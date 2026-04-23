@@ -116,7 +116,15 @@ export class ReportService {
     const total = parseInt(m.total) || 0;
     const resolved = parseInt(m.resolved) || 0;
     const closed = parseInt(m.closed) || 0;
-    const compliancePercentage = total > 0 ? ((resolved + closed) / total) * 100 : 0;
+
+    // Porcentaje de cumplimiento real desde la evaluación más reciente del prestador
+    const assessmentPctResult = await this.pool.query<{ compliance_pct: string }>(
+      `SELECT COALESCE(MAX(compliance_pct), 0)::text AS compliance_pct
+       FROM assessments
+       WHERE provider_id = $1 AND status NOT IN ('draft')`,
+      [providerId]
+    ).catch(() => ({ rows: [{ compliance_pct: '0' }] }));
+    const compliancePercentage = parseFloat(assessmentPctResult.rows[0]?.compliance_pct) || 0;
 
     // Top findings
     const topResult = await this.pool.query<{
@@ -449,12 +457,15 @@ export class ReportService {
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
 
-    // Obtener los 7 estándares transversales (DISTINCT para evitar duplicados)
+    // Obtener los 7 estándares transversales — solo el que tiene criterios reales
     const estandaresResult = await this.pool.query<{
       id: string; code: string; name: string;
     }>(
-      `SELECT DISTINCT ON (code) id, code, name FROM evaluation_standards
-       WHERE is_transversal = TRUE ORDER BY code`,
+      `SELECT DISTINCT ON (es.code) es.id, es.code, es.name
+       FROM evaluation_standards es
+       INNER JOIN evaluation_criteria ec ON ec.standard_id = es.id
+       WHERE es.is_transversal = TRUE
+       ORDER BY es.code`,
     ).catch(() => ({ rows: [] }));
 
     const estandares = [];
@@ -506,15 +517,16 @@ export class ReportService {
       const hallazgosResult = await this.pool.query<{
         title: string; criterion_code: string; severity: string; status: string;
       }>(
-        `SELECT f.title, COALESCE(ec.code, '') AS criterion_code,
+        `SELECT COALESCE(NULLIF(f.title, ''), LEFT(f.description, 120)) AS title,
+                COALESCE(ec.code, '') AS criterion_code,
                 f.severity, f.status
          FROM findings f
          LEFT JOIN evaluation_criteria ec ON ec.id = f.criterion_id
          LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
          WHERE f.provider_id = $1
-           AND (es.code = $2 OR es.id IS NULL AND $2 = 'TSTH')
+           AND es.code = $2
            AND f.status NOT IN ('cerrada', 'closed')
-         ORDER BY f.severity DESC, f.title
+         ORDER BY f.severity DESC, ec.code
          LIMIT 20`,
         [providerId, est.code]
       ).catch(() => ({ rows: [] }));

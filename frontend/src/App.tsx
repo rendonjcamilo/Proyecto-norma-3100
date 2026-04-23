@@ -218,11 +218,11 @@ function AppContent(): JSX.Element {
             {/* Notifications — Subrutas específicas PRIMERO */}
             <Route
               path="/notifications/email-templates"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
             />
             <Route
               path="/notifications/sms-templates"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><SmsTemplateEditorWrapper /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><SmsTemplateEditorWrapper /></ProtectedRoute>}
             />
             <Route
               path="/notifications/preferences"

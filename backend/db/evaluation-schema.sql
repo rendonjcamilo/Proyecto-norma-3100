@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS evaluation_standards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     code VARCHAR(50) NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     description TEXT,
 
     -- Indicates if this standard applies to all services
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS evaluation_criteria (
 
     code VARCHAR(50) NOT NULL,
     number VARCHAR(20) NOT NULL, -- e.g., "1.1", "1.2", "2.1"
-    name VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     description TEXT NOT NULL,
 
     evidence_requirement TEXT, -- What proof is needed

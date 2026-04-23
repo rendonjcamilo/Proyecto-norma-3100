@@ -711,37 +711,48 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
 
   /**
    * DELETE /api/assessments/:id
-   * Delete an assessment
-   * RBAC: super_admin only
-   * NOTE: Auditor cannot delete assessments per Norma 3100 art. 14
+   * Eliminar una evaluación completada
+   * RBAC: super_admin y auditor
+   * El auditor solo puede eliminar evaluaciones con status submitted/completed/reviewed
    */
   router.delete(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['super_admin', 'auditor']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
+        const userRole = (req as any).user?.role;
 
-        // Check if assessment exists
         const result = await pool.query(
-          'SELECT id FROM assessments WHERE id = $1',
+          'SELECT id, status FROM assessments WHERE id = $1',
           [id]
         );
 
         if (result.rows.length === 0) {
-          return res.status(404).json({ error: 'Assessment not found' });
+          return res.status(404).json({ error: 'Evaluación no encontrada' });
         }
 
-        // Delete assessment
+        const assessment = result.rows[0];
+
+        // Auditor solo puede eliminar evaluaciones completadas (no borradores en curso)
+        if (userRole === 'auditor') {
+          const deletableStatuses = ['submitted', 'completed', 'reviewed'];
+          if (!deletableStatuses.includes(assessment.status)) {
+            return res.status(403).json({
+              error: 'Solo se pueden eliminar evaluaciones completadas (submitted, completed o reviewed)',
+            });
+          }
+        }
+
         await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
 
-        logger.info({ msg: 'Assessment deleted', assessment_id: id });
-        res.json({ message: 'Assessment deleted successfully' });
+        logger.info({ msg: 'Assessment deleted', assessment_id: id, deleted_by: (req as any).user?.id });
+        res.json({ message: 'Evaluación eliminada correctamente' });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         logger.error({ msg: 'Error deleting assessment', error: msg });
-        res.status(500).json({ error: 'Failed to delete assessment' });
+        res.status(500).json({ error: 'Error al eliminar la evaluación' });
       }
     }
   );

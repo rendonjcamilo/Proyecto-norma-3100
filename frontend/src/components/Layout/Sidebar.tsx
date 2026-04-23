@@ -52,6 +52,8 @@ const navigation: NavSection[] = [
     roles: ['auditor', 'super_admin'],
     items: [
       { to: '/notifications/auditor-send', icon: 'email', label: 'Enviar Notificación', roles: ['auditor', 'super_admin'] },
+      { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['super_admin', 'auditor'] },
+      { to: '/notifications/sms-templates', icon: 'sms', label: 'Plantillas SMS', roles: ['super_admin', 'auditor'] },
     ],
   },
   {
