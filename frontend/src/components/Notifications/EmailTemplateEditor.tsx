@@ -193,37 +193,53 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
   }
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard email-template-page">
       {/* Mode Navigation */}
       {mode !== 'list' && (
-        <div className="editor-header">
+        <div className="etpl-back-bar">
           <button
-            className="back-button"
+            className="etpl-back-btn"
             onClick={() => {
               setMode('list');
               setTemplate({ name: '', subject: '', body: '', variables: [] });
             }}
           >
-            ← Volver a Plantillas
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Volver a Plantillas
           </button>
-          <h2>{mode === 'new' ? '📧 Nueva Plantilla Email' : '📧 Editar Plantilla Email'}</h2>
+          <h2>{mode === 'new' ? 'Nueva Plantilla Email' : 'Editar Plantilla Email'}</h2>
         </div>
       )}
 
       {/* Template List View */}
       {mode === 'list' && (
         <div className="templates-list">
-          <div className="list-header">
-            <h2>📧 Plantillas de Email</h2>
-            <button
-              className="btn-dashboard btn-dashboard-primary"
-              onClick={() => {
-                setTemplate({ name: '', subject: '', body: '', variables: [] });
-                setMode('new');
-              }}
-            >
-              + Nueva Plantilla
-            </button>
+          <div className="etpl-hero">
+            <div className="etpl-hero-content">
+              <span className="etpl-hero-badge">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+                Administración del Sistema
+              </span>
+              <h1 className="etpl-hero-title">Plantillas de Email</h1>
+              <p className="etpl-hero-subtitle">Diseña y administra las plantillas de notificación por correo electrónico</p>
+            </div>
+            <div className="etpl-hero-actions">
+              <button
+                className="etpl-hero-btn"
+                onClick={() => {
+                  setTemplate({ name: '', subject: '', body: '', variables: [] });
+                  setMode('new');
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nueva Plantilla
+              </button>
+            </div>
+            <div className="etpl-hero-orb" />
           </div>
 
           {templates.length === 0 ? (

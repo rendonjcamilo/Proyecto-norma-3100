@@ -111,23 +111,32 @@ export function QuestionnairesPage(): JSX.Element {
   });
 
   if (loading) {
-    return <div className="admin-dashboard"><div className={styles.loading}>Cargando cuestionarios...</div></div>;
+    return <div className={styles.loading}>Cargando cuestionarios...</div>;
   }
 
   return (
-    <div className="admin-dashboard">
-      <div style={{ padding: "32px", maxWidth: "1600px", margin: "0 auto" }}>
-        <div className="dashboard-header">
-          <h1 className="dashboard-title">Gestión de Cuestionarios</h1>
-          <p className="dashboard-subtitle">Crear y administrar plantillas de evaluación por servicio de salud</p>
-        </div>
+    <div className={`admin-dashboard ${styles.root}`}>
 
-        <div className="dashboard-toolbar">
-          <div style={{ flex: 1 }}></div>
-          <button onClick={() => setShowCreateModal(true)} className="btn-dashboard btn-dashboard-primary">
-            + Crear Cuestionario
+      {/* ── HERO BANNER ─────────────────────────────────────── */}
+      <div className={styles.hero}>
+        <div className={styles.heroContent}>
+          <span className={styles.heroBadge}>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Administración del Sistema
+          </span>
+          <h1 className={styles.heroTitle}>Gestión de Cuestionarios</h1>
+          <p className={styles.heroSubtitle}>Crear y administrar plantillas de evaluación por servicio de salud</p>
+        </div>
+        <div className={styles.heroActions}>
+          <button onClick={() => setShowCreateModal(true)} className={styles.heroPrimaryBtn}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Crear Cuestionario
           </button>
         </div>
+        <div className={styles.heroOrb} />
+      </div>
 
       {error && <div className={styles.alert}>{error}</div>}
 
@@ -285,7 +294,6 @@ export function QuestionnairesPage(): JSX.Element {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }

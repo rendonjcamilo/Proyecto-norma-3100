@@ -244,27 +244,25 @@ export function UsersPage(): JSX.Element {
   };
 
   if (loading) {
-    return (
-      <div className="admin-dashboard">
-        <div style={{ padding: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-          <div style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>Cargando usuarios...</div>
-        </div>
-      </div>
-    );
+    return <div className={styles.loadingState}>Cargando usuarios...</div>;
   }
 
   return (
     <>
-      <div className="admin-dashboard">
+      <div className={`admin-dashboard ${styles.root}`}>
         <div style={{ padding: '32px', maxWidth: '1600px', margin: '0 auto' }}>
-        <div className="dashboard-header">
-          <h1 className="dashboard-title">Gestión de Usuarios</h1>
-          <p className="dashboard-subtitle">Crear y administrar usuarios con diferentes roles</p>
-        </div>
 
-        <div className="dashboard-toolbar">
-          <div style={{ flex: 1 }}></div>
-          <div className="dashboard-actions">
+        {/* Hero Banner */}
+        <div className={styles.hero}>
+          <div className={styles.heroContent}>
+            <span className={styles.heroBadge}>
+              <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+              Administración del Sistema
+            </span>
+            <h1 className={styles.heroTitle}>Gestión de Usuarios</h1>
+            <p className={styles.heroSubtitle}>Crear y administrar usuarios con diferentes roles</p>
+          </div>
+          <div className={styles.heroActions}>
             <button
               onClick={() => {
                 const link = document.createElement('a');
@@ -274,18 +272,19 @@ export function UsersPage(): JSX.Element {
                 link.click();
                 document.body.removeChild(link);
               }}
-              className="btn-dashboard btn-dashboard-secondary"
-              title="Descargar usuarios en Excel"
+              className={styles.heroGhostBtn}
             >
-              📊 Excel
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Excel
             </button>
-            <button onClick={() => setShowCreateModal(true)} className="btn-dashboard btn-dashboard-primary">
+            <button onClick={() => setShowCreateModal(true)} className={styles.heroPrimaryBtn}>
               + Crear Usuario
             </button>
           </div>
+          <div className={styles.heroOrb} />
         </div>
 
-        {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', marginBottom: 'var(--space-6)', color: '#991b1b', fontSize: '13px' }}>{error}</div>}
+        {error && <div className={styles.alert}>{error}</div>}
 
         <div className="dashboard-table-container">
           <table className="dashboard-table">
@@ -323,19 +322,19 @@ export function UsersPage(): JSX.Element {
                   <td style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                       onClick={() => handleEditUser(user)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", opacity: 0.7, transition: "all 0.2s" }}
+                      className={styles.iconBtn}
                       title="Editar usuario"
                       disabled={loading}
                     >
-                      ✏️
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user)}
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", opacity: 0.7, transition: "all 0.2s" }}
+                      className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                       title="Eliminar usuario"
                       disabled={loading || deleting}
                     >
-                      🗑️
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
                     </button>
                   </td>
                 </tr>

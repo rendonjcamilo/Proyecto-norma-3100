@@ -215,42 +215,58 @@ export const SmsTemplateEditor: React.FC<SmsTemplateEditorProps> = ({
   const charWarning = getCharacterWarning();
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard sms-template-page">
       {/* Mode Navigation */}
       {mode !== 'list' && (
-        <div className="editor-header">
+        <div className="stpl-back-bar">
           <button
-            className="back-button"
+            className="stpl-back-btn"
             onClick={() => {
               setMode('list');
               setTemplate({ name: '', content: '', variables: [], maxLength: MAX_SMS_LENGTH });
             }}
           >
-            ← Volver a Plantillas
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Volver a Plantillas
           </button>
-          <h2>{mode === 'new' ? '💬 Nueva Plantilla SMS' : '💬 Editar Plantilla SMS'}</h2>
+          <h2>{mode === 'new' ? 'Nueva Plantilla SMS' : 'Editar Plantilla SMS'}</h2>
         </div>
       )}
 
       {/* Template List View */}
       {mode === 'list' && (
         <div className="templates-list">
-          <div className="list-header">
-            <h2>💬 Plantillas de SMS</h2>
-            <button
-              className="btn-dashboard btn-dashboard-primary"
-              onClick={() => {
-                setTemplate({
-                  name: '',
-                  content: '',
-                  variables: [],
-                  maxLength: MAX_SMS_LENGTH,
-                });
-                setMode('new');
-              }}
-            >
-              + Nueva Plantilla
-            </button>
+          <div className="stpl-hero">
+            <div className="stpl-hero-content">
+              <span className="stpl-hero-badge">
+                <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+                Administración del Sistema
+              </span>
+              <h1 className="stpl-hero-title">Plantillas de SMS</h1>
+              <p className="stpl-hero-subtitle">Diseña y administra las plantillas de notificación por mensaje de texto</p>
+            </div>
+            <div className="stpl-hero-actions">
+              <button
+                className="stpl-hero-btn"
+                onClick={() => {
+                  setTemplate({
+                    name: '',
+                    content: '',
+                    variables: [],
+                    maxLength: MAX_SMS_LENGTH,
+                  });
+                  setMode('new');
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nueva Plantilla
+              </button>
+            </div>
+            <div className="stpl-hero-orb" />
           </div>
 
           {templates.length === 0 ? (

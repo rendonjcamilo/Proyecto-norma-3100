@@ -28,7 +28,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(38, 132, 255, 0.3) 50%,
+    rgba(99, 102, 241, 0.3) 50%,
     transparent 100%
   );
 }
@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 4px 8px rgba(0, 82, 204, 0.4));
+  filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.4));
 }
 
 .brand-logo svg {
@@ -66,17 +66,20 @@
 
 .brand-name {
   font-size: var(--text-lg);
-  font-weight: 700;
-  color: #ffffff;
+  font-weight: 800;
+  background: linear-gradient(90deg, #ffffff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: var(--tracking-tight);
   line-height: 1.2;
 }
 
 .brand-tagline {
   font-size: var(--text-xs);
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  letter-spacing: var(--tracking-wide);
+  font-weight: 600;
+  color: #818cf8;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   margin-top: 2px;
 }
@@ -199,11 +202,11 @@
 .nav-link.active {
   background: linear-gradient(
     90deg,
-    rgba(0, 82, 204, 0.25) 0%,
-    rgba(38, 132, 255, 0.1) 100%
+    rgba(99, 102, 241, 0.2) 0%,
+    rgba(99, 102, 241, 0.08) 100%
   );
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 82, 204, 0.2);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
 }
 
 .nav-link.active::before {
@@ -289,7 +292,7 @@
   font-size: var(--text-sm);
   flex-shrink: 0;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .user-info {

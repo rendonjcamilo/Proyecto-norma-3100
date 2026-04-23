@@ -230,8 +230,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               />
               <defs>
                 <linearGradient id="brand-gradient" x1="0" y1="0" x2="32" y2="32">
-                  <stop offset="0%" stopColor="#0052cc" />
-                  <stop offset="100%" stopColor="#2684ff" />
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="100%" stopColor="#818cf8" />
                 </linearGradient>
               </defs>
             </svg>
