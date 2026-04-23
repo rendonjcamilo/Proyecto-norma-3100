@@ -46,12 +46,13 @@ export const ProviderProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // If auditor, load their assigned providers from API
         if (user?.role === 'auditor') {
           const response = await providersApi.getMyProviders();
-          providersData = (response.data || response.providers || []).map(transformProvider);
+          const providers = Array.isArray(response) ? response : (response.providers || response.data || []);
+          providersData = providers.map(transformProvider);
           console.log('[ProviderContext] Auditor providers loaded:', providersData);
         } else if (user?.role === 'provider_admin' && user?.provider_id) {
           // For provider_admin, load only their assigned provider
           const allProviders = await providersApi.list();
-          const myProvider = (allProviders.data || []).find((p: ApiProvider) => p.id === user.provider_id);
+          const myProvider = (Array.isArray(allProviders) ? allProviders : (allProviders.data || [])).find((p: ApiProvider) => p.id === user.provider_id);
           providersData = myProvider ? [transformProvider(myProvider)] : [];
           console.log('[ProviderContext] Provider admin provider loaded:', providersData);
         } else {

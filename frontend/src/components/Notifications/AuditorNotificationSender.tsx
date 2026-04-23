@@ -59,7 +59,7 @@ export const AuditorNotificationSender: React.FC = () => {
     try {
       setLoading(true);
       const response = await usersApi.list();
-      const auditorsList = (response.data || []).filter((u: User) => u.role === 'AUDITOR');
+      const auditorsList = (response.data || []).filter((u: User) => u.role === 'auditor');
       setAuditors(auditorsList);
       if (auditorsList.length > 0) {
         setSelectedAuditor(auditorsList[0].id);
