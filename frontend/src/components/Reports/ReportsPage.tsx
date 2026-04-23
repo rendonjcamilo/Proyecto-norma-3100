@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { reportsApi, assessmentsApi, downloadBlob, Assessment, providersApi, Provider } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './ReportsPage.css';
+import '../../pages/Pages.css';
 
 interface ReportsPageProps {
   providerId: string;
@@ -157,16 +158,21 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
     }
     return (
       <div className="reports-page">
-        <header className="reports-header">
-          <div>
-            <h1 className="reports-title">Reportes de Cumplimiento</h1>
-            <p className="reports-subtitle">Selecciona un prestador para generar reportes</p>
+        <div className="aud-hero">
+          <div className="aud-hero-content">
+            <span className="aud-hero-badge">
+              <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+              Auditoría
+            </span>
+            <h1 className="aud-hero-title">Reportes de Cumplimiento</h1>
+            <p className="aud-hero-subtitle">Selecciona un prestador para generar reportes</p>
           </div>
-        </header>
+          <div className="aud-hero-orb" />
+        </div>
 
         <section style={{ padding: '40px 20px' }}>
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#172b4d' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#1e1b4b' }}>
               Selecciona un prestador:
             </label>
             <select
@@ -175,11 +181,13 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '1px solid #dfe1e6',
-                borderRadius: '6px',
+                border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: '8px',
                 fontSize: '14px',
                 fontFamily: 'inherit',
                 marginBottom: '24px',
+                outline: 'none',
+                boxShadow: '0 1px 4px rgba(99,102,241,0.08)',
               }}
             >
               <option value="">-- Selecciona prestador --</option>
@@ -205,20 +213,23 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
   }
 
   const compliance = summary?.metrics.compliancePercentage ?? 0;
-  const complianceColor = compliance >= 80 ? '#00875a' : compliance >= 50 ? '#ff8b00' : '#de350b';
+  const complianceColor = compliance >= 80 ? '#059669' : compliance >= 50 ? '#d97706' : '#dc2626';
   const complianceLabel = compliance >= 80 ? 'Cumplimiento Alto' : compliance >= 50 ? 'Cumplimiento Parcial' : 'Cumplimiento Bajo';
 
   return (
     <div className="reports-page">
       {/* === HEADER === */}
-      <header className="reports-header">
-        <div>
-          <h1 className="reports-title">Reportes de Cumplimiento</h1>
-          <p className="reports-subtitle">
-            {providerName} · Genera reportes ejecutivos según Norma 3100
-          </p>
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Auditoría
+          </span>
+          <h1 className="aud-hero-title">Reportes de Cumplimiento</h1>
+          <p className="aud-hero-subtitle">{providerName} · Genera reportes ejecutivos según Norma 3100</p>
         </div>
-      </header>
+        <div className="aud-hero-orb" />
+      </div>
 
       {error && (
         <div className="reports-error">
@@ -277,7 +288,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               <div className="metric-label">Abiertos</div>
             </div>
             <div className="metric-box">
-              <div className="metric-value" style={{ color: '#0052cc' }}>
+              <div className="metric-value" style={{ color: '#6366f1' }}>
                 {summary.metrics.inProgressFindings}
               </div>
               <div className="metric-label">En Progreso</div>
@@ -319,7 +330,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                 </div>
                 <div className="doc-stat doc-stat-highlight">
                   <span>Cumplimiento Doc.</span>
-                  <strong style={{ color: '#0052cc' }}>
+                  <strong style={{ color: '#6366f1' }}>
                     {Math.round(summary.documentCompliance.compliancePercentage)}%
                   </strong>
                 </div>
@@ -402,7 +413,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
 
           {/* INFORME DE AUDITORÍA OFICIAL (solo para auditor/super_admin) */}
           {canDownloadAuditReport && (
-            <div className="download-card" style={{ borderTop: '3px solid #de350b' }}>
+            <div className="download-card" style={{ borderLeft: '4px solid #6366f1' }}>
               <div className="download-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -417,7 +428,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               {/* Selector de evaluación */}
               {completedAssessments.length > 0 && (
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '8px', color: '#172b4d' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: '#1e1b4b' }}>
                     Selecciona una evaluación completada:
                   </label>
                   <select
@@ -426,10 +437,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: '1px solid #dfe1e6',
-                      borderRadius: '4px',
+                      border: '1px solid rgba(99,102,241,0.3)',
+                      borderRadius: '6px',
                       fontSize: '13px',
                       fontFamily: 'inherit',
+                      boxShadow: '0 1px 3px rgba(99,102,241,0.07)',
                     }}
                   >
                     <option value="">-- Selecciona evaluación --</option>
@@ -454,7 +466,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   className="btn-download"
-                  style={{ background: '#de350b', flex: 1 }}
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', flex: 1 }}
                   onClick={() => handleDownloadAuditoria('pdf')}
                   disabled={!!downloading}
                 >
@@ -476,7 +488,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                 </button>
                 <button
                   className="btn-download"
-                  style={{ background: '#0052cc', flex: 1 }}
+                  style={{ background: '#6366f1', flex: 1 }}
                   onClick={() => handleDownloadAuditoria('docx')}
                   disabled={!!downloading}
                 >

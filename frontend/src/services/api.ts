@@ -327,14 +327,13 @@ export const providersApi = {
 
 export const findingsApi = {
   listByProvider: (providerId: string, params?: { status?: string; severity?: string; limit?: number; offset?: number }) => {
-    const qs = params
-      ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
-      : '';
-    return get<{ data: Finding[]; total: number }>(`/api/providers/${providerId}/findings${qs}`);
+    const allParams = { provider_id: providerId, ...params };
+    const qs = '?' + new URLSearchParams(Object.entries(allParams).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString();
+    return get<{ count: number; findings: Finding[] }>(`/api/findings${qs}`);
   },
 
   getById: (id: string) =>
-    get<{ data: Finding & { actions?: any[] } }>(`/api/findings/${id}`),
+    get<Finding & { actions?: any[] }>(`/api/findings/${id}`),
 
   create: (payload: { providerId: string; title: string; description: string; severity: FindingSeverity; dueDate: string; criterionId?: string }) =>
     post<{ data: Finding }>('/api/findings', payload),

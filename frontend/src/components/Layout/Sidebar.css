@@ -283,16 +283,16 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-full);
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
+  font-weight: 800;
   font-size: var(--text-sm);
   flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  border: 2px solid rgba(165, 180, 252, 0.3);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45);
 }
 
 .user-info {
@@ -302,8 +302,8 @@
 
 .user-name {
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: #ffffff;
+  font-weight: 700;
+  color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -311,10 +311,13 @@
 
 .user-role {
   font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  color: #818cf8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .user-menu-btn {

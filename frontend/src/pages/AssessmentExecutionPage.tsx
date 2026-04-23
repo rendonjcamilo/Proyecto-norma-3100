@@ -181,22 +181,22 @@ export const AssessmentExecutionPage: React.FC = () => {
         }
 
         setAssessment(assessmentData);
-        setInitialResponses(mapBackendResponses(assessment.responses));
+        setInitialResponses(mapBackendResponses(assessmentData.responses));
 
         // 2. Si viene del JSON model, construir standards desde criterios del questionnaire
-        if (assessment.questionnaire && assessment.questionnaire.criteria) {
-          const grouped = groupCriteriaByStandard(assessment.questionnaire.criteria);
+        if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
+          const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
           setStandards(grouped);
-        } else if (assessment.questionnaireId) {
+        } else if (assessmentData.questionnaire_id || assessmentData.questionnaireId) {
           // Si tiene questionnaireId pero no los criterios, cargar desde backend
-          const questionnaireRes = await questionnairesApi.getById(assessment.questionnaireId);
+          const qid = assessmentData.questionnaire_id ?? assessmentData.questionnaireId;
+          const questionnaireRes = await questionnairesApi.getById(qid);
           const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
           setStandards(grouped);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cargar la evaluación';
         console.error('[AssessmentExecutionPage] Error loading:', err);
-        console.error('[AssessmentExecutionPage] assessmentData:', assessmentData);
         setError(msg);
       } finally {
         setLoading(false);

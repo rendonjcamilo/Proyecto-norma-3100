@@ -21,11 +21,11 @@ interface InvimaPageProps {
 }
 
 const SEMAFORO_COLORS: Record<string, string> = {
-  verde: '#00875a',
-  naranja: '#ff8b00',
-  amarillo: '#ffab00',
-  rojo: '#de350b',
-  gris: '#6b778c',
+  verde: '#059669',
+  naranja: '#d97706',
+  amarillo: '#f59e0b',
+  rojo: '#dc2626',
+  gris: '#64748b',
 };
 
 const SEMAFORO_LABELS: Record<string, string> = {
@@ -37,20 +37,20 @@ const SEMAFORO_LABELS: Record<string, string> = {
 };
 
 const ESTADO_COLORS: Record<string, string> = {
-  vigente: '#00875a',
-  vencido: '#de350b',
-  suspendido: '#ff8b00',
-  cancelado: '#de350b',
-  en_tramite: '#6554c0',
-  desconocido: '#6b778c',
+  vigente: '#059669',
+  vencido: '#dc2626',
+  suspendido: '#d97706',
+  cancelado: '#dc2626',
+  en_tramite: '#6366f1',
+  desconocido: '#64748b',
 };
 
 const ALERTA_TIPO_COLORS: Record<string, string> = {
-  farmacovigilancia: '#6554c0',
-  tecnovigilancia: '#0052cc',
-  retiro_mercado: '#de350b',
-  suspension: '#ff8b00',
-  otro: '#626f86',
+  farmacovigilancia: '#6366f1',
+  tecnovigilancia: '#4f46e5',
+  retiro_mercado: '#dc2626',
+  suspension: '#d97706',
+  otro: '#64748b',
 };
 
 export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {

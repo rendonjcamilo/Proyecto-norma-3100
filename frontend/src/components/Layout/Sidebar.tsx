@@ -314,32 +314,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     position: 'absolute',
                     bottom: '100%',
                     right: 0,
-                    background: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    minWidth: '160px',
+                    marginBottom: '6px',
+                    background: '#1e1b4b',
+                    border: '1px solid rgba(99,102,241,0.35)',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(15,23,42,0.5)',
+                    minWidth: '172px',
                     zIndex: 1000,
+                    overflow: 'hidden',
                   }}
                 >
                   <button
                     onClick={handleLogout}
                     style={{
-                      display: 'block',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
                       width: '100%',
-                      padding: '10px 16px',
+                      padding: '10px 14px',
                       border: 'none',
                       background: 'none',
                       textAlign: 'left',
-                      fontSize: '14px',
+                      fontSize: '13px',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      color: '#d32f2f',
-                      borderRadius: '6px',
+                      color: '#fca5a5',
+                      borderRadius: '0',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#ffebee')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(248,113,113,0.12)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                   >
-                    🚪 Cerrar Sesión
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Cerrar Sesión
                   </button>
                 </div>
               )}

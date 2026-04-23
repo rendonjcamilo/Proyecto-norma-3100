@@ -254,12 +254,15 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
       </div>
 
       {assessments.length === 0 ? (
-        <div className="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="empty-icon">
-            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <div className="prov-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <line x1="9" y1="12" x2="15" y2="12"/>
+            <line x1="9" y1="16" x2="13" y2="16"/>
           </svg>
           <h3>Sin evaluaciones</h3>
-          <p>Crea tu primera autoevaluación para comenzar el seguimiento de cumplimiento</p>
+          <p>Crea tu primera evaluación para comenzar el seguimiento de cumplimiento</p>
         </div>
       ) : (
         <>
@@ -273,180 +276,124 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
             const getServiceName = (serviceId: string) => {
               const service = services.find(s => s.id === serviceId);
-              return service?.name || serviceId;
+              return service?.name || '—';
             };
 
             const getProviderName = (assessment: any) => {
-              // Use provider_name from backend if available
               if (assessment.provider_name) return assessment.provider_name;
-              // Fallback to auditorsProviders
               const provider = auditorsProviders.find(p => p.id === assessment.provider_id);
               if (provider?.legal_name) return provider.legal_name;
               return assessment.provider_id.substring(0, 20) + (assessment.provider_id.length > 20 ? '...' : '');
             };
 
-            return (
-              <>
-                {draftAssessments.length > 0 && (
-                  <section style={{ marginBottom: '32px' }}>
-                    <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Evaluaciones en curso</h2>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#0052cc',
-                        color: 'white',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                      }}>
-                        {draftAssessments.length}
-                      </span>
-                    </div>
-                    <div className="page-table-wrapper">
-                      <table className="page-table">
-                        <thead>
-                          <tr>
-                            <th>Prestador</th>
-                            <th>Servicio</th>
-                            <th>Tipo</th>
-                            <th>Cumplimiento</th>
-                            <th>Estado</th>
-                            <th>Actualizado</th>
-                            <th>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {draftAssessments.map(a => (
-                            <tr key={a.id}>
-                              <td>{getProviderName(a)}</td>
-                              <td>{getServiceName(a.service_id)}</td>
-                              <td>{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</td>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <div style={{
-                                    width: '60px',
-                                    height: '8px',
-                                    background: '#e5e7eb',
-                                    borderRadius: '4px',
-                                    overflow: 'hidden',
-                                  }}>
-                                    <div style={{
-                                      width: `${(a.compliance_percentage ?? a.compliance_percent ?? 0)}%`,
-                                      height: '100%',
-                                      background: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
-                                    }} />
-                                  </div>
-                                  <span style={{
-                                    fontSize: '12px',
-                                    fontWeight: 600,
-                                    color: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
-                                  }}>
-                                    {Math.round((a.compliance_percentage ?? a.compliance_percent ?? 0))}%
-                                  </span>
-                                </div>
-                              </td>
-                              <td>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 8px',
-                                  background: `${STATUS_COLORS[a.status]}15`,
-                                  color: STATUS_COLORS[a.status],
-                                  borderRadius: '4px',
-                                  fontSize: '12px',
-                                  fontWeight: 500,
-                                }}>
-                                  {STATUS_LABELS[a.status]}
-                                </span>
-                              </td>
-                              <td>{new Date(a.updated_at).toLocaleDateString('es-CO')}</td>
-                              <td>
-                                <button
-                                  onClick={() => navigate(`/assessments/${a.id}`)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    background: '#0052cc',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  Continuar →
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
+            const getComplianceColor = (pct: number) =>
+              pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
 
-                <div className="card-grid">
-                  {completedAssessments.map((a) => {
+            const renderGrid = (list: Assessment[], sectionLabel: string, count: number) => (
+              <section className="assm-section">
+                <div className="assm-section-header">
+                  <span className="assm-section-dot" />
+                  <h2>{sectionLabel}</h2>
+                  <span className="assm-section-count">{count}</span>
+                </div>
+                <div className="prov-grid">
+                  {list.map(a => {
+                    const pct = Math.round(a.compliance_percentage ?? a.compliance_percent ?? 0);
+                    const compColor = getComplianceColor(pct);
+                    const isSelected = selectedAssessments.has(a.id);
                     return (
-            <div
-              key={a.id}
-              className={`assessment-card ${selectionMode && selectedAssessments.has(a.id) ? 'selected' : ''}`}
-              onClick={() => !selectionMode && navigate(`/assessments/${a.id}`)}
-              style={{ cursor: selectionMode ? 'pointer' : 'pointer' }}
-            >
-              {selectionMode && (
-                <div className="assessment-card-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedAssessments.has(a.id)}
-                    onChange={() => toggleAssessmentSelection(a.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              )}
-              <div className="assessment-card-header">
-                <span
-                  className="status-badge"
-                  style={{
-                    background: `${STATUS_COLORS[a.status]}15`,
-                    color: STATUS_COLORS[a.status],
-                  }}
-                >
-                  {STATUS_LABELS[a.status]}
-                </span>
-                <span className="card-type">{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</span>
-              </div>
-              <h3 className="card-title">{a.title}</h3>
-              <div className="compliance-bar-container">
-                <div className="compliance-bar-label">
-                  <span>Cumplimiento</span>
-                  <span style={{
-                    fontWeight: 700,
-                    color: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
-                  }}>
-                    {Math.round((a.compliance_percentage ?? a.compliance_percent ?? 0))}%
-                  </span>
-                </div>
-                <div className="compliance-bar">
-                  <div
-                    className="compliance-bar-fill"
-                    style={{
-                      width: `${(a.compliance_percentage ?? a.compliance_percent ?? 0)}%`,
-                      background: (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 80 ? '#00875a' : (a.compliance_percentage ?? a.compliance_percent ?? 0) >= 50 ? '#ff8b00' : '#de350b',
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="card-date">
-                Actualizado: {new Date(a.updated_at).toLocaleDateString('es-CO')}
-              </div>
-            </div>
+                      <div
+                        key={a.id}
+                        className={`prov-card assm-card${isSelected ? ' assm-card-selected' : ''}`}
+                        onClick={() => selectionMode ? toggleAssessmentSelection(a.id) : navigate(`/assessments/${a.id}`)}
+                      >
+                        {/* Accent bar con color de estado */}
+                        <div className="prov-card-accent" style={{
+                          background: a.status === 'completed' ? 'linear-gradient(180deg,#10b981,#34d399)'
+                            : a.status === 'in_progress' ? 'linear-gradient(180deg,#6366f1,#818cf8)'
+                            : 'linear-gradient(180deg,#94a3b8,#cbd5e1)',
+                        }} />
+
+                        {/* Top row */}
+                        <div className="prov-card-top">
+                          <div className="prov-card-icon">
+                            {selectionMode ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleAssessmentSelection(a.id)}
+                                onClick={e => e.stopPropagation()}
+                                style={{ width: '16px', height: '16px', accentColor: '#6366f1', cursor: 'pointer' }}
+                              />
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                                <line x1="9" y1="12" x2="15" y2="12"/>
+                                <line x1="9" y1="16" x2="13" y2="16"/>
+                              </svg>
+                            )}
+                          </div>
+                          <span className={`prov-status prov-status-${a.status === 'completed' ? 'active' : a.status === 'in_progress' ? 'in-progress' : 'inactive'}`}>
+                            <span className="prov-status-dot" />
+                            {STATUS_LABELS[a.status]}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <div className="prov-card-name assm-title">{a.title || getServiceName(a.service_id)}</div>
+
+                        {/* Compliance bar */}
+                        <div className="assm-compliance">
+                          <div className="assm-compliance-header">
+                            <span className="prov-info-label">Cumplimiento</span>
+                            <span className="assm-pct" style={{ color: compColor }}>{pct}%</span>
+                          </div>
+                          <div className="assm-bar-track">
+                            <div className="assm-bar-fill" style={{ width: `${pct}%`, background: compColor }} />
+                          </div>
+                        </div>
+
+                        {/* Info rows */}
+                        <div className="prov-card-info">
+                          <div className="prov-info-row">
+                            <span className="prov-info-label">Prestador</span>
+                            <span className="prov-info-value assm-truncate">{getProviderName(a)}</span>
+                          </div>
+                          <div className="prov-info-row">
+                            <span className="prov-info-label">Servicio</span>
+                            <span className="prov-info-value assm-truncate">{getServiceName(a.service_id)}</span>
+                          </div>
+                          <div className="prov-info-row">
+                            <span className="prov-info-label">Tipo</span>
+                            <span className="prov-info-value">{ASSESSMENT_TYPES[a.assessment_version] || a.assessment_version}</span>
+                          </div>
+                          <div className="prov-info-row">
+                            <span className="prov-info-label">Actualizado</span>
+                            <span className="prov-info-value">{new Date(a.updated_at).toLocaleDateString('es-CO')}</span>
+                          </div>
+                        </div>
+
+                        {/* Action */}
+                        <div className="prov-card-actions">
+                          <button
+                            className="prov-btn-edit assm-btn-full"
+                            onClick={e => { e.stopPropagation(); navigate(`/assessments/${a.id}`); }}
+                          >
+                            {a.status === 'completed' ? 'Ver Evaluación' : 'Continuar →'}
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
+              </section>
+            );
+
+            return (
+              <>
+                {draftAssessments.length > 0 && renderGrid(draftAssessments, 'Evaluaciones en curso', draftAssessments.length)}
+                {completedAssessments.length > 0 && renderGrid(completedAssessments, 'Evaluaciones completadas', completedAssessments.length)}
               </>
             );
           })()}
@@ -545,9 +492,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 return;
               }
 
-              // RBAC: Auditor cannot create assessments (Norma 3100 art. 5)
-              if (user?.role === 'auditor') {
-                setModalError('Auditor no puede crear evaluaciones. Solo el prestador puede autoevaluar (Norma 3100 art. 5).');
+              if (user?.role === 'auditor' && !formData.providerId) {
+                setModalError('Por favor selecciona un prestador para la evaluación');
                 return;
               }
 
@@ -561,8 +507,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               try {
                 setIsSubmitting(true);
 
-                // Only provider_admin can create (with their own provider)
-                const finalProviderId = providerId;
+                // Auditor selects from their assigned providers; super_admin uses prop
+                const finalProviderId = user?.role === 'auditor' ? formData.providerId : providerId;
 
                 // Intentar crear via API
                 let createdAssessmentId: string | null = null;
@@ -642,6 +588,32 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   placeholder="Ej: Evaluación Norma 3100 2026"
                 />
               </div>
+
+              {user?.role === 'auditor' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                    Prestador <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    value={formData.providerId}
+                    onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: formData.providerId ? '1px solid #ddd' : '2px solid #ef4444',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="">-- Selecciona un prestador --</option>
+                    {auditorsProviders.map((p) => (
+                      <option key={p.id} value={p.id}>{p.legal_name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>

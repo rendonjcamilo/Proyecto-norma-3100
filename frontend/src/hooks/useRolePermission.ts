@@ -26,8 +26,8 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
     canManage: ['super_admin'],
   },
   assessments: {
-    canCreate: ['super_admin', 'provider_admin'],
-    canEdit: ['super_admin', 'provider_admin'],
+    canCreate: ['super_admin', 'auditor'],
+    canEdit: ['super_admin', 'auditor'],
     canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
     canManage: ['super_admin'],

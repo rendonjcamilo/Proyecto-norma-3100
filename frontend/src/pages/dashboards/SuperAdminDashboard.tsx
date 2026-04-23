@@ -174,28 +174,7 @@ export function SuperAdminDashboard(): JSX.Element {
             <div className="sad-nav-desc">Crea, edita y administra los usuarios del sistema por rol y prestador</div>
           </a>
 
-          {/* Reportes */}
-          <a href="/reports" className="sad-nav-card sad-nav-amber">
-            <div className="sad-nav-icon-row">
-              <div className="sad-nav-icon-wrap">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10"/>
-                  <line x1="12" y1="20" x2="12" y2="4"/>
-                  <line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-              </div>
-              <svg className="sad-nav-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="7" y1="17" x2="17" y2="7"/>
-                <polyline points="7 7 17 7 17 17"/>
-              </svg>
-            </div>
-            <div className="sad-nav-label">Reportes Globales</div>
-            <div className="sad-nav-desc">Visualiza métricas de cumplimiento y hallazgos de todos los prestadores</div>
-          </a>
-
-          {/* Plantillas */}
+{/* Plantillas */}
           <a href="/notifications/email-templates" className="sad-nav-card sad-nav-cyan">
             <div className="sad-nav-icon-row">
               <div className="sad-nav-icon-wrap">

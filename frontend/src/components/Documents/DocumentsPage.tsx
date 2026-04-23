@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { documentsApi, downloadBlob } from '../../services/api';
 import { useRolePermission } from '../../hooks/useRolePermission';
 import './DocumentsPage.css';
+import '../../pages/Pages.css';
 
 interface DocumentCatalogItem {
   id: string;
@@ -191,20 +192,25 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   return (
     <div className="docs-page">
       {/* === HEADER === */}
-      <header className="docs-header">
-        <div>
-          <h1 className="docs-title">Matriz Documental</h1>
-          <p className="docs-subtitle">
-            {providerName} · {catalog.length} documentos en catálogo Norma 3100
-          </p>
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Gestión Documental
+          </span>
+          <h1 className="aud-hero-title">Matriz Documental</h1>
+          <p className="aud-hero-subtitle">{providerName} · {catalog.length} documentos en catálogo Norma 3100</p>
         </div>
-        <button className="docs-btn-primary" onClick={loadData}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
-          </svg>
-          Refrescar
-        </button>
-      </header>
+        <div className="aud-hero-actions">
+          <button className="aud-hero-btn" onClick={loadData}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            Refrescar
+          </button>
+        </div>
+        <div className="aud-hero-orb" />
+      </div>
 
       {/* === KPI SUMMARY === */}
       {summary && (
@@ -298,88 +304,116 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         </div>
       </section>
 
-      {/* === TABLE === */}
-      <section className="docs-table-wrapper">
-        <table className="docs-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Documento</th>
-              <th>Categoría</th>
-              <th>Estado</th>
-              <th>Vigencia</th>
-              <th>Versión</th>
-              <th className="th-actions">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCatalog.map((item) => {
-              const doc = documentsByCatalogId.get(item.id);
-              const status = (doc?.computed_status || doc?.status || 'pending') as string;
-              return (
-                <tr key={item.id} className={!doc ? 'row-missing' : ''}>
-                  <td className="cell-code">{item.code}</td>
-                  <td className="cell-name">
-                    <div>{item.name}</div>
-                    {item.is_mandatory && <span className="badge-mandatory">Obligatorio</span>}
-                  </td>
-                  <td className="cell-muted">{item.category}</td>
-                  <td>
-                    <span
-                      className="status-pill"
-                      style={{
-                        background: `${STATUS_COLORS[status] || '#6b778c'}15`,
-                        color: STATUS_COLORS[status] || '#6b778c',
-                      }}
-                    >
-                      {STATUS_LABELS[status] || status}
+      {/* === DOCUMENT CARDS === */}
+      {filteredCatalog.length === 0 ? (
+        <div className="prov-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <h3>Sin resultados</h3>
+          <p>No se encontraron documentos con los filtros aplicados</p>
+        </div>
+      ) : (
+        <div className="prov-grid docs-grid">
+          {filteredCatalog.map((item) => {
+            const doc = documentsByCatalogId.get(item.id);
+            const status = (doc?.computed_status || doc?.status || 'pending') as string;
+            const accentColor = status === 'compliant' ? 'linear-gradient(180deg,#10b981,#34d399)'
+              : status === 'expired' || status === 'rejected' ? 'linear-gradient(180deg,#ef4444,#f87171)'
+              : status === 'under_review' || status === 'expiring_soon' ? 'linear-gradient(180deg,#f59e0b,#fbbf24)'
+              : 'linear-gradient(180deg,#94a3b8,#cbd5e1)';
+            const statusClass = status === 'compliant' ? 'prov-status-active'
+              : status === 'expired' || status === 'rejected' ? 'docs-status-danger'
+              : status === 'under_review' || status === 'expiring_soon' ? 'docs-status-warn'
+              : 'prov-status-inactive';
+            return (
+              <div key={item.id} className={`prov-card docs-card${!doc ? ' docs-card-missing' : ''}`}>
+                {/* Accent bar */}
+                <div className="prov-card-accent" style={{ background: accentColor }} />
+
+                {/* Top row */}
+                <div className="prov-card-top">
+                  <div className="prov-card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                  </div>
+                  <span className={`prov-status ${statusClass}`}>
+                    <span className="prov-status-dot" />
+                    {STATUS_LABELS[status] || status}
+                  </span>
+                </div>
+
+                {/* Code + name */}
+                <div className="docs-card-code">{item.code}</div>
+                <div className="prov-card-name docs-card-name">{item.name}</div>
+
+                {/* Badges */}
+                <div className="docs-card-badges">
+                  {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
+                </div>
+
+                {/* Info rows */}
+                <div className="prov-card-info">
+                  <div className="prov-info-row">
+                    <span className="prov-info-label">Categoría</span>
+                    <span className="prov-info-value assm-truncate">{item.category}</span>
+                  </div>
+                  <div className="prov-info-row">
+                    <span className="prov-info-label">Vigencia</span>
+                    <span className="prov-info-value">
+                      {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}
                     </span>
-                  </td>
-                  <td className="cell-muted">
-                    {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}
-                  </td>
-                  <td className="cell-muted">{doc ? `v${doc.version}` : '—'}</td>
-                  <td className="cell-actions">
-                    {doc && (
-                      <button
-                        className="btn-icon"
-                        title="Descargar"
-                        onClick={() => handleDownload(doc.id, doc.original_filename)}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                      </button>
-                    )}
-                    {can('documents', 'create') && (
-                      <button
-                        className="btn-icon btn-upload"
-                        title={doc ? 'Actualizar (nueva versión)' : 'Subir'}
-                        onClick={() => setUploadModal(item)}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {filteredCatalog.length === 0 && (
-              <tr>
-                <td colSpan={7} className="cell-empty">
-                  Sin resultados para los filtros aplicados
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </section>
+                  </div>
+                  <div className="prov-info-row">
+                    <span className="prov-info-label">Versión</span>
+                    <span className="prov-info-value prov-mono">{doc ? `v${doc.version}` : '—'}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="prov-card-actions">
+                  {doc && (
+                    <button
+                      className="prov-btn-edit docs-btn-action"
+                      title="Descargar"
+                      onClick={() => handleDownload(doc.id, doc.original_filename)}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Descargar
+                    </button>
+                  )}
+                  {can('documents', 'create') && (
+                    <button
+                      className="docs-btn-upload docs-btn-action"
+                      title={doc ? 'Actualizar versión' : 'Subir'}
+                      onClick={() => setUploadModal(item)}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      {doc ? 'Actualizar' : 'Subir'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* === UPLOAD MODAL === */}
       {uploadModal && (

@@ -4,8 +4,9 @@
  */
 
 import './dashboards.css';
+import './AuditorDashboard.css';
 import React, { useState, useEffect } from 'react';
-import { providersApi, assessmentsApi } from '@services/api';
+import { providersApi } from '@services/api';
 import { useAuth } from '@context/AuthContext';
 
 interface ProviderWithMetrics {
@@ -37,16 +38,6 @@ export function AuditorDashboard(): JSX.Element {
     actionsRequired: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAddProvider, setShowAddProvider] = useState(false);
-  const [creatingProvider, setCreatingProvider] = useState(false);
-  const [formData, setFormData] = useState({
-    rut: '',
-    legal_name: '',
-    address: '',
-    city: '',
-    department: '',
-  });
 
   useEffect(() => {
     loadProviders();
@@ -56,10 +47,8 @@ export function AuditorDashboard(): JSX.Element {
     if (!user?.id) return;
     try {
       setLoading(true);
-      setError(null);
       const response = await providersApi.getAuditorProviders(user.id);
       setProviders((response.providers || []) as ProviderWithMetrics[]);
-      // Update metrics with real data
       setMetrics({
         totalProviders: response.count || 0,
         pendingEvaluations: 0,
@@ -69,35 +58,19 @@ export function AuditorDashboard(): JSX.Element {
       });
     } catch (err) {
       console.error('Error loading auditor providers:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar proveedores');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateProvider = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setCreatingProvider(true);
-      await providersApi.create(formData);
-      setFormData({ rut: '', legal_name: '', address: '', city: '', department: '' });
-      setShowAddProvider(false);
-      loadProviders();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error creating provider');
-    } finally {
-      setCreatingProvider(false);
-    }
+  const getBadgeClass = (rate?: number) => {
+    if (!rate) return 'adb-badge-gray';
+    if (rate >= 80) return 'adb-badge-green';
+    if (rate >= 50) return 'adb-badge-orange';
+    return 'adb-badge-red';
   };
 
-  const getComplianceColor = (rate?: number) => {
-    if (!rate) return 'gray';
-    if (rate >= 80) return 'green';
-    if (rate >= 50) return 'orange';
-    return 'red';
-  };
-
-  const getComplianceLabel = (rate?: number) => {
+  const getBadgeLabel = (rate?: number) => {
     if (!rate) return 'Sin evaluar';
     if (rate >= 80) return '✓ Conforme';
     if (rate >= 50) return '⚠ Parcial';
@@ -109,104 +82,186 @@ export function AuditorDashboard(): JSX.Element {
   }
 
   return (
-    <div className="dashboard auditor-dashboard aud-page">
-      <div className="aud-hero">
-        <div className="aud-hero-content">
-          <span className="aud-hero-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+    <div className="adb-root">
+
+      {/* ── HERO BANNER ─────────────────────────────────── */}
+      <div className="adb-hero">
+        <div className="adb-hero-content">
+          <span className="adb-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none">
+              <circle cx="3" cy="3" r="3" fill="#818cf8"/>
+            </svg>
             Auditoría — Norma 3100
           </span>
-          <h1 className="aud-hero-title">Bienvenido, {user?.first_name}</h1>
-          <p className="aud-hero-subtitle">Panel de auditoría y seguimiento de cumplimiento de prestadores</p>
+          <h1 className="adb-hero-title">
+            Bienvenido, <span>{user?.first_name || 'Auditor'}</span>
+          </h1>
+          <p className="adb-hero-subtitle">
+            Panel de auditoría y seguimiento de cumplimiento de prestadores
+          </p>
         </div>
-        <div className="aud-hero-actions">
-          <button onClick={loadProviders} className="aud-hero-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="23 4 23 10 17 10"/>
-              <polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+
+        <button onClick={loadProviders} className="adb-refresh-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Actualizar
+        </button>
+
+        <div className="adb-hero-orb adb-hero-orb-1" />
+        <div className="adb-hero-orb adb-hero-orb-2" />
+      </div>
+
+      {/* ── KPI STRIP ───────────────────────────────────── */}
+      <div className="adb-kpi-strip">
+
+        {/* Prestadores */}
+        <div className="adb-kpi-card adb-kpi-indigo">
+          <div className="adb-kpi-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
-            Actualizar
-          </button>
+          </div>
+          <div className="adb-kpi-body">
+            <div className="adb-kpi-value">{metrics.totalProviders}</div>
+            <div className="adb-kpi-label">Prestadores</div>
+          </div>
+          <div className="adb-kpi-glow" />
         </div>
-        <div className="aud-hero-orb" />
+
+        {/* Evaluaciones Pendientes */}
+        <div className="adb-kpi-card adb-kpi-amber">
+          <div className="adb-kpi-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+              <rect x="9" y="3" width="6" height="4" rx="1"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+              <line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+          </div>
+          <div className="adb-kpi-body">
+            <div className="adb-kpi-value">{metrics.pendingEvaluations}</div>
+            <div className="adb-kpi-label">Eval. Pendientes</div>
+          </div>
+          <div className="adb-kpi-glow" />
+        </div>
+
+        {/* Hallazgos Críticos */}
+        <div className="adb-kpi-card adb-kpi-rose">
+          <div className="adb-kpi-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div className="adb-kpi-body">
+            <div className="adb-kpi-value">{metrics.criticalFindings}</div>
+            <div className="adb-kpi-label">Hallazgos Críticos</div>
+          </div>
+          <div className="adb-kpi-glow" />
+        </div>
+
+        {/* Cumplimiento Promedio */}
+        <div className="adb-kpi-card adb-kpi-cyan">
+          <div className="adb-kpi-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6"  y1="20" x2="6"  y2="14"/>
+            </svg>
+          </div>
+          <div className="adb-kpi-body">
+            <div className="adb-kpi-value">{metrics.avgComplianceRate}%</div>
+            <div className="adb-kpi-label">Cumpl. Promedio</div>
+          </div>
+          <div className="adb-kpi-glow" />
+        </div>
+
+        {/* Acciones Requeridas */}
+        <div className="adb-kpi-card adb-kpi-emerald">
+          <div className="adb-kpi-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <div className="adb-kpi-body">
+            <div className="adb-kpi-value">{metrics.actionsRequired}</div>
+            <div className="adb-kpi-label">Acciones Req.</div>
+          </div>
+          <div className="adb-kpi-glow" />
+        </div>
+
       </div>
 
-      {/* KPI Cards */}
-      <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-label">Prestadores Asignados</div>
-          <div className="kpi-value">{metrics.totalProviders}</div>
+      {/* ── PRESTADORES ─────────────────────────────────── */}
+      <div className="adb-section">
+        <div className="adb-section-header">
+          <span className="adb-section-dot" />
+          <h2>Mis Prestadores Asignados</h2>
         </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Evaluaciones Pendientes</div>
-          <div className="kpi-value">{metrics.pendingEvaluations}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Hallazgos Críticos</div>
-          <div className="kpi-value critical">{metrics.criticalFindings}</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Cumplimiento Promedio</div>
-          <div className="kpi-value">{metrics.avgComplianceRate}%</div>
-        </div>
-
-        <div className="kpi-card">
-          <div className="kpi-label">Acciones Requeridas</div>
-          <div className="kpi-value">{metrics.actionsRequired}</div>
-        </div>
-      </div>
-
-      {/* Providers Section */}
-      <div className="dashboard-section">
-        <h2 style={{ textAlign: 'center', marginBottom: '32px' }}>Mis Prestadores</h2>
 
         {providers.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🏥</div>
-            <h2>Sin prestadores asignados</h2>
+          <div className="adb-empty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <h3>Sin prestadores asignados</h3>
             <p>Solicite que le asignen prestadores para comenzar a auditar</p>
           </div>
         ) : (
-          <div className="providers-grid">
+          <div className="adb-provider-grid">
             {providers.map(provider => (
-              <div key={provider.id} className="provider-card">
-                <div className="provider-header">
-                  <h3>{provider.legal_name}</h3>
-                  <span className={`compliance-badge ${getComplianceColor(provider.compliance_rate)}`}>
-                    {getComplianceLabel(provider.compliance_rate)}
+              <div key={provider.id} className="adb-provider-card">
+                <div className="adb-provider-top">
+                  <div className="adb-provider-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  </div>
+                  <span className={`adb-provider-badge ${getBadgeClass(provider.compliance_rate)}`}>
+                    {getBadgeLabel(provider.compliance_rate)}
                   </span>
                 </div>
 
-                <div className="provider-info">
-                  <div className="info-row">
-                    <span className="label">RUT:</span>
-                    <span className="value">{provider.rut}</span>
-                  </div>
+                <div className="adb-provider-name">{provider.legal_name}</div>
 
-                  <div className="info-row">
-                    <span className="label">Cumplimiento:</span>
-                    <span className="value">
-                      {provider.compliance_rate?.toFixed(1) || 'N/A'}%
+                <div className="adb-provider-info">
+                  <div className="adb-info-row">
+                    <span className="adb-info-label">RUT</span>
+                    <span className="adb-info-value">{provider.rut}</span>
+                  </div>
+                  <div className="adb-info-row">
+                    <span className="adb-info-label">Cumplimiento</span>
+                    <span className="adb-info-value">
+                      {provider.compliance_rate != null ? `${provider.compliance_rate.toFixed(1)}%` : 'N/A'}
                     </span>
                   </div>
-
-                  <div className="info-row">
-                    <span className="label">Evaluaciones pendientes de validar:</span>
-                    <span className="value badge-warning">
-                      {provider.pending_validations || 0}
-                    </span>
+                  <div className="adb-info-row">
+                    <span className="adb-info-label">Pendientes validar</span>
+                    <span className="adb-pending-badge">{provider.pending_validations || 0}</span>
                   </div>
                 </div>
 
-                <div className="provider-actions">
-                  <a href={`/providers/${provider.id}`} className="btn btn-outline">
+                <div className="adb-provider-actions">
+                  <a href={`/providers/${provider.id}`} className="adb-btn-outline">
                     Ver Detalles
                   </a>
-                  <a href={`/assessments?provider=${provider.id}`} className="btn btn-outline">
+                  <a href={`/assessments?provider=${provider.id}`} className="adb-btn-outline">
                     Evaluaciones
                   </a>
                 </div>
@@ -216,72 +271,6 @@ export function AuditorDashboard(): JSX.Element {
         )}
       </div>
 
-      {showAddProvider && (
-        <div className="modal-backdrop" onClick={() => setShowAddProvider(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>Crear Nuevo Prestador</h2>
-            <form onSubmit={handleCreateProvider} className="provider-form">
-              <div className="dashboard-form-group">
-                <label>RUT *</label>
-                <input
-                  type="text"
-                  placeholder="Ej: 860.123.456-7"
-                  value={formData.rut}
-                  onChange={(e) => setFormData({ ...formData, rut: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="dashboard-form-group">
-                <label>Nombre Legal *</label>
-                <input
-                  type="text"
-                  placeholder="Nombre completo del prestador"
-                  value={formData.legal_name}
-                  onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="dashboard-form-group">
-                <label>Dirección *</label>
-                <input
-                  type="text"
-                  placeholder="Dirección completa"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="dashboard-form-group">
-                <label>Ciudad *</label>
-                <input
-                  type="text"
-                  placeholder="Ciudad"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="dashboard-form-group">
-                <label>Departamento</label>
-                <input
-                  type="text"
-                  placeholder="Departamento"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                />
-              </div>
-              <div className="form-actions">
-                <button type="button" onClick={() => setShowAddProvider(false)} className="btn btn-outline">
-                  Cancelar
-                </button>
-                <button type="submit" disabled={creatingProvider} className="btn-dashboard btn-dashboard-primary">
-                  {creatingProvider ? 'Creando...' : 'Crear Prestador'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

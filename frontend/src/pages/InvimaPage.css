@@ -79,12 +79,21 @@
 }
 
 .invima-summary-card {
+  position: relative;
   background: var(--surface-primary);
-  border: 1px solid var(--border-default);
+  border: 1px solid #e2e8f0;
   border-left: 4px solid var(--color-primary);
-  border-radius: 8px;
-  padding: 16px 20px;
+  border-radius: 12px;
+  padding: 18px 20px;
   text-align: center;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.06);
+}
+
+.invima-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.4);
 }
 
 .summary-number {
@@ -140,8 +149,9 @@
 /* Table */
 .invima-table-wrapper {
   overflow-x: auto;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
+  border: 1px solid rgba(99,102,241,0.15);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.06);
 }
 
 .invima-table {
@@ -151,18 +161,18 @@
 }
 
 .invima-table thead {
-  background: var(--neutral-50);
+  background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, #f8fafc 100%);
 }
 
 .invima-table th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: #4338ca;
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--border-default);
+  border-bottom: 2px solid rgba(99,102,241,0.12);
   white-space: nowrap;
 }
 
@@ -203,7 +213,7 @@
   text-align: center;
   padding: 60px 20px;
   background: var(--surface-primary);
-  border: 2px dashed var(--border-default);
+  border: 2px dashed rgba(99,102,241,0.25);
   border-radius: 12px;
 }
 
@@ -513,7 +523,7 @@
 .search-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* Delete Action Button */
@@ -534,10 +544,11 @@
 /* Por Vencer Tab */
 .por-vencer-header {
   margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255, 171, 0, 0.05);
-  border-left: 4px solid var(--color-primary);
-  border-radius: 6px;
+  padding: 16px 20px;
+  background: rgba(217, 119, 6, 0.05);
+  border-left: 4px solid #d97706;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(217,119,6,0.08);
 }
 
 .por-vencer-header h2 {
@@ -558,13 +569,34 @@
 }
 
 .alerta-item {
+  position: relative;
   background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 16px 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.06);
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  overflow: hidden;
+}
+
+.alerta-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #6366f1, #818cf8);
+  border-radius: 12px 0 0 12px;
+}
+
+.alerta-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99,102,241,0.3);
+  box-shadow: 0 8px 20px rgba(99,102,241,0.1);
 }
 
 .alerta-header {
@@ -670,7 +702,7 @@
 .alerta-textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .alerta-form-actions {
@@ -706,11 +738,31 @@
 }
 
 .export-card {
+  position: relative;
   background: var(--surface-primary);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   padding: 20px;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(99,102,241,0.06);
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  overflow: hidden;
+}
+
+.export-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+}
+
+.export-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99,102,241,0.3);
+  box-shadow: 0 8px 20px rgba(99,102,241,0.12);
 }
 
 .export-number {

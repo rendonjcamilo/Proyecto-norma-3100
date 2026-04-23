@@ -66,7 +66,7 @@ export function providerAccessMiddleware(pool: Pool, providerIdKeys: string[] = 
     try {
       const user = (req as any).user;
       const userRole = user?.role;
-      const userId = user?.id;
+      const userId = user?.user_id;
 
       // super_admin bypasses all checks
       if (userRole === 'super_admin') {

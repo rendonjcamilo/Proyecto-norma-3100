@@ -393,83 +393,85 @@ export const ProvidersPage: React.FC = () => {
         <span className="search-count">{filtered.length} prestadores</span>
       </div>
 
-      {/* Providers table */}
-      <div className="page-table-wrapper">
-        <table className="page-table">
-          <thead>
-            <tr>
-              <th>Razón Social</th>
-              <th>RUT</th>
-              <th>Ciudad</th>
-              <th>Departamento</th>
-              <th>Estado</th>
-              <th>Registro</th>
-              <th style={{ textAlign: 'center', width: '140px' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((p) => (
-              <tr key={p.id}>
-                <td className="cell-bold">{p.legal_name}</td>
-                <td className="cell-code">{p.rut}</td>
-                <td>{p.city}</td>
-                <td>{p.department}</td>
-                <td>
-                  <span
-                    className="status-badge"
-                    style={{
-                      background: `${STATUS_COLORS[p.status] || '#6b778c'}15`,
-                      color: STATUS_COLORS[p.status] || '#6b778c',
-                    }}
-                  >
-                    {STATUS_LABELS[p.status] || p.status}
+      {/* Providers grid */}
+      {filtered.length === 0 ? (
+        <div className="prov-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <h3>Sin resultados</h3>
+          <p>No se encontraron prestadores con ese criterio de búsqueda</p>
+        </div>
+      ) : (
+        <div className="prov-grid">
+          {filtered.map((p) => (
+            <div key={p.id} className="prov-card">
+              {/* Accent bar */}
+              <div className="prov-card-accent" />
+
+              {/* Top row: icon + status */}
+              <div className="prov-card-top">
+                <div className="prov-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <span className={`prov-status prov-status-${p.status}`}>
+                  <span className="prov-status-dot" />
+                  {STATUS_LABELS[p.status] || p.status}
+                </span>
+              </div>
+
+              {/* Name */}
+              <div className="prov-card-name">{p.legal_name}</div>
+
+              {/* Info rows */}
+              <div className="prov-card-info">
+                <div className="prov-info-row">
+                  <span className="prov-info-label">RUT</span>
+                  <span className="prov-info-value prov-mono">{p.rut}</span>
+                </div>
+                <div className="prov-info-row">
+                  <span className="prov-info-label">Ciudad</span>
+                  <span className="prov-info-value">{p.city}</span>
+                </div>
+                <div className="prov-info-row">
+                  <span className="prov-info-label">Departamento</span>
+                  <span className="prov-info-value">{p.department}</span>
+                </div>
+                <div className="prov-info-row">
+                  <span className="prov-info-label">Registro</span>
+                  <span className="prov-info-value">
+                    {new Date(p.created_at).toLocaleDateString('es-CO')}
                   </span>
-                </td>
-                <td className="cell-muted">
-                  {new Date(p.created_at).toLocaleDateString('es-CO')}
-                </td>
-                <td style={{ textAlign: 'center', display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => openEditModal(p)}
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '12px',
-                      background: '#0066cc',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => openDeleteConfirm(p)}
-                    style={{
-                      padding: '6px 10px',
-                      fontSize: '12px',
-                      background: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={7} className="cell-empty">
-                  Sin resultados
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="prov-card-actions">
+                <button className="prov-btn-edit" onClick={() => openEditModal(p)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                  Editar
+                </button>
+                <button className="prov-btn-delete" onClick={() => openDeleteConfirm(p)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (

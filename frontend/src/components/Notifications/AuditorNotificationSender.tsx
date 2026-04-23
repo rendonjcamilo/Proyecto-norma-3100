@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { notificationsApi, providersApi, usersApi, Provider, EmailTemplate, SmsTemplate, User } from '../../services/api';
+import { notificationsApi, providersApi, Provider, EmailTemplate, SmsTemplate } from '../../services/api';
 import './AuditorNotificationSender.css';
 
 interface PreviewData {
@@ -17,9 +17,8 @@ interface PreviewData {
 export const AuditorNotificationSender: React.FC = () => {
   const { user } = useAuth();
   const [channel, setChannel] = useState<'email' | 'sms'>('email');
-  const [auditors, setAuditors] = useState<User[]>([]);
-  const [selectedAuditor, setSelectedAuditor] = useState('');
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState('');
   const [templates, setTemplates] = useState<EmailTemplate[] | SmsTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [variables, setVariables] = useState<Record<string, string>>({});
@@ -29,17 +28,10 @@ export const AuditorNotificationSender: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
-  // Load auditors and providers
+  // Cargar prestadores del auditor logueado al montar
   useEffect(() => {
-    loadAuditors();
-  }, []);
-
-  // Load providers when auditor changes
-  useEffect(() => {
-    if (selectedAuditor) {
-      loadProviders();
-    }
-  }, [selectedAuditor]);
+    if (user?.id) loadProviders();
+  }, [user?.id]);
 
   // Load templates when channel changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,36 +47,17 @@ export const AuditorNotificationSender: React.FC = () => {
     }
   }, [selectedTemplate, variables, channel]);
 
-  const loadAuditors = async () => {
-    try {
-      setLoading(true);
-      const response = await usersApi.list();
-      const auditorsList = (response.data || []).filter((u: User) => u.role === 'auditor');
-      setAuditors(auditorsList);
-      if (auditorsList.length > 0) {
-        setSelectedAuditor(auditorsList[0].id);
-      }
-    } catch (err) {
-      console.error('Error loading auditors:', err);
-      setMessage('Error cargando auditores');
-      setMessageType('error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadProviders = async () => {
     try {
-      if (!selectedAuditor) {
-        setProviders([]);
-        return;
-      }
-      const response = await providersApi.getAuditorProviders(selectedAuditor);
+      setLoading(true);
+      const response = await providersApi.getAuditorProviders(user!.id);
       setProviders(response.providers || []);
     } catch (err) {
       console.error('Error loading providers:', err);
       setMessage('Error cargando prestadores');
       setMessageType('error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,7 +91,8 @@ export const AuditorNotificationSender: React.FC = () => {
     const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate | undefined;
     if (!template) return;
 
-    const providerName = providers.length > 0 ? 'Prestadores' : 'Prestador';
+    const selectedProv = providers.find((p) => p.id === selectedProvider);
+    const providerName = selectedProv ? selectedProv.legal_name : (providers.length > 0 ? providers[0].legal_name : 'Prestador');
     const auditorName = user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : 'Auditor';
 
     const defaultVars: PreviewData = {
@@ -145,8 +119,8 @@ export const AuditorNotificationSender: React.FC = () => {
   };
 
   const handleSend = async () => {
-    if (!selectedTemplate || !channel || providers.length === 0) {
-      setMessage('Por favor selecciona plantilla y canal (debe tener al menos un prestador asignado)');
+    if (!selectedTemplate || !channel || !selectedProvider) {
+      setMessage('Por favor selecciona un prestador y una plantilla');
       setMessageType('error');
       return;
     }
@@ -155,17 +129,14 @@ export const AuditorNotificationSender: React.FC = () => {
       setSending(true);
       const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate;
 
-      // Send to all assigned providers
-      for (const provider of providers) {
-        await notificationsApi.sendToProvider({
-          providerId: provider.id,
-          templateName: template.template_name,
-          channel,
-          variables,
-        });
-      }
+      await notificationsApi.sendToProvider({
+        providerId: selectedProvider,
+        templateName: template.template_name,
+        channel,
+        variables,
+      });
 
-      setMessage(`✓ Notificaciones enviadas a ${providers.length} prestador(es) exitosamente`);
+      setMessage('✓ Notificación enviada exitosamente');
       setMessageType('success');
       setSelectedTemplate('');
       setVariables({});
@@ -190,8 +161,12 @@ export const AuditorNotificationSender: React.FC = () => {
       <div className="ans-container">
         {/* Header */}
         <div className="ans-header">
+          <span className="ans-header-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Comunicaciones
+          </span>
           <h2>Enviar notificación</h2>
-          <p>Comunícate con el auditor seleccionado</p>
+          <p>Comunícate con los prestadores asignados vía email o SMS</p>
         </div>
 
         {/* Message */}
@@ -223,26 +198,24 @@ export const AuditorNotificationSender: React.FC = () => {
               </div>
             </div>
 
-            {/* Auditor Select */}
+            {/* Provider Select */}
             <div className="ans-form-group">
-              <label htmlFor="auditor">Auditor</label>
+              <label htmlFor="provider">Prestador</label>
               <select
-                id="auditor"
-                value={selectedAuditor}
-                onChange={(e) => setSelectedAuditor(e.target.value)}
-                disabled={loading}
+                id="provider"
+                value={selectedProvider}
+                onChange={(e) => setSelectedProvider(e.target.value)}
+                disabled={loading || providers.length === 0}
               >
-                <option value="">-- Seleccionar auditor --</option>
-                {auditors.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.first_name} {a.last_name} ({a.email})
+                <option value="">-- Seleccionar prestador --</option>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.legal_name} ({p.rut})
                   </option>
                 ))}
               </select>
-              {selectedAuditor && (
-                <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
-                  Se enviará a {providers.length} prestador(es) asignado(s)
-                </small>
+              {!loading && providers.length === 0 && (
+                <small className="ans-hint">No tienes prestadores asignados</small>
               )}
             </div>
 
@@ -290,7 +263,7 @@ export const AuditorNotificationSender: React.FC = () => {
               <button
                 className="ans-send-btn"
                 onClick={handleSend}
-                disabled={sending || providers.length === 0 || !selectedTemplate}
+                disabled={sending || !selectedProvider || !selectedTemplate}
               >
                 {sending ? '📤 Enviando...' : '📤 Enviar Notificación'}
               </button>

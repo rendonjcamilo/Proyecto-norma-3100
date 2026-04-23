@@ -27,19 +27,18 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { providerId, locationId?, serviceId, assessmentVersion }
    * Output: { id, questionnaire, status, etc. }
    * Auto-loads published questionnaire for service
-   * RBAC: provider_admin (own), super_admin (any)
-   * NOTE: Norma 3100 art. 5 — only provider can self-evaluate (autoevaluación)
+   * RBAC: auditor (assigned providers), super_admin (any)
    */
   router.post(
     '/assessments',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['auditor', 'super_admin']),
     providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
         const { providerId, locationId, serviceId, assessmentVersion } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.user_id;
+        const userRole = (req as any).user?.role;
 
         // Validation
         if (!serviceId || !assessmentVersion) {
@@ -54,15 +53,18 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           });
         }
 
-        // RBAC: provider_admin can only create for own provider
-        if (userRole === 'provider_admin') {
-          const userResult = await pool.query(
-            'SELECT provider_id FROM users WHERE id = $1',
-            [userId]
+        // RBAC: auditor can only create for assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, providerId]
           );
 
-          if (userResult.rows.length === 0 || userResult.rows[0].provider_id !== providerId) {
-            return res.status(403).json({ error: 'Access denied' });
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
           }
         }
 
@@ -108,8 +110,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId, serviceId, status, startDate, endDate, limit, offset } = req.query;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = (req as any).user?.role;
+        const userId = (req as any).user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         let filterProviderId = providerId as string | undefined;
@@ -195,8 +197,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = (req as any).user?.role;
+        const userId = (req as any).user?.user_id;
 
         const assessment = await assessmentService.getAssessment(id);
 
@@ -255,8 +257,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = (req as any).user?.role;
+        const userId = (req as any).user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         if (userRole === 'provider_admin') {
@@ -312,19 +314,18 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Input: { responses: [{ criterionId, status: C/NC/NA, description?, comments?, evidenceFileIds? }] }
    * Recalculates compliance % and semáforo in real-time
    * Allows partial updates (save progress)
-   * RBAC: provider_admin (own), super_admin
-   * NOTE: Norma 3100 art. 5 — only provider answers criteria (autoevaluación)
+   * RBAC: auditor (assigned), super_admin
    */
   router.put(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { responses } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.user_id;
+        const userRole = (req as any).user?.role;
 
         if (!responses || !Array.isArray(responses)) {
           return res.status(400).json({ error: 'responses array is required' });
@@ -334,21 +335,6 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         const assessment = await assessmentService.getAssessment(id);
         if (!assessment) {
           return res.status(404).json({ error: 'Assessment not found' });
-        }
-
-        // RBAC: provider_admin can only update own provider
-        if (userRole === 'provider_admin') {
-          const userResult = await pool.query(
-            'SELECT provider_id FROM users WHERE id = $1',
-            [userId]
-          );
-
-          if (
-            userResult.rows.length === 0 ||
-            userResult.rows[0].provider_id !== assessment.providerId
-          ) {
-            return res.status(403).json({ error: 'Access denied' });
-          }
         }
 
         // RBAC: auditor can only update assigned providers
@@ -419,17 +405,17 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Auto-generates hallazgos from NC criteria
    * Emits audit events
    * Cannot be modified after submission
-   * RBAC: provider_admin (own), super_admin
+   * RBAC: auditor (assigned), super_admin
    */
   router.post(
     '/assessments/:id/submit',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = (req as any).user?.user_id;
+        const userRole = (req as any).user?.role;
 
         // Verify assessment exists
         const assessment = await assessmentService.getAssessment(id);
@@ -437,18 +423,18 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           return res.status(404).json({ error: 'Assessment not found' });
         }
 
-        // RBAC: provider_admin can only submit own provider
-        if (userRole === 'provider_admin') {
-          const userResult = await pool.query(
-            'SELECT provider_id FROM users WHERE id = $1',
-            [userId]
+        // RBAC: auditor can only submit for assigned providers
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, assessment.providerId]
           );
 
-          if (
-            userResult.rows.length === 0 ||
-            userResult.rows[0].provider_id !== assessment.providerId
-          ) {
-            return res.status(403).json({ error: 'Access denied' });
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
           }
         }
 
@@ -525,8 +511,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = (req as any).user?.role;
+        const userId = (req as any).user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         if (userRole === 'provider_admin') {
