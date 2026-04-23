@@ -109,12 +109,27 @@ export function AuditorDashboard(): JSX.Element {
   }
 
   return (
-    <div className="dashboard auditor-dashboard">
-      <div className="dashboard-header super-admin-header">
-        <h1>Dashboard de Cumplimiento — {user?.first_name} {user?.last_name}</h1>
-        <button onClick={loadProviders} className="btn-refresh">
-          Actualizar
-        </button>
+    <div className="dashboard auditor-dashboard aud-page">
+      <div className="aud-hero">
+        <div className="aud-hero-content">
+          <span className="aud-hero-badge">
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            Auditoría — Norma 3100
+          </span>
+          <h1 className="aud-hero-title">Bienvenido, {user?.first_name}</h1>
+          <p className="aud-hero-subtitle">Panel de auditoría y seguimiento de cumplimiento de prestadores</p>
+        </div>
+        <div className="aud-hero-actions">
+          <button onClick={loadProviders} className="aud-hero-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Actualizar
+          </button>
+        </div>
+        <div className="aud-hero-orb" />
       </div>
 
       {/* KPI Cards */}
