@@ -732,6 +732,8 @@ export interface RepsRegistroData {
   codigo_habilitacion: string;
   nombre_prestador: string;
   nit: string;
+  email?: string;
+  direccion?: string;
   municipio: string;
   departamento: string;
   tipo_prestador: string;

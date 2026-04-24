@@ -518,6 +518,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     serviceId: formData.serviceId,
                     questionnaireId: formData.serviceId,
                     assessmentVersion: formData.type,
+                    title: formData.title.trim(),
                   });
                   createdAssessmentId = createRes.data?.id;
                   console.log('[DEBUG] Assessment created:', createdAssessmentId);

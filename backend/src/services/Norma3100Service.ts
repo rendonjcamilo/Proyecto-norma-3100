@@ -503,7 +503,9 @@ export class Norma3100Service {
           criterionText: criterion.text,
           standardCode: criterion.standardCode,
           severity,
-          findingDescription: `No cumple con criterio ${criterion.code}: ${criterion.text}`,
+          findingDescription: Math.random() < 0.5
+            ? `No se evidencia ${criterion.text}.`
+            : `No cuenta con ${criterion.text}.`,
           createdAt: new Date(),
         });
       }

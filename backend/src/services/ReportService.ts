@@ -769,14 +769,10 @@ export class ReportService {
         doc.fillColor(COLORS.text).fontSize(10).font('Helvetica-Bold').text('FIRMAS', 50, y);
         y += 20;
 
-        const firmaW = (W - 40) / 2;
-        // Firma auditor
-        doc.rect(50, y + 30, firmaW, 1).fill(COLORS.text);
+        // Firma auditor (única firma requerida)
+        doc.rect(50, y + 30, W, 1).fill(COLORS.text);
         doc.fontSize(8).font('Helvetica').fillColor(COLORS.muted)
-          .text('Firma del Auditor Líder', 50, y + 34, { width: firmaW, align: 'center' });
-        // Firma representante
-        doc.rect(90 + firmaW, y + 30, firmaW, 1).fill(COLORS.text);
-        doc.text('Firma del Representante Legal del Prestador', 90 + firmaW, y + 34, { width: firmaW, align: 'center' });
+          .text('Firma del Auditor Líder', 50, y + 34, { width: W, align: 'center' });
 
         // ── PIE DE PÁGINA ────────────────────────────────────────
         const footerY = doc.page.height - 50;
@@ -967,7 +963,7 @@ export class ReportService {
       }),
 
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
+        width: { size: 60, type: WidthType.PERCENTAGE },
         rows: [
           new TableRow({
             children: [
@@ -976,16 +972,6 @@ export class ReportService {
                   new Paragraph(''),
                   new Paragraph(''),
                   new Paragraph({ text: 'Auditor Líder', alignment: AlignmentType.CENTER }),
-                ],
-              }),
-              new TableCell({
-                children: [
-                  new Paragraph(''),
-                  new Paragraph(''),
-                  new Paragraph({
-                    text: 'Representante Legal del Prestador',
-                    alignment: AlignmentType.CENTER,
-                  }),
                 ],
               }),
             ],

@@ -33,8 +33,14 @@ interface NCReviewModalProps {
   onCancel: () => void;
 }
 
-const sugerirNegacion = (criterionName: string): string =>
-  `La institución no cumple con el criterio: "${criterionName}".`;
+const sugerirNegacion = (criterionName: string): string => {
+  const plantillas = [
+    (t: string) => `No se evidencia ${t}.`,
+    (t: string) => `No cuenta con ${t}.`,
+  ];
+  const elegida = plantillas[Math.floor(Math.random() * plantillas.length)];
+  return elegida(criterionName);
+};
 
 export const NCReviewModal: React.FC<NCReviewModalProps> = ({
   criteria,

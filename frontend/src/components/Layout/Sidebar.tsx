@@ -32,9 +32,10 @@ const navigation: NavSection[] = [
     roles: ALL_ROLES,
     items: [
       { to: '/', icon: 'dashboard', label: 'Dashboard', roles: ALL_ROLES },
-      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin'] },
-      { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['auditor', 'provider_admin'] },
       { to: '/providers', icon: 'providers', label: 'Prestadores', roles: ['auditor'] },
+      { to: '/assessments', icon: 'assessment', label: 'Evaluaciones', roles: ['auditor', 'provider_admin'] },
+      { to: '/findings', icon: 'findings', label: 'Hallazgos', badge: 10, roles: ['auditor', 'provider_admin'] },
+      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['auditor', 'provider_admin'] },
     ],
   },
   {
@@ -42,9 +43,7 @@ const navigation: NavSection[] = [
     roles: ['super_admin', 'auditor', 'provider_admin'],
     items: [
       { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
-      { to: '/reps', icon: 'reps', label: 'REPS', roles: ['auditor', 'provider_admin'] },
       { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
-      { to: '/reports', icon: 'reports', label: 'Reportes', roles: ['auditor', 'provider_admin'] },
     ],
   },
   {
@@ -239,8 +238,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             </svg>
           </div>
           <div className="brand-text">
-            <span className="brand-name">Norma 3100</span>
-            <span className="brand-tagline">Sistema de Cumplimiento</span>
+            <span className="brand-name">Norma resolución 3100/2019</span>
+            <span className="brand-tagline">Normatividad aplicable vigente</span>
           </div>
         </div>
 

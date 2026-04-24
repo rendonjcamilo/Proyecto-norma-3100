@@ -36,7 +36,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
-        const { providerId, locationId, serviceId, assessmentVersion } = req.body;
+        const { providerId, locationId, serviceId, assessmentVersion, title } = req.body;
         const userId = (req as any).user?.user_id;
         const userRole = (req as any).user?.role;
 
@@ -73,7 +73,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           locationId || null,
           serviceId,
           assessmentVersion,
-          userId
+          userId,
+          title || null
         );
 
         logger.info({

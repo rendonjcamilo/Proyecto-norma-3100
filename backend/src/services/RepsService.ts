@@ -156,9 +156,11 @@ export class RepsService {
     }
   }
 
-  private async consultarDatosGov(codigoHabilitacion: string): Promise<RepsConsultaResult> {
+  private async consultarDatosGov(termino: string): Promise<RepsConsultaResult> {
+    // Intentar por código de habilitación de sede y también por número de identificación (NIT/CC)
+    const whereClause = `codigohabilitacionsede = '${termino}' OR numeroidentificacion = '${termino}'`;
     const params = new URLSearchParams({
-      $where: `codigo_habilitacion = '${codigoHabilitacion}'`,
+      $where: whereClause,
       $limit: '5',
     });
 
@@ -181,30 +183,27 @@ export class RepsService {
         logger.debug({
           msg: 'REPS API returned non-200',
           status: response.status,
-          codigo: codigoHabilitacion,
+          termino,
         });
         return { found: false, source: 'datos_gov', data: null };
       }
 
       const results = (await response.json()) as Record<string, string>[];
 
-      if (results.length === 0) {
+      if (!Array.isArray(results) || results.length === 0) {
         return { found: false, source: 'datos_gov', data: null };
       }
 
       const registro = results[0];
       const mapped = this.mapDatosGovToReps(registro);
 
-      logger.debug({
-        msg: 'REPS query successful',
-        codigo: codigoHabilitacion,
-      });
+      logger.debug({ msg: 'REPS query successful', termino });
 
       return { found: true, source: 'datos_gov', data: mapped };
     } catch (err) {
       logger.debug({
         msg: 'REPS dataset query failed',
-        codigo: codigoHabilitacion,
+        termino,
         error: String(err),
       });
       return { found: false, source: 'datos_gov', data: null };
@@ -252,12 +251,14 @@ export class RepsService {
     const estado = ESTADO_HABILITACION_MAP[estadoRaw.toLowerCase()] || 'sin_verificar';
 
     return {
-      codigo_habilitacion: this.pick(record, 'codigo_habilitacion', 'codigo') || '',
-      nombre_prestador: this.pick(record, 'nombre_prestador', 'nombre', 'razon_social') || '',
-      nit: this.pick(record, 'nit') || '',
-      municipio: this.pick(record, 'municipio') || '',
-      departamento: this.pick(record, 'departamento', 'departamento_ubicacion') || '',
-      tipo_prestador: this.pick(record, 'tipo_prestador', 'tipo') || '',
+      codigo_habilitacion: this.pick(record, 'codigohabilitacionsede', 'codigoprestador') || '',
+      nombre_prestador: this.pick(record, 'nombreprestador', 'nombresede') || '',
+      nit: this.pick(record, 'numeroidentificacion') || '',
+      email: this.pick(record, 'email_prestador', 'email_sede') || undefined,
+      direccion: this.pick(record, 'direccionprestador', 'direcci_nsede') || undefined,
+      municipio: this.pick(record, 'municipioprestadordesc', 'municipiosededesc') || '',
+      departamento: this.pick(record, 'departamentoprestadordesc', 'departamentodededesc') || '',
+      tipo_prestador: this.pick(record, 'claseprestador') || '',
       nivel_atencion: this.pick(record, 'nivel_atencion', 'nivel') || '',
       estado_habilitacion: estado,
       fecha_habilitacion: this.pick(record, 'fecha_habilitacion', 'fecha_otorgamiento') || undefined,

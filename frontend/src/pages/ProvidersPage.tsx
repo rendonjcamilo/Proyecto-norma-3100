@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { providersApi, usersApi, User } from '../services/api';
+import { providersApi, usersApi, repsApi, User } from '../services/api';
 import './Pages.css';
 
 interface Provider {
@@ -49,6 +49,7 @@ interface FormData {
   address: string;
   city: string;
   department: string;
+  email: string;
   auditor_id: string;
   admin_first_name: string;
   admin_last_name: string;
@@ -62,6 +63,7 @@ const INITIAL_FORM: FormData = {
   address: '',
   city: '',
   department: '',
+  email: '',
   auditor_id: '',
   admin_first_name: '',
   admin_last_name: '',
@@ -127,6 +129,10 @@ export const ProvidersPage: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [repsSearchCode, setRepsSearchCode] = useState('');
+  const [repsSearching, setRepsSearching] = useState(false);
+  const [repsFound, setRepsFound] = useState<{ nombre: string; nit: string; municipio: string; departamento: string } | null>(null);
+  const [repsError, setRepsError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -211,6 +217,7 @@ export const ProvidersPage: React.FC = () => {
         address: formData.address.trim(),
         city: formData.city.trim(),
         department: formData.department.trim(),
+        email: formData.email.trim() || undefined,
         admin_email: formData.admin_email.trim(),
         admin_password: formData.admin_password,
         admin_first_name: formData.admin_first_name.trim(),
@@ -335,6 +342,36 @@ export const ProvidersPage: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
+  const handleRepsSearch = async () => {
+    if (!repsSearchCode.trim()) return;
+    setRepsSearching(true);
+    setRepsFound(null);
+    setRepsError(null);
+    try {
+      const res = await repsApi.consultar(repsSearchCode.trim());
+      if (res.data?.found && res.data.data) {
+        const d = res.data.data;
+        setRepsFound({ nombre: d.nombre_prestador, nit: d.nit, municipio: d.municipio, departamento: d.departamento });
+        // Autocompletar campos del formulario directamente desde REPS
+        setFormData((prev) => ({
+          ...prev,
+          legal_name: d.nombre_prestador,
+          rut: d.nit,
+          address: d.direccion || prev.address,
+          department: d.departamento,
+          city: d.municipio,
+          email: d.email || prev.email,
+        }));
+      } else {
+        setRepsError('No se encontró el prestador en REPS. Verifique el código de habilitación o NIT.');
+      }
+    } catch {
+      setRepsError('Error al consultar REPS. Intente nuevamente.');
+    } finally {
+      setRepsSearching(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-container page-loading">
@@ -362,6 +399,9 @@ export const ProvidersPage: React.FC = () => {
               setEditingId(null);
               setFormData(INITIAL_FORM);
               setCreateError(null);
+              setRepsSearchCode('');
+              setRepsFound(null);
+              setRepsError(null);
               setShowModal(true);
             }}
           >
@@ -491,6 +531,48 @@ export const ProvidersPage: React.FC = () => {
             <div className="modal-body">
               {createError && <div className="modal-error">{createError}</div>}
 
+              {/* Búsqueda en REPS — solo al crear */}
+              {!editingId && (
+                <div style={{ marginBottom: '24px', padding: '16px', background: '#f0f4ff', border: '1px solid #c7d2fe', borderRadius: '8px' }}>
+                  <div style={{ fontWeight: 600, color: '#3730a3', marginBottom: '10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Buscar en REPS
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#4338ca', marginBottom: '12px' }}>
+                    Ingresa el código de habilitación o NIT para autocompletar los datos del prestador.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Código de habilitación o NIT"
+                      value={repsSearchCode}
+                      onChange={(e) => setRepsSearchCode(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleRepsSearch()}
+                      disabled={repsSearching || creating}
+                      style={{ flex: 1, padding: '8px 12px', border: '1px solid #a5b4fc', borderRadius: '6px', fontSize: '14px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRepsSearch}
+                      disabled={repsSearching || creating || !repsSearchCode.trim()}
+                      style={{ padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: (!repsSearchCode.trim() || repsSearching) ? 0.6 : 1 }}
+                    >
+                      {repsSearching ? 'Buscando...' : 'Buscar'}
+                    </button>
+                  </div>
+                  {repsError && (
+                    <p style={{ marginTop: '8px', fontSize: '13px', color: '#dc2626' }}>{repsError}</p>
+                  )}
+                  {repsFound && (
+                    <div style={{ marginTop: '10px', padding: '10px', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', color: '#065f46' }}>
+                      ✓ Datos cargados: <strong>{repsFound.nombre}</strong> — NIT: {repsFound.nit} — {repsFound.municipio}, {repsFound.departamento}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="dashboard-form-group">
                 <label htmlFor="rut">RUT *</label>
                 <input
@@ -519,6 +601,18 @@ export const ProvidersPage: React.FC = () => {
               </div>
 
               <div className="dashboard-form-group">
+                <label htmlFor="email">Correo Electrónico</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Ej: contacto@hospital.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="dashboard-form-group">
                 <label htmlFor="address">Dirección *</label>
                 <input
                   id="address"
@@ -532,49 +626,26 @@ export const ProvidersPage: React.FC = () => {
 
               <div className="dashboard-form-group">
                 <label htmlFor="department">Departamento *</label>
-                <select
+                <input
                   id="department"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
                   value={formData.department}
-                  onChange={(e) => {
-                    const newDept = e.target.value;
-                    setFormData({ ...formData, department: newDept, city: '' });
-                    // Fetch municipalities for selected department
-                    if (newDept) {
-                      fetch(`/api/municipalities?department=${encodeURIComponent(newDept)}`)
-                        .then((r) => r.json())
-                        .then((data) => setMunicipalities(Array.isArray(data) ? data : []))
-                        .catch((err) => {
-                          console.error('Error loading municipalities:', err);
-                          setMunicipalities([]);
-                        });
-                    }
-                  }}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   disabled={creating}
-                >
-                  <option value="">-- Seleccionar departamento --</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.name}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="dashboard-form-group">
                 <label htmlFor="city">Ciudad *</label>
-                <select
+                <input
                   id="city"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  disabled={creating || !formData.department}
-                >
-                  <option value="">-- Seleccionar ciudad --</option>
-                  {municipalities.map((mun) => (
-                    <option key={mun.id} value={mun.name}>
-                      {mun.name}
-                    </option>
-                  ))}
-                </select>
+                  disabled={creating}
+                />
               </div>
 
               {!editingId && (

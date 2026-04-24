@@ -92,7 +92,8 @@ export class AssessmentService {
     locationId: string | null,
     serviceId: string,
     assessmentVersion: 'initial' | 'year4' | 'annual' | 'pre-novelty',
-    userId: string
+    userId: string,
+    title?: string
   ): Promise<Assessment> {
     const client = await this.pool.connect();
 
@@ -123,11 +124,11 @@ export class AssessmentService {
       // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, status, created_by)
-        VALUES ($1, $2, $3, $4, 'draft', $5)
+          (provider_id, location_id, service_id, questionnaire_id, status, created_by, title)
+        VALUES ($1, $2, $3, $4, 'draft', $5, $6)
         RETURNING
           id, provider_id, location_id, service_id, questionnaire_id, version,
-          status, created_by, compliance_pct, created_at
+          status, created_by, compliance_pct, created_at, title
       `;
 
       const aResult = await client.query(assessmentQuery, [
@@ -136,6 +137,7 @@ export class AssessmentService {
         serviceId,
         questionnaireId,
         userId,
+        title || null,
       ]);
 
       const assessment = aResult.rows[0];

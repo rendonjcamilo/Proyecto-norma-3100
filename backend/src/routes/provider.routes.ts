@@ -46,6 +46,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           city,
           department,
           country,
+          email,
           status,
           admin_email,
           admin_password,
@@ -112,6 +113,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             city,
             department,
             country: country || 'Colombia',
+            email: email || null,
             status: status || 'active',
             created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
           });
