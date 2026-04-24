@@ -736,15 +736,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
 
         const assessment = result.rows[0];
 
-        // Auditor solo puede eliminar evaluaciones completadas (no borradores en curso)
-        if (userRole === 'auditor') {
-          const deletableStatuses = ['submitted', 'completed', 'reviewed'];
-          if (!deletableStatuses.includes(assessment.status)) {
-            return res.status(403).json({
-              error: 'Solo se pueden eliminar evaluaciones completadas (submitted, completed o reviewed)',
-            });
-          }
-        }
+        // Auditor puede eliminar evaluaciones en cualquier estado
 
         await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
 

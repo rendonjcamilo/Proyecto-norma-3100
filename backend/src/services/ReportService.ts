@@ -431,6 +431,7 @@ export class ReportService {
    */
   async gatherAuditReportData(providerId: string, assessmentId?: string): Promise<{
     provider: ComplianceReportData['provider'];
+    servicio: { codigo: string; nombre: string } | null;
     fechaInforme: Date;
     estandares: Array<{
       codigo: string;
@@ -456,6 +457,20 @@ export class ReportService {
     );
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
+
+    // Obtener servicio asociado al assessment
+    let servicio: { codigo: string; nombre: string } | null = null;
+    if (assessmentId) {
+      const svcResult = await this.pool.query<{ code: string; name: string }>(
+        `SELECT s.code, s.name FROM assessments a
+         JOIN services s ON s.id = a.service_id
+         WHERE a.id = $1 AND a.service_id IS NOT NULL`,
+        [assessmentId]
+      ).catch(() => ({ rows: [] as { code: string; name: string }[] }));
+      if (svcResult.rows.length > 0) {
+        servicio = { codigo: svcResult.rows[0].code, nombre: svcResult.rows[0].name };
+      }
+    }
 
     // Obtener los 7 estándares transversales — solo el que tiene criterios reales
     const estandaresResult = await this.pool.query<{
@@ -573,6 +588,7 @@ export class ReportService {
 
     return {
       provider,
+      servicio,
       fechaInforme: new Date(),
       estandares,
       resumenCondiciones: {
@@ -627,6 +643,7 @@ export class ReportService {
           ['Prestador:', data.provider.legal_name],
           ['NIT/RUT:', data.provider.rut],
           ['Municipio:', `${data.provider.city}, ${data.provider.department}`],
+          ...(data.servicio ? [['Servicio Habilitado:', `[${data.servicio.codigo}] ${data.servicio.nombre}`]] : []),
           ['Fecha del Informe:', data.fechaInforme.toLocaleDateString('es-CO')],
           ['Generado por:', generatedBy],
         ];
@@ -704,9 +721,8 @@ export class ReportService {
         doc.text('Estándar', 58, y + 6, { width: 200 });
         doc.text('C', 268, y + 6, { width: 30, align: 'center' });
         doc.text('NC', 305, y + 6, { width: 30, align: 'center' });
-        doc.text('NA', 342, y + 6, { width: 30, align: 'center' });
-        doc.text('% Cumpl.', 378, y + 6, { width: 60, align: 'center' });
-        doc.text('Semáforo', 444, y + 6, { width: 70, align: 'center' });
+        doc.text('% Cumpl.', 348, y + 6, { width: 60, align: 'center' });
+        doc.text('Semáforo', 414, y + 6, { width: 70, align: 'center' });
         y += 20;
 
         data.estandares.forEach((est, idx) => {
@@ -723,9 +739,8 @@ export class ReportService {
             .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
           doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
           doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
-          doc.fillColor(COLORS.muted).text(est.noAplica.toString(), 342, y + 7, { width: 30, align: 'center' });
-          doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 378, y + 7, { width: 60, align: 'center' });
-          doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 444, y + 7, { width: 70, align: 'center' });
+          doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 348, y + 7, { width: 60, align: 'center' });
+          doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 414, y + 7, { width: 70, align: 'center' });
           y += 24;
         });
 
@@ -831,6 +846,12 @@ export class ReportService {
               new TableCell({ children: [new Paragraph(`${data.provider.city} (${data.provider.department})`)] }),
             ],
           }),
+          ...(data.servicio ? [new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: 'Servicio Habilitado', bold: true })] }),
+              new TableCell({ children: [new Paragraph(`[${data.servicio.codigo}] ${data.servicio.nombre}`)] }),
+            ],
+          })] : []),
         ],
       }),
 
@@ -901,7 +922,6 @@ export class ReportService {
               new TableCell({ children: [new Paragraph({ text: 'Estándar', bold: true })] }),
               new TableCell({ children: [new Paragraph({ text: 'C', bold: true })] }),
               new TableCell({ children: [new Paragraph({ text: 'NC', bold: true })] }),
-              new TableCell({ children: [new Paragraph({ text: 'NA', bold: true })] }),
               new TableCell({ children: [new Paragraph({ text: '% Cumpl.', bold: true })] }),
               new TableCell({ children: [new Paragraph({ text: 'Semáforo', bold: true })] }),
             ],
@@ -913,7 +933,6 @@ export class ReportService {
                   new TableCell({ children: [new Paragraph(`${est.codigo} — ${est.nombre}`)] }),
                   new TableCell({ children: [new Paragraph(est.cumple.toString())] }),
                   new TableCell({ children: [new Paragraph(est.noCumple.toString())] }),
-                  new TableCell({ children: [new Paragraph(est.noAplica.toString())] }),
                   new TableCell({ children: [new Paragraph(est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`)] }),
                   new TableCell({
                     children: [

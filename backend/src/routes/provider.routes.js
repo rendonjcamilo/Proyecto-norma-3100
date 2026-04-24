@@ -155,7 +155,7 @@ export function createProviderRouter(pool, eventStore) {
      * Update provider
      * RBAC: provider_admin (own only), super_admin (any)
      */
-    router.put('/providers/:id', authMiddleware, rbacMiddleware(['super_admin', 'provider_admin']), async (req, res) => {
+    router.put('/providers/:id', authMiddleware, rbacMiddleware(['super_admin']), async (req, res) => {
         try {
             const provider = await providerModel.getProviderById(req.params.id);
             if (!provider) {
@@ -209,7 +209,7 @@ export function createProviderRouter(pool, eventStore) {
      * DELETE /api/providers/:id
      * Soft delete provider (archive)
      */
-    router.delete('/providers/:id', authMiddleware, rbacMiddleware(['super_admin', 'provider_admin']), async (req, res) => {
+    router.delete('/providers/:id', authMiddleware, rbacMiddleware(['super_admin']), async (req, res) => {
         try {
             const provider = await providerModel.getProviderById(req.params.id);
             if (!provider) {
@@ -285,7 +285,7 @@ export function createProviderRouter(pool, eventStore) {
      * POST /api/providers/:id/locations
      * Create location for provider
      */
-    router.post('/providers/:id/locations', authMiddleware, rbacMiddleware(['super_admin', 'provider_admin']), async (req, res) => {
+    router.post('/providers/:id/locations', authMiddleware, rbacMiddleware(['super_admin']), async (req, res) => {
         try {
             const { address, city, department, location_type } = req.body;
             if (!address || !city || !location_type) {
@@ -356,7 +356,7 @@ export function createProviderRouter(pool, eventStore) {
      * PUT /api/providers/:provider_id/locations/:location_id
      * Update location
      */
-    router.put('/providers/:provider_id/locations/:location_id', authMiddleware, rbacMiddleware(['super_admin', 'provider_admin']), async (req, res) => {
+    router.put('/providers/:provider_id/locations/:location_id', authMiddleware, rbacMiddleware(['super_admin']), async (req, res) => {
         try {
             const location = await providerModel.getLocationById(req.params.location_id);
             if (!location) {

@@ -318,12 +318,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * PUT /api/providers/:id
    * Update provider
-   * RBAC: provider_admin (own only), super_admin (any)
+   * RBAC: super_admin only
    */
   router.put(
     '/providers/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const provider = await providerModel.getProviderById(req.params.id);
@@ -393,7 +393,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.delete(
     '/providers/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const provider = await providerModel.getProviderById(req.params.id);
@@ -495,7 +495,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.post(
     '/providers/:id/locations',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { address, city, department, location_type } = req.body;
@@ -584,7 +584,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.put(
     '/providers/:provider_id/locations/:location_id',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const location = await providerModel.getLocationById(req.params.location_id);

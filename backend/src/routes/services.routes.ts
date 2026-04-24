@@ -158,7 +158,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
   router.post(
     '/providers/:providerId/services',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -323,7 +323,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
   router.delete(
     '/providers/:providerId/services/:serviceId',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId, serviceId } = req.params;
@@ -384,7 +384,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
   router.post(
     '/providers/:providerId/services/bulk',
     authMiddleware,
-    rbacMiddleware(['provider_admin', 'super_admin']),
+    rbacMiddleware(['super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;

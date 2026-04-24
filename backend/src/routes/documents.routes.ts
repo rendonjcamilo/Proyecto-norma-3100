@@ -67,7 +67,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     '/providers/:providerId/documents',
     authMiddleware,
     uploadLimiter,
-    rbacMiddleware(['super_admin', 'provider_admin', 'auditor']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     validateUuidParam('providerId'),
     upload.single('file'),
     async (req: Request, res: Response) => {
