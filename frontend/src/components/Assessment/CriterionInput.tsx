@@ -92,7 +92,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
           <div className="criterion-details">
             <div className="criterion-code">{criterion.code}</div>
             <h5 className="criterion-name">{criterion.name}</h5>
-            {criterion.description && (
+            {criterion.description && criterion.description !== criterion.name && (
               <p className="criterion-description">{criterion.description}</p>
             )}
           </div>
@@ -113,7 +113,9 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
             {criterion.code}
           </div>
           <h5 className="criterion-name">{criterion.name}</h5>
-          <p className="criterion-description">{criterion.description}</p>
+          {criterion.description && criterion.description !== criterion.name && (
+            <p className="criterion-description">{criterion.description}</p>
+          )}
           {criterion.evidenceRequirement && (
             <p className="criterion-evidence">
               <strong>Evidencia requerida:</strong> {criterion.evidenceRequirement}

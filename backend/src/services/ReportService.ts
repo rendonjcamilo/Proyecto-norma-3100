@@ -29,6 +29,7 @@ import {
   VerticalPositionRelativeFrom,
   TextWrappingType,
 } from 'docx';
+import sharp from 'sharp';
 import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -576,7 +577,7 @@ export class ReportService {
         semaforo,
         hallazgos: hallazgosResult.rows.map(h => ({
           criterio: h.criterion_code,
-          descripcion: h.title,
+          descripcion: `No se evidencia cumplimiento del criterio ${h.title}`,
           tipo: 'no_conformidad',
           severidad: h.severity || 'media',
         })),
@@ -842,7 +843,21 @@ export class ReportService {
     // Leer imágenes de assets
     const letterheadPath = path.join(ASSETS_DIR, 'letterhead.jpeg');
     const signaturePath = path.join(ASSETS_DIR, 'signature.jpeg');
-    const letterheadBuf = fs.existsSync(letterheadPath) ? fs.readFileSync(letterheadPath) : null;
+    // Reducir opacidad del membrete al 35% para que no tape el texto del informe
+    let letterheadBuf: Buffer | null = null;
+    if (fs.existsSync(letterheadPath)) {
+      const rawJpeg = fs.readFileSync(letterheadPath);
+      const meta = await sharp(rawJpeg).metadata();
+      const w = meta.width!;
+      const h = meta.height!;
+      // Máscara de un solo canal rellena con 89 (35% de 255) → reduce alpha a 35%
+      const alphaMask = Buffer.alloc(w * h, 89);
+      letterheadBuf = await sharp(rawJpeg)
+        .ensureAlpha()
+        .composite([{ input: alphaMask, raw: { width: w, height: h, channels: 1 }, blend: 'dest-in' }])
+        .png()
+        .toBuffer();
+    }
     const signatureBuf = fs.existsSync(signaturePath) ? fs.readFileSync(signaturePath) : null;
 
     // Helper: párrafo con fuente Arial, tamaño en half-points, alineación justificada por defecto
@@ -894,7 +909,7 @@ export class ReportService {
           children: [
             new ImageRun({
               data: letterheadBuf,
-              type: 'jpeg',
+              type: 'png',
               // Dimensiones originales: 7765576 x 10052258 EMU → docx usa 96 DPI (9525 EMU/px)
               transformation: { width: 815, height: 1055 },
               floating: {
@@ -969,7 +984,13 @@ export class ReportService {
         if (est.hallazgos.length > 0) {
           paras.push(p('Hallazgos:', { bold: true, spaceAfter: 80 }));
           est.hallazgos.forEach((h) => {
-            paras.push(p(h.descripcion, { spaceAfter: 100 }));
+            paras.push(
+              new Paragraph({
+                bullet: { level: 0 },
+                spacing: { before: 0, after: 100 },
+                children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24 })],
+              })
+            );
           });
         } else {
           paras.push(p('Sin hallazgos identificados para este estándar.', { spaceAfter: 100 }));
