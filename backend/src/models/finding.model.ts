@@ -12,7 +12,7 @@ export interface Finding {
   criterion_id: string;
   title: string;
   description: string;
-  severity: 'critical' | 'major' | 'minor';
+  severity: 'critical' | 'high' | 'medium' | 'low';
   category_id?: string;
   service_id?: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'rejected';

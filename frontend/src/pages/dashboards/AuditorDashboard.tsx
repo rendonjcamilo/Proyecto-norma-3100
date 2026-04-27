@@ -75,7 +75,7 @@ export function AuditorDashboard(): JSX.Element {
   };
 
   const getBadgeLabel = (rate?: number) => {
-    if (!rate) return 'Sin auditorías';
+    if (!rate) return '';
     if (rate >= 80) return '✓ Conforme';
     if (rate >= 50) return '⚠ Parcial';
     return '✗ No conforme';
@@ -186,22 +186,6 @@ export function AuditorDashboard(): JSX.Element {
           <div className="adb-kpi-body">
             <div className="adb-kpi-value">{metrics.avgComplianceRate}%</div>
             <div className="adb-kpi-label">Cumpl. Promedio</div>
-          </div>
-          <div className="adb-kpi-glow" />
-        </div>
-
-        {/* Acciones Requeridas */}
-        <div className="adb-kpi-card adb-kpi-emerald">
-          <div className="adb-kpi-icon-wrap">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 11 12 14 22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-          </div>
-          <div className="adb-kpi-body">
-            <div className="adb-kpi-value">{metrics.actionsRequired}</div>
-            <div className="adb-kpi-label">Acciones Req.</div>
           </div>
           <div className="adb-kpi-glow" />
         </div>

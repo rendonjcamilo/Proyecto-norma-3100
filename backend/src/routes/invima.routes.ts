@@ -86,12 +86,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * POST /api/invima/registros
    * Crear/actualizar un registro manualmente
-   * Rol: super_admin, auditor
+   * Rol: super_admin, auditor, provider_admin (registro manual cuando lookup no encuentra)
    */
   router.post(
     '/invima/registros',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { numeroRegistro, ...data } = req.body;
@@ -160,12 +160,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * POST /api/providers/:providerId/invima/items
    * Agregar medicamento/dispositivo al inventario del proveedor
-   * Rol: super_admin, auditor
+   * Rol: super_admin, auditor, provider_admin (puede gestionar su propio inventario)
    */
   router.post(
     '/providers/:providerId/invima/items',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
@@ -196,12 +196,12 @@ export function createInvimaRouter(pool: Pool): Router {
   /**
    * DELETE /api/providers/:providerId/invima/items/:itemId
    * Desactivar un item del inventario
-   * Rol: super_admin, auditor
+   * Rol: super_admin, auditor, provider_admin (puede gestionar su propio inventario)
    */
   router.delete(
     '/providers/:providerId/invima/items/:itemId',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'auditor']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     async (req: Request, res: Response) => {
       try {
         const { itemId } = req.params;

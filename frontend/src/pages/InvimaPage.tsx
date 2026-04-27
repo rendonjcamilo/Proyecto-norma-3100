@@ -14,6 +14,7 @@ import {
   type InvimaAlerta,
 } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
+import { DeleteConfirmationModal } from '../components/Assessment/DeleteConfirmationModal';
 import './InvimaPage.css';
 
 interface InvimaPageProps {
@@ -100,6 +101,16 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
   const [showMarcarRevisadaForm, setShowMarcarRevisadaForm] = useState<string | null>(null);
   const [accionTomada, setAccionTomada] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<{ id: string; name: string } | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    nombreProducto: '',
+    categoria: 'medicamento',
+    estado: 'vigente',
+    titularRegistro: '',
+    fechaVencimiento: '',
+    observaciones: '',
+  });
   const [filterSemaforo, setFilterSemaforo] = useState<string>('');
   const { can } = useRolePermission();
 
@@ -171,7 +182,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
     try {
       setIsSubmitting(true);
       await invimaApi.addProviderItem(providerId, {
-        registroId: selectedRegistro.id,
+        registroId: selectedRegistro.numero_registro,
         nombreComercial: addForm.nombreComercial || null,
         loteActual: addForm.loteActual || null,
         cantidadDisponible: addForm.cantidadDisponible ? parseInt(addForm.cantidadDisponible, 10) : null,
@@ -207,12 +218,20 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
   };
 
   // ─── DELETE ITEM ───
-  const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este item?')) return;
+  const handleDeleteItem = (item: ProviderInvimaItem) => {
+    setConfirmDeleteItem({
+      id: item.id,
+      name: item.nombre_comercial || item.nombre_producto || item.numero_registro || item.id,
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteItem) return;
     try {
-      await invimaApi.deleteProviderItem(providerId, itemId);
+      setIsSubmitting(true);
+      await invimaApi.deleteProviderItem(providerId, confirmDeleteItem.id);
       showToast('success', 'Item eliminado del inventario');
-      // Reload inventory data
+      setConfirmDeleteItem(null);
       const [itemsRes, summaryRes] = await Promise.all([
         invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
         invimaApi.getResumen(providerId),
@@ -221,6 +240,8 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
       setSummary(summaryRes.data);
     } catch (err) {
       showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -265,6 +286,32 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
       setAlertas(res.data || []);
     } catch (err) {
       showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ─── REGISTRO MANUAL (cuando lookup no encuentra) ───
+  const handleManualRegistro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualForm.nombreProducto.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      const res = await invimaApi.createRegistro({
+        numeroRegistro: lookupNumber.trim(),
+        nombreProducto: manualForm.nombreProducto,
+        categoria: manualForm.categoria,
+        estado: manualForm.estado,
+        titularRegistro: manualForm.titularRegistro || undefined,
+        fechaVencimiento: manualForm.fechaVencimiento || undefined,
+        observaciones: manualForm.observaciones || undefined,
+      });
+      setSelectedRegistro(res.data);
+      setShowManualForm(false);
+      showToast('success', 'Registro guardado — completa los datos del inventario a continuación');
+    } catch (err) {
+      showToast('error', `Error al guardar registro: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -489,7 +536,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                         <td>
                           <button
                             className="btn-action-delete"
-                            onClick={() => handleDeleteItem(item.id)}
+                            onClick={() => handleDeleteItem(item)}
                             title="Eliminar item"
                           >
                             🗑️
@@ -749,6 +796,18 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
         </div>
       )}
 
+      {/* MODAL: CONFIRMAR ELIMINACIÓN */}
+      {confirmDeleteItem && (
+        <DeleteConfirmationModal
+          title="Eliminar del inventario"
+          message="¿Estás seguro de que deseas eliminar este medicamento/dispositivo del inventario?"
+          itemName={confirmDeleteItem.name}
+          isLoading={isSubmitting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmDeleteItem(null)}
+        />
+      )}
+
       {/* MODAL: AGREGAR ITEM */}
       {showAddModal && (
         <div className="invima-modal-overlay" onClick={() => setShowAddModal(false)}>
@@ -814,9 +873,100 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                       </div>
                     </>
                   ) : (
-                    <div className="result-header">
-                      <span className="result-badge not-found">No encontrado</span>
-                      <p>Puedes registrarlo manualmente a continuación</p>
+                    <div>
+                      <div className="result-header">
+                        <span className="result-badge not-found">No encontrado en datos.gov.co</span>
+                        <p>El registro no se encontró en las fuentes oficiales. Puedes ingresarlo manualmente.</p>
+                      </div>
+                      {!showManualForm ? (
+                        <button
+                          type="button"
+                          className="invima-btn-primary"
+                          style={{ marginTop: '8px' }}
+                          onClick={() => setShowManualForm(true)}
+                        >
+                          + Registrar manualmente
+                        </button>
+                      ) : (
+                        <form onSubmit={handleManualRegistro} className="add-item-form" style={{ marginTop: '12px' }}>
+                          <h4 style={{ margin: '0 0 12px' }}>Datos del Registro INVIMA</h4>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label>Nombre del Producto *</label>
+                              <input
+                                type="text"
+                                value={manualForm.nombreProducto}
+                                onChange={(e) => setManualForm({ ...manualForm, nombreProducto: e.target.value })}
+                                placeholder="Nombre genérico o comercial"
+                                required
+                              />
+                            </div>
+                            <div className="form-field">
+                              <label>Categoría</label>
+                              <select
+                                value={manualForm.categoria}
+                                onChange={(e) => setManualForm({ ...manualForm, categoria: e.target.value })}
+                              >
+                                <option value="medicamento">Medicamento</option>
+                                <option value="dispositivo_medico">Dispositivo Médico</option>
+                                <option value="cosmetico">Cosmético</option>
+                                <option value="fitoterapeutico">Fitoterapéutico</option>
+                                <option value="suplemento_dietario">Suplemento Dietario</option>
+                                <option value="reactivo_diagnostico">Reactivo de Diagnóstico</option>
+                                <option value="otro">Otro</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="form-row">
+                            <div className="form-field">
+                              <label>Estado</label>
+                              <select
+                                value={manualForm.estado}
+                                onChange={(e) => setManualForm({ ...manualForm, estado: e.target.value })}
+                              >
+                                <option value="vigente">Vigente</option>
+                                <option value="vencido">Vencido</option>
+                                <option value="suspendido">Suspendido</option>
+                                <option value="en_tramite">En Trámite</option>
+                              </select>
+                            </div>
+                            <div className="form-field">
+                              <label>Vencimiento Registro</label>
+                              <input
+                                type="date"
+                                value={manualForm.fechaVencimiento}
+                                onChange={(e) => setManualForm({ ...manualForm, fechaVencimiento: e.target.value })}
+                              />
+                            </div>
+                          </div>
+                          <div className="form-field">
+                            <label>Titular / Empresa</label>
+                            <input
+                              type="text"
+                              value={manualForm.titularRegistro}
+                              onChange={(e) => setManualForm({ ...manualForm, titularRegistro: e.target.value })}
+                              placeholder="Nombre del titular del registro"
+                            />
+                          </div>
+                          <div className="form-field">
+                            <label>Observaciones</label>
+                            <input
+                              type="text"
+                              value={manualForm.observaciones}
+                              onChange={(e) => setManualForm({ ...manualForm, observaciones: e.target.value })}
+                              placeholder="Ej: Registro en renovación, verificar con proveedor"
+                            />
+                          </div>
+                          <div className="modal-actions">
+                            <button type="button" className="btn-cancel" onClick={() => setShowManualForm(false)}>
+                              Cancelar
+                            </button>
+                            <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
+                              {isSubmitting ? 'Guardando...' : 'Guardar Registro'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   )}
                 </div>

@@ -46,7 +46,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           criterion_id,
           title,
           description,
-          severity: severity as 'critical' | 'major' | 'minor',
+          severity: severity as 'critical' | 'high' | 'medium' | 'low',
           category_id,
           service_id,
           status: 'open',

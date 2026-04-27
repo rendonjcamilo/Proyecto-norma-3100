@@ -15,8 +15,8 @@ const BASE_URL = import.meta.env.VITE_API_URL || '';
 export type Semaforo = 'verde' | 'naranja' | 'rojo';
 // TODO: el backend retorna valores en dos idiomas según el endpoint/versión.
 // Normalizar a inglés en el backend y eliminar los valores en español de estos tipos.
-export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'critica' | 'alta' | 'media' | 'baja';
-export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'closed' | 'abierta' | 'en_proceso' | 'cerrada';
+export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low';
+export type FindingStatus = 'open' | 'in_progress' | 'resolved' | 'closed' | 'rejected';
 export type UserRole = 'super_admin' | 'auditor' | 'provider_admin';
 
 export interface User {

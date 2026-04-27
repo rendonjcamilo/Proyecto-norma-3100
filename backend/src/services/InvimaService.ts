@@ -100,17 +100,24 @@ interface InvimaProviderSummary {
 // ─────────────────────────────────────────────
 
 // Dataset IDs en datos.gov.co por tipo de producto
-// Actualizado 2026-04-22 con campos correctos verificados contra la API
+// Actualizado 2026-04-27 con datasets verificados y correcciones de cosméticos/fitoterapéuticos/suplementos
 const DATASETS_POR_TIPO: Record<string, Array<{ id: string; campo: string }>> = {
   medicamento: [
     { id: 'qj5z-zabx', campo: 'expediente' }, // Medicamentos — buscar por expediente
     { id: 'qj5z-zabx', campo: 'registrosanitario' }, // Intenta registrosanitario completo (INVIMA 2011M-XXX)
   ],
   dispositivo_medico: [
-    { id: 'y4qt-w6tk', campo: 'expediente' }, // Dispositivos Médicos
+    { id: 'y4qt-w6tk', campo: 'expediente' }, // Dispositivos Médicos y Otros
   ],
-  cosmetico: [
-    { id: 'qj5z-zabx', campo: 'expediente' }, // Usa dataset medicamentos
+  cosmetico: [], // Sin dataset dedicado en datos.gov.co — registrar manualmente
+  fitoterapeutico: [
+    { id: 'k3he-53cu', campo: 'expediente' }, // Productos Fitoterapéuticos
+  ],
+  suplemento_dietario: [
+    { id: 'uqkt-7tia', campo: 'expediente' }, // Suplementos Dietarios
+  ],
+  reactivo_diagnostico: [
+    { id: 'y4qt-w6tk', campo: 'expediente' }, // Incluidos en dataset de Dispositivos Médicos
   ],
   aditivo: [
     { id: 'nrmr-kbqq', campo: 'expediente' }, // Aditivos
@@ -362,24 +369,39 @@ export class InvimaService {
   // ─── Parser de número de registro ───
 
   private parseNumeroRegistro(numero: string): { tipo: string; formato: string } {
-    // Patrones de registros INVIMA
+    // Patrones de registros INVIMA — los más específicos primero (prefijos más largos)
     // Con o sin prefijo "INVIMA "
-    if (/^(?:INVIMA\s+)?\d{4}DM-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?\d{4}DM-\d+/i.test(numero)) {
       return { tipo: 'dispositivo_medico', formato: 'INVIMA_DM' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}M-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?\d{4}RIV[-\s]/i.test(numero) || /^(?:INVIMA\s+)?RIV/i.test(numero)) {
+      return { tipo: 'reactivo_diagnostico', formato: 'INVIMA_RIV' };
+    }
+    if (/^(?:INVIMA\s+)?\d{4}RD-\d+/i.test(numero)) {
+      return { tipo: 'reactivo_diagnostico', formato: 'INVIMA_RD' };
+    }
+    if (/^(?:INVIMA\s+)?\d{4}SD-\d+/i.test(numero)) {
+      return { tipo: 'suplemento_dietario', formato: 'INVIMA_SD' };
+    }
+    if (/^(?:INVIMA\s+)?\d{4}F-\d+/i.test(numero)) {
+      return { tipo: 'fitoterapeutico', formato: 'INVIMA_F' };
+    }
+    if (/^(?:INVIMA\s+)?\d{4}M-\d+/i.test(numero)) {
       return { tipo: 'medicamento', formato: 'INVIMA_M' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}C-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?\d{4}C-\d+/i.test(numero)) {
       return { tipo: 'cosmetico', formato: 'INVIMA_C' };
     }
-    if (/^MSA-\d+/.test(numero)) {
+    if (/^(?:INVIMA\s+)?N-\d+/i.test(numero)) {
+      return { tipo: 'medicamento', formato: 'INVIMA_N' };
+    }
+    if (/^MSA-\d+/i.test(numero)) {
       return { tipo: 'medicamento', formato: 'MSA' };
     }
-    if (/^RSA-\d+/.test(numero)) {
+    if (/^RSA-\d+/i.test(numero)) {
       return { tipo: 'alimento', formato: 'RSA' };
     }
-    if (/^CCG-\d+/.test(numero)) {
+    if (/^CCG-\d+/i.test(numero)) {
       return { tipo: 'cosmetico', formato: 'CCG' };
     }
     return { tipo: 'desconocido', formato: 'OTRO' };
@@ -389,17 +411,21 @@ export class InvimaService {
 
   private mapDatosGovToRegistro(record: Record<string, string>): Partial<InvimaRegistro> {
     return {
-      numero_registro: this.pick(record, 'numero_registro', 'expediente') || '',
-      nombre_producto: this.pick(record, 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre') || null,
+      numero_registro: this.pick(record, 'numero_registro', 'expediente', 'registrosanitario') || '',
+      // 'prodcuto' es un typo confirmado en el dataset de dispositivos médicos (y4qt-w6tk)
+      nombre_producto: this.pick(record, 'prodcuto', 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre', 'marca') || null,
       categoria: this.inferCategoria(record),
       // tipo_registro removed — column doesn't exist in schema
-      estado: this.mapEstado(this.pick(record, 'estado', 'estado_registro', 'estadoregistro') || ''),
-      titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social', 'nombrerol') || null,
+      // 'estado_registro' (con guión bajo) es el campo correcto en dispositivos médicos
+      estado: this.mapEstado(this.pick(record, 'estado_registro', 'estadoregistro', 'estado') || ''),
+      titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social', 'nombrerol', 'titular_registro') || null,
       titular_fabricante: this.pick(record, 'fabricante') || null,
       titular_importador: this.pick(record, 'importador') || null,
       pais_origen: this.pick(record, 'pais_fabricante', 'pais') || null,
       principios_activos: this.pick(record, 'principio_activo', 'composicion', 'ingrediente_activo', 'sustancia_activa', 'principioactivo') || null,
       presentaciones_autorizadas: this.pick(record, 'presentacion', 'presentaciones', 'unidadreferencia') || null,
+      // 'nivel_riesgo' → clasificacion_riesgo (dispositivos médicos)
+      clasificacion_riesgo: this.pick(record, 'nivel_riesgo', 'clasificacion_riesgo', 'clase_riesgo') || null,
       fecha_emision: this.pick(record, 'fecha_expedicion', 'fecha_emision', 'fecha_otorgamiento', 'fechaexpedicion') || null,
       fecha_vencimiento: this.pick(record, 'fecha_vencimiento', 'vigencia_hasta', 'vence', 'fecha_expiracion', 'fechavencimiento') || null,
       datos_crudos: record,
@@ -562,9 +588,11 @@ export class InvimaService {
     providerId: string,
     filters?: { semaforo?: string; categoria?: string; activo?: boolean }
   ): Promise<ProviderInvimaItem[]> {
-    let whereClause = 'pi.provider_id = $1';
-    const params: (string | boolean)[] = [providerId];
-    let idx = 2;
+    // Por defecto solo muestra items activos; pasar activo=false explícitamente para ver inactivos
+    const activoFilter = filters?.activo !== undefined ? filters.activo : true;
+    let whereClause = `pi.provider_id = $1 AND pi.activo = $2`;
+    const params: (string | boolean)[] = [providerId, activoFilter];
+    let idx = 3;
 
     if (filters?.semaforo) {
       whereClause += ` AND pi.semaforo = $${idx++}`;
@@ -573,10 +601,6 @@ export class InvimaService {
     if (filters?.categoria) {
       whereClause += ` AND ir.categoria = $${idx++}`;
       params.push(filters.categoria);
-    }
-    if (filters?.activo !== undefined) {
-      whereClause += ` AND pi.activo = $${idx++}`;
-      params.push(filters.activo);
     }
 
     const result = await this.pool.query(

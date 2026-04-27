@@ -69,8 +69,8 @@ export interface Hallazgo {
   id: string;
   assessmentId: string;
   criterionId: string;
-  status: 'abierta' | 'en_proceso' | 'cerrada';
-  severity: 'baja' | 'media' | 'alta' | 'crítica';
+  status: 'open' | 'in_progress' | 'closed';
+  severity: 'low' | 'medium' | 'high' | 'critical';
   findingDescription: string;
   evidenceLinks?: string[];
   createdAt: Date;
@@ -601,41 +601,41 @@ export class AssessmentService {
       // 2. Determine severity
       // - Transversales = higher base weight (media/alta)
       // - Complex criteria = higher severity
-      let severity: 'baja' | 'media' | 'alta' | 'crítica' = 'media';
+      let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
 
       if (ncResponse.is_transversal) {
-        severity = ncResponse.complexity === 'complex' ? 'crítica' : 'alta';
+        severity = ncResponse.complexity === 'complex' ? 'critical' : 'high';
       } else {
-        severity = ncResponse.complexity === 'complex' ? 'alta' : 'media';
+        severity = ncResponse.complexity === 'complex' ? 'high' : 'medium';
       }
 
       // 3. Create finding
       const hallazgoQuery = `
         INSERT INTO findings
           (assessment_id, assessment_response_id, criterion_id, finding_type, status, severity,
-           description, evidence_references, provider_id, service_id, semaforo_color)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+           title, description, evidence_references, provider_id, service_id, source)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING
-          id, assessment_id, criterion_id, status, severity, description
+          id, assessment_id, criterion_id, status, severity, title, description
       `;
 
-      const hallazgoDescription = `${ncResponse.criterion_code}: ${ncResponse.criterion_name}
-Observación: ${ncResponse.description || 'No especificada'}
-${ncResponse.comments ? `Comentarios: ${ncResponse.comments}` : ''}`;
+      const hallazgoTitle = `${ncResponse.criterion_code}: ${ncResponse.criterion_name}`;
+      const hallazgoDescription = `Observación: ${ncResponse.description || 'No especificada'}${ncResponse.comments ? `\nComentarios: ${ncResponse.comments}` : ''}`;
 
       const finding = await client.query(hallazgoQuery, [
         assessmentId,
         ncResponse.response_id,
         ncResponse.criterion_id,
         'assessment',
-        'abierta',
+        'open',
         severity,
+        hallazgoTitle,
         hallazgoDescription,
         JSON.stringify([]),
         (await client.query('SELECT provider_id FROM assessments WHERE id = $1', [assessmentId]))
           .rows[0].provider_id,
         serviceId,
-        'naranja',
+        'assessment',
       ]);
 
       if (finding.rows.length > 0) {
