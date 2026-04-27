@@ -17,6 +17,8 @@ interface PreviewData {
 export const AuditorNotificationSender: React.FC = () => {
   const { user } = useAuth();
   const [channel, setChannel] = useState<'email' | 'sms'>('email');
+  const [recipientMode, setRecipientMode] = useState<'provider' | 'direct'>('provider');
+  const [directEmail, setDirectEmail] = useState('');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
   const [templates, setTemplates] = useState<EmailTemplate[] | SmsTemplate[]>([]);
@@ -119,28 +121,59 @@ export const AuditorNotificationSender: React.FC = () => {
   };
 
   const handleSend = async () => {
-    if (!selectedTemplate || !channel || !selectedProvider) {
-      setMessage('Por favor selecciona un prestador y una plantilla');
+    if (!selectedTemplate) {
+      setMessage('Por favor selecciona una plantilla');
       setMessageType('error');
       return;
+    }
+
+    if (recipientMode === 'provider' && !selectedProvider) {
+      setMessage('Por favor selecciona un prestador');
+      setMessageType('error');
+      return;
+    }
+
+    if (recipientMode === 'direct') {
+      if (!directEmail.trim()) {
+        setMessage('Por favor ingresa un correo electrónico');
+        setMessageType('error');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(directEmail.trim())) {
+        setMessage('El correo electrónico no es válido');
+        setMessageType('error');
+        return;
+      }
     }
 
     try {
       setSending(true);
       const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate;
 
-      await notificationsApi.sendToProvider({
-        providerId: selectedProvider,
-        templateName: template.template_name,
-        channel,
-        variables,
-      });
+      if (recipientMode === 'direct' && channel === 'email') {
+        await notificationsApi.sendDirectEmail({
+          email: directEmail.trim(),
+          templateName: template.template_name,
+          userId: user?.id || 'auditor',
+          providerId: selectedProvider || 'direct',
+          variables,
+        });
+      } else {
+        await notificationsApi.sendToProvider({
+          providerId: selectedProvider,
+          templateName: template.template_name,
+          channel,
+          variables,
+        });
+      }
 
       setMessage('✓ Notificación enviada exitosamente');
       setMessageType('success');
       setSelectedTemplate('');
       setVariables({});
       setPreview('');
+      setDirectEmail('');
     } catch (err) {
       console.error('Error sending notification:', err);
       setMessage(`Error al enviar: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -198,26 +231,62 @@ export const AuditorNotificationSender: React.FC = () => {
               </div>
             </div>
 
-            {/* Provider Select */}
+            {/* Recipient Mode Toggle */}
             <div className="ans-form-group">
-              <label htmlFor="provider">Prestador</label>
-              <select
-                id="provider"
-                value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                disabled={loading || providers.length === 0}
-              >
-                <option value="">-- Seleccionar prestador --</option>
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.legal_name} ({p.rut})
-                  </option>
-                ))}
-              </select>
-              {!loading && providers.length === 0 && (
-                <small className="ans-hint">No tienes prestadores asignados</small>
-              )}
+              <label>Destinatario</label>
+              <div className="ans-toggle-group">
+                <button
+                  className={`ans-toggle-btn ${recipientMode === 'provider' ? 'active' : ''}`}
+                  onClick={() => setRecipientMode('provider')}
+                >
+                  🏥 Prestador asignado
+                </button>
+                <button
+                  className={`ans-toggle-btn ${recipientMode === 'direct' ? 'active' : ''}`}
+                  onClick={() => setRecipientMode('direct')}
+                  disabled={channel === 'sms'}
+                >
+                  ✉️ Correo libre
+                </button>
+              </div>
             </div>
+
+            {/* Provider Select */}
+            {recipientMode === 'provider' && (
+              <div className="ans-form-group">
+                <label htmlFor="provider">Prestador</label>
+                <select
+                  id="provider"
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  disabled={loading || providers.length === 0}
+                >
+                  <option value="">-- Seleccionar prestador --</option>
+                  {providers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.legal_name} ({p.rut})
+                    </option>
+                  ))}
+                </select>
+                {!loading && providers.length === 0 && (
+                  <small className="ans-hint">No tienes prestadores asignados</small>
+                )}
+              </div>
+            )}
+
+            {/* Direct Email Input */}
+            {recipientMode === 'direct' && channel === 'email' && (
+              <div className="ans-form-group">
+                <label htmlFor="directEmail">Correo electrónico</label>
+                <input
+                  id="directEmail"
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={directEmail}
+                  onChange={(e) => setDirectEmail(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* Template Select */}
             <div className="ans-form-group">
@@ -263,7 +332,12 @@ export const AuditorNotificationSender: React.FC = () => {
               <button
                 className="ans-send-btn"
                 onClick={handleSend}
-                disabled={sending || !selectedProvider || !selectedTemplate}
+                disabled={
+                  sending ||
+                  !selectedTemplate ||
+                  (recipientMode === 'provider' && !selectedProvider) ||
+                  (recipientMode === 'direct' && !directEmail.trim())
+                }
               >
                 {sending ? '📤 Enviando...' : '📤 Enviar Notificación'}
               </button>

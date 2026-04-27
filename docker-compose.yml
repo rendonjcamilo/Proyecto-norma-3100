@@ -20,6 +20,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=dev_jwt_secret_change_in_production
       - LOG_LEVEL=debug
+      - EMAIL_PROVIDER=resend
+      - RESEND_API_KEY=re_SZxw6HFN_GFcV5w3p9cpgUZmL9v4J7YEM
+      - EMAIL_FROM_ADDRESS=onboarding@resend.dev
+      - EMAIL_FROM_NAME=Sistema Norma 3100
     depends_on:
       postgres:
         condition: service_healthy
@@ -28,6 +32,7 @@ services:
     networks:
       - norma-network
     volumes:
+      - ./backend/.env:/app/.env
       - ./backend/src:/app/src
       - ./backend/db:/app/db
       - ./docs:/app/docs

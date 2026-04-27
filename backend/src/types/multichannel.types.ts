@@ -18,7 +18,7 @@ export interface EmailDelivery {
   lastAttemptAt?: Date;
   sentAt?: Date;
   bounceReason?: string;
-  emailProvider: 'mailgun' | 'sendgrid' | 'aws_ses';
+  emailProvider: 'mailgun' | 'sendgrid' | 'aws_ses' | 'resend';
   providerMessageId?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -38,7 +38,7 @@ export interface EmailTemplate {
 }
 
 export interface EmailConfig {
-  provider: 'mailgun' | 'sendgrid' | 'aws_ses';
+  provider: 'mailgun' | 'sendgrid' | 'aws_ses' | 'resend';
   apiKey: string;
   apiSecret?: string;
   fromEmail: string;

@@ -23,9 +23,16 @@ export function createMultiChannelRouter(pool: Pool): Router {
   const router = express.Router();
 
   // Initialize services
+  // Para Resend: usar RESEND_API_KEY; para otros proveedores: EMAIL_API_KEY
+  const emailProvider = (process.env.EMAIL_PROVIDER || 'resend') as EmailConfig['provider'];
+  const emailApiKey =
+    emailProvider === 'resend'
+      ? (process.env.RESEND_API_KEY || process.env.EMAIL_API_KEY || '')
+      : (process.env.EMAIL_API_KEY || '');
+
   const emailConfig: EmailConfig = {
-    provider: (process.env.EMAIL_PROVIDER || 'mailgun') as any,
-    apiKey: process.env.EMAIL_API_KEY || '',
+    provider: emailProvider,
+    apiKey: emailApiKey,
     apiSecret: process.env.EMAIL_API_SECRET,
     fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@norma3100.com',
     fromName: process.env.EMAIL_FROM_NAME || 'Norma 3100',

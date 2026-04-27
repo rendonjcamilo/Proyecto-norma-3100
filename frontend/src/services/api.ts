@@ -839,6 +839,15 @@ export const notificationsApi = {
     variables?: Record<string, string>;
   }) =>
     post<{ sent: number; deliveryIds: string[] }>('/api/multichannel/auditor/send', payload),
+
+  sendDirectEmail: (payload: {
+    email: string;
+    templateName: string;
+    userId: string;
+    providerId: string;
+    variables?: Record<string, string>;
+  }) =>
+    post<{ id: string; status: string }>('/api/multichannel/email', payload),
 };
 
 // ─────────────────────────────────────────────

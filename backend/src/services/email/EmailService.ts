@@ -1,10 +1,11 @@
 /**
  * Email Service
- * Handles email notification delivery via multiple providers
+ * Handles email notification delivery via multiple providers (Resend, Mailgun, SendGrid)
  */
 
 import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
+import { Resend } from 'resend';
 import { logger } from '../../utils/logger.js';
 import {
   EmailDelivery,
@@ -17,6 +18,7 @@ import {
 export class EmailService {
   private pool: Pool;
   private config: EmailConfig;
+  private resendClient?: Resend;
   private mailgunClient?: any;
   private sendgridClient?: any;
 
@@ -27,11 +29,18 @@ export class EmailService {
   }
 
   private initializeProvider(): void {
-    if (this.config.provider === 'mailgun') {
+    if (this.config.provider === 'resend') {
+      if (!this.config.apiKey) {
+        logger.warn('Resend API key not configured — emails will be queued but not sent');
+        return;
+      }
+      this.resendClient = new Resend(this.config.apiKey);
+      logger.info('Email provider: Resend initialized');
+    } else if (this.config.provider === 'mailgun') {
       try {
         const mailgun = require('mailgun.js');
         this.mailgunClient = new mailgun.default({ key: this.config.apiKey });
-      } catch (err) {
+      } catch {
         logger.warn('Mailgun not installed, email delivery will be queued');
       }
     } else if (this.config.provider === 'sendgrid') {
@@ -39,7 +48,7 @@ export class EmailService {
         const sgMail = require('@sendgrid/mail');
         sgMail.setApiKey(this.config.apiKey);
         this.sendgridClient = sgMail;
-      } catch (err) {
+      } catch {
         logger.warn('SendGrid not installed, email delivery will be queued');
       }
     }
@@ -66,7 +75,7 @@ export class EmailService {
       // Create delivery record
       const delivery = await this.createDelivery({
         id,
-        notificationId: request.notificationId || '',
+        notificationId: request.notificationId || null as any,
         providerId: request.providerId,
         userId: request.userId,
         email: request.email,
@@ -98,27 +107,20 @@ export class EmailService {
         error: (error as Error).message,
       });
 
-      // Create failed delivery record
-      return this.createDelivery({
-        id,
-        notificationId: request.notificationId || '',
-        providerId: request.providerId,
-        userId: request.userId,
-        email: request.email,
-        subject: 'Error',
-        templateName: request.templateName,
+      // Actualizar el registro existente a fallido (no crear uno nuevo con el mismo id)
+      await this.updateDeliveryStatus({
+        deliveryId: id,
         status: 'failed',
-        deliveryAttempts: 1,
-        maxAttempts: this.config.maxRetries,
-        emailProvider: this.config.provider as any,
-        createdAt: new Date(now),
-        updatedAt: new Date(now),
-      });
+        failureReason: (error as Error).message,
+        timestamp: new Date(),
+      }).catch(() => { /* Si el registro ni siquiera se creó, ignorar */ });
+
+      return { id, status: 'failed', email: request.email } as any;
     }
   }
 
   /**
-   * Send email directly to provider
+   * Send email directly via the configured provider
    */
   private async sendEmailDirect(
     to: string,
@@ -126,7 +128,33 @@ export class EmailService {
     html: string,
     deliveryId: string
   ): Promise<void> {
-    if (this.config.provider === 'mailgun' && this.mailgunClient) {
+    if (this.config.provider === 'resend' && this.resendClient) {
+      const { data, error } = await this.resendClient.emails.send({
+        from: `${this.config.fromName} <${this.config.fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+
+      if (error) {
+        logger.error('Resend API error', { deliveryId, message: error.message, name: error.name });
+        await this.updateDeliveryStatus({
+          deliveryId,
+          status: 'failed',
+          providerMessageId: undefined,
+          failureReason: error.message,
+          timestamp: new Date(),
+        });
+        throw new Error(error.message);
+      }
+
+      await this.updateDeliveryStatus({
+        deliveryId,
+        status: 'sent',
+        providerMessageId: data?.id,
+        timestamp: new Date(),
+      });
+    } else if (this.config.provider === 'mailgun' && this.mailgunClient) {
       const messageData = {
         from: `${this.config.fromName} <${this.config.fromEmail}>`,
         to,
@@ -162,8 +190,8 @@ export class EmailService {
         timestamp: new Date(),
       });
     } else {
-      // Queue for later delivery
-      logger.warn('Email queued for delivery', { deliveryId, to });
+      // Sin proveedor configurado — el registro queda en estado 'pending'
+      logger.warn('Email queued — no provider configured or API key missing', { deliveryId, to });
     }
   }
 
@@ -213,8 +241,22 @@ export class EmailService {
     `;
 
     try {
-      const result = await this.pool.query<EmailTemplate>(query, [templateName]);
-      return result.rows[0] || null;
+      const result = await this.pool.query(query, [templateName]);
+      const row = result.rows[0];
+      if (!row) return null;
+      // Mapear snake_case de BD a camelCase del interface
+      return {
+        id: row.id,
+        templateName: row.template_name,
+        subject: row.subject,
+        htmlBody: row.html_body,
+        textBody: row.text_body,
+        variables: row.variables ? (typeof row.variables === 'string' ? JSON.parse(row.variables) : row.variables) : [],
+        language: row.language,
+        isActive: row.is_active,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      } as EmailTemplate;
     } catch (error) {
       logger.error('Failed to get email template', {
         templateName,
@@ -270,13 +312,13 @@ export class EmailService {
     const query = `
       UPDATE email_deliveries
       SET
-        status = $2,
+        status = $2::varchar,
         provider_message_id = $3,
-        sent_at = CASE WHEN $2 = 'sent' THEN $6 ELSE sent_at END,
+        sent_at = CASE WHEN $2::varchar = 'sent' THEN $5 ELSE sent_at END,
         bounce_reason = $4,
         delivery_attempts = delivery_attempts + 1,
-        last_attempt_at = $6,
-        updated_at = $6
+        last_attempt_at = $5,
+        updated_at = $5
       WHERE id = $1;
     `;
 
@@ -284,9 +326,8 @@ export class EmailService {
       await this.pool.query(query, [
         update.deliveryId,
         update.status,
-        update.providerMessageId,
-        update.failureReason,
-        null,
+        update.providerMessageId ?? null,
+        update.failureReason ?? null,
         update.timestamp,
       ]);
 
@@ -365,7 +406,7 @@ export class EmailService {
 
     try {
       const result = await this.pool.query<any>(query);
-      return result.rows.map((row) => ({
+      return result.rows.map((row: any) => ({
         id: row.id,
         template_name: row.template_name,
         templateName: row.template_name,
