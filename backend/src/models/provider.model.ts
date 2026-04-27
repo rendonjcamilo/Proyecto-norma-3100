@@ -81,7 +81,7 @@ export class ProviderModel {
       search?: string;
     }
   ): Promise<Provider[]> {
-    let query = 'SELECT * FROM providers WHERE 1=1';
+    let query = "SELECT * FROM providers WHERE status != 'revoked'";
     const params: any[] = [];
 
     // Role-based filtering
@@ -93,7 +93,7 @@ export class ProviderModel {
       query += ` AND id IN (SELECT provider_id FROM users WHERE id = $${params.length + 1})`;
       params.push(user_id);
     }
-    // super_admin sees all (no filter)
+    // super_admin sees todos excepto los eliminados (revoked)
 
     // Additional filters
     if (filters?.status) {

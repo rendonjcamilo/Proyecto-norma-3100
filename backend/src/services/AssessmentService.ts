@@ -619,7 +619,8 @@ export class AssessmentService {
           id, assessment_id, criterion_id, status, severity, title, description
       `;
 
-      const hallazgoTitle = `${ncResponse.criterion_code}: ${ncResponse.criterion_name}`;
+      const fullTitle = `${ncResponse.criterion_code}: ${ncResponse.criterion_name}`;
+      const hallazgoTitle = fullTitle.length > 255 ? fullTitle.substring(0, 252) + '...' : fullTitle;
       const hallazgoDescription = `Observación: ${ncResponse.description || 'No especificada'}${ncResponse.comments ? `\nComentarios: ${ncResponse.comments}` : ''}`;
 
       const finding = await client.query(hallazgoQuery, [

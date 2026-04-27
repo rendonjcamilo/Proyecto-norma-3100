@@ -289,27 +289,58 @@ export class QuestionnaireService {
    * Publish questionnaire (mark as ready for use)
    */
   async publishQuestionnaire(questionnaireId: string, publishedBy: string): Promise<Questionnaire> {
-    const query = `
-      UPDATE questionnaires
-      SET status = 'published', published_at = NOW(), updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, service_id, version_type, name, status, total_criteria,
-                created_by, created_at, updated_at, published_at
-    `;
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    const result = await this.pool.query(query, [questionnaireId]);
+      // Obtener info del cuestionario a publicar
+      const infoResult = await client.query(
+        'SELECT version_type, service_id FROM questionnaires WHERE id = $1',
+        [questionnaireId]
+      );
+      if (infoResult.rows.length === 0) {
+        throw new Error(`Questionnaire ${questionnaireId} not found`);
+      }
+      const { version_type, service_id } = infoResult.rows[0];
 
-    if (result.rows.length === 0) {
-      throw new Error(`Questionnaire ${questionnaireId} not found`);
+      // Archivar cualquier cuestionario published del mismo version_type y service_id
+      await client.query(
+        `UPDATE questionnaires
+         SET status = 'archived', updated_at = NOW()
+         WHERE version_type = $1
+           AND status = 'published'
+           AND id != $2
+           AND (service_id = $3 OR (service_id IS NULL AND $3::uuid IS NULL))`,
+        [version_type, questionnaireId, service_id]
+      );
+
+      // Publicar el nuevo
+      const result = await client.query(
+        `UPDATE questionnaires
+         SET status = 'published', published_at = NOW(), updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, service_id, version_type, name, status, total_criteria,
+                   created_by, created_at, updated_at, published_at`,
+        [questionnaireId]
+      );
+
+      await client.query('COMMIT');
+
+      const published = result.rows[0];
+
+      logger.info({
+        msg: 'Questionnaire published',
+        questionnaire_id: questionnaireId,
+        published_by: publishedBy,
+      });
+
+      return published;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    logger.info({
-      msg: 'Questionnaire published',
-      questionnaire_id: questionnaireId,
-      published_by: publishedBy,
-    });
-
-    return result.rows[0];
   }
 
   /**

@@ -22,7 +22,7 @@ WITH initial_questionnaire AS (
     LIMIT 1
 ),
 
--- Crear los 3 cuestionarios nuevos
+-- Crear los 3 cuestionarios nuevos (solo si no existen ya)
 new_questionnaires AS (
     INSERT INTO questionnaires (
         name, service_id, version_type, status, total_criteria,
@@ -45,6 +45,13 @@ new_questionnaires AS (
         VALUES ('year4'), ('annual'), ('pre-novelty')
     ) AS v(version)
     CROSS JOIN initial_questionnaire iq
+    -- Guarda de idempotencia: no insertar si ya existe uno published para ese version_type
+    WHERE NOT EXISTS (
+        SELECT 1 FROM questionnaires
+        WHERE version_type = v.version
+          AND service_id IS NULL
+          AND status != 'archived'
+    )
     RETURNING id, version_type
 )
 

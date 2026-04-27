@@ -31,11 +31,11 @@ export function QuestionnairesPage(): JSX.Element {
     name: '',
   });
 
-  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('published');
   const [filterVersion, setFilterVersion] = useState<string>('');
 
   useEffect(() => {
-    fetchQuestionnaires();
+    fetchQuestionnaires('published');
     fetchServices();
   }, []);
 
