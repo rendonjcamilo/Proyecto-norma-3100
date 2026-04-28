@@ -17,7 +17,8 @@
     "migrate:up": "tsx db/migrations.ts up",
     "migrate:down": "tsx db/migrations.ts down",
     "migrate:create": "tsx db/migrations.ts create",
-    "seed": "tsx db/seed.ts"
+    "seed": "tsx db/seed.ts",
+    "generate:nc-hints": "tsx src/scripts/generate-nc-hints.ts"
   },
   "keywords": [
     "norma3100",
@@ -28,6 +29,7 @@
   "author": "SAP Developer",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@types/multer": "^2.1.0",
     "@types/pdfkit": "^0.17.5",
     "@types/swagger-jsdoc": "^6.0.4",

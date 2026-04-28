@@ -26,6 +26,7 @@ interface Criterion {
   description: string;
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
+  ncHint?: string;
 }
 
 interface Standard {
@@ -93,13 +94,18 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
       description,
       evidenceRequirement: c.evidence_requirement || '',
       complexity: c.complexity,
+      ncHint: c.nc_hint || undefined,
     });
   }
 
-  // Transversales primero, luego específicos; dentro de cada grupo ordenar por código
+  // Orden según Resolución 3100: TSTH, TSINF, TSDOT, TSMD, TSPP, TSHCR, TSINT
+  const STANDARD_ORDER: Record<string, number> = {
+    TSTH: 1, TSINF: 2, TSDOT: 3, TSMD: 4, TSPP: 5, TSHCR: 6, TSINT: 7,
+  };
   return Array.from(standardMap.values()).sort((a, b) => {
-    if (a.isTransversal !== b.isTransversal) return a.isTransversal ? -1 : 1;
-    return a.code.localeCompare(b.code);
+    const orderA = STANDARD_ORDER[a.code] ?? 99;
+    const orderB = STANDARD_ORDER[b.code] ?? 99;
+    return orderA - orderB;
   });
 }
 

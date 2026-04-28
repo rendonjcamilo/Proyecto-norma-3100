@@ -503,9 +503,7 @@ export class Norma3100Service {
           criterionText: criterion.text,
           standardCode: criterion.standardCode,
           severity,
-          findingDescription: Math.random() < 0.5
-            ? `No se evidencia ${criterion.text}.`
-            : `No cuenta con ${criterion.text}.`,
+          findingDescription: `No se aporta evidencia documental que acredite el cumplimiento de este criterio.`,
           createdAt: new Date(),
         });
       }

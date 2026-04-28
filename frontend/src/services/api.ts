@@ -441,6 +441,7 @@ export interface QuestionnaireCriterion {
   standard_name: string;
   is_transversal: boolean;
   is_mandatory: boolean;
+  nc_hint?: string;
 }
 
 export interface QuestionnaireDetail {

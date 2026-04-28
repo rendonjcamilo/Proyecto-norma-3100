@@ -16,6 +16,7 @@ interface Criterion {
   standard_id: string;
   standard_name: string;
   is_transversal: boolean;
+  nc_hint?: string;
 }
 
 interface Response {
@@ -33,13 +34,14 @@ interface NCReviewModalProps {
   onCancel: () => void;
 }
 
-const sugerirNegacion = (criterionName: string): string => {
+// Genera una observación genérica de no cumplimiento sin reutilizar el texto del criterio,
+// ya que los criterios están redactados como afirmaciones y su negación literal resulta contradictoria.
+const sugerirNegacion = (_criterionName: string): string => {
   const plantillas = [
-    (t: string) => `No se evidencia ${t}.`,
-    (t: string) => `No cuenta con ${t}.`,
+    'No se aporta evidencia documental que acredite el cumplimiento de este criterio.',
+    'No se cuenta con documentación soporte que demuestre el cumplimiento de este criterio durante la evaluación.',
   ];
-  const elegida = plantillas[Math.floor(Math.random() * plantillas.length)];
-  return elegida(criterionName);
+  return plantillas[Math.floor(Math.random() * plantillas.length)];
 };
 
 export const NCReviewModal: React.FC<NCReviewModalProps> = ({
@@ -69,8 +71,9 @@ export const NCReviewModal: React.FC<NCReviewModalProps> = ({
     return desc.length >= 10;
   });
 
-  const handleSuggest = (criterionId: string, criterionName: string) => {
-    const suggested = sugerirNegacion(criterionName);
+  const handleSuggest = (criterionId: string, criterionName: string, ncHint?: string) => {
+    // Usa el hallazgo pre-generado por IA si está disponible; si no, usa el genérico
+    const suggested = ncHint || sugerirNegacion(criterionName);
     onDescriptionChange(criterionId, suggested);
   };
 
@@ -135,7 +138,7 @@ export const NCReviewModal: React.FC<NCReviewModalProps> = ({
                             <div className="nc-review-criterion-actions">
                               <button
                                 className="nc-review-btn-suggest"
-                                onClick={() => handleSuggest(criterion.id, criterion.name)}
+                                onClick={() => handleSuggest(criterion.id, criterion.name, criterion.nc_hint)}
                                 type="button"
                               >
                                 💡 Sugerir

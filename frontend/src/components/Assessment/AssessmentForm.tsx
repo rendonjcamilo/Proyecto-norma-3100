@@ -40,6 +40,7 @@ interface Criterion {
   description: string;
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
+  ncHint?: string;
 }
 
 interface Standard {
@@ -317,6 +318,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
               standard_id: s.id,
               standard_name: s.name,
               is_transversal: s.isTransversal,
+              nc_hint: c.ncHint,
             }))
           )}
           responses={responses}

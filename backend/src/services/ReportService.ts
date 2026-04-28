@@ -577,7 +577,7 @@ export class ReportService {
         semaforo,
         hallazgos: hallazgosResult.rows.map(h => ({
           criterio: h.criterion_code,
-          descripcion: `No se evidencia cumplimiento del criterio ${h.title}`,
+          descripcion: h.title,
           tipo: 'no_conformidad',
           severidad: h.severity || 'media',
         })),

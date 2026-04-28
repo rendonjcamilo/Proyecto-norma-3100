@@ -178,12 +178,22 @@ export class QuestionnaireService {
       SELECT
         ec.id, ec.code, ec.number, ec.name, ec.description,
         ec.evidence_requirement, ec.complexity, ec.standard_id,
-        es.name as standard_name, es.is_transversal, ec.is_mandatory
+        es.name as standard_name, es.is_transversal, ec.is_mandatory,
+        ec.nc_hint
       FROM questionnaire_criteria qc
       INNER JOIN evaluation_criteria ec ON qc.criterion_id = ec.id
       INNER JOIN evaluation_standards es ON ec.standard_id = es.id
       WHERE qc.questionnaire_id = $1
-      ORDER BY es.is_transversal DESC, es.code, ec.code
+      ORDER BY CASE es.code
+        WHEN 'TSTH'  THEN 1
+        WHEN 'TSINF' THEN 2
+        WHEN 'TSDOT' THEN 3
+        WHEN 'TSMD'  THEN 4
+        WHEN 'TSPP'  THEN 5
+        WHEN 'TSHCR' THEN 6
+        WHEN 'TSINT' THEN 7
+        ELSE 8
+      END, ec.code
     `;
 
     const criteriaResult = await this.pool.query(criteriaQuery, [questionnaireId]);
@@ -463,7 +473,16 @@ export class QuestionnaireService {
       FROM evaluation_standards es
       WHERE es.is_transversal = true
          OR es.service_id = $1
-      ORDER BY es.is_transversal DESC, es.code
+      ORDER BY CASE es.code
+        WHEN 'TSTH'  THEN 1
+        WHEN 'TSINF' THEN 2
+        WHEN 'TSDOT' THEN 3
+        WHEN 'TSMD'  THEN 4
+        WHEN 'TSPP'  THEN 5
+        WHEN 'TSHCR' THEN 6
+        WHEN 'TSINT' THEN 7
+        ELSE 8
+      END
     `;
 
     const standardsResult = await this.pool.query(standardsQuery, [serviceId]);
@@ -475,7 +494,8 @@ export class QuestionnaireService {
           SELECT
             ec.id, ec.code, ec.number, ec.name, ec.description,
             ec.evidence_requirement, ec.complexity, ec.standard_id,
-            es.name as standard_name, es.is_transversal, ec.is_mandatory
+            es.name as standard_name, es.is_transversal, ec.is_mandatory,
+            ec.nc_hint
           FROM evaluation_criteria ec
           INNER JOIN evaluation_standards es ON ec.standard_id = es.id
           WHERE ec.standard_id = $1 AND ec.service_id = $2 AND ec.status = 'active'
