@@ -27,6 +27,8 @@ export interface RepsRegistroData {
   codigo_habilitacion: string;
   nombre_prestador: string;
   nit: string;
+  telefono?: string;
+  nombre_sede?: string;
   municipio: string;
   departamento: string;
   tipo_prestador: string;
@@ -254,6 +256,8 @@ export class RepsService {
       codigo_habilitacion: this.pick(record, 'codigohabilitacionsede', 'codigoprestador') || '',
       nombre_prestador: this.pick(record, 'nombreprestador', 'nombresede') || '',
       nit: this.pick(record, 'numeroidentificacion') || '',
+      telefono: this.pick(record, 'telefonoprestador', 't_lefonosede', 'telefono', 'telefono_prestador') || undefined,
+      nombre_sede: this.pick(record, 'nombresede', 'nombre_sede') || undefined,
       email: this.pick(record, 'email_prestador', 'email_sede') || undefined,
       direccion: this.pick(record, 'direccionprestador', 'direcci_nsede') || undefined,
       municipio: this.pick(record, 'municipioprestadordesc', 'municipiosededesc') || '',

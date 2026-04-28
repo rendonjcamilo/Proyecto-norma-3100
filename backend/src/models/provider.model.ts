@@ -16,6 +16,9 @@ export interface Provider {
   department: string;
   country: string;
   email?: string;
+  phone?: string;
+  nombre_sede?: string;
+  codigo_habilitacion?: string;
   status: 'active' | 'suspended' | 'revoked' | 'pending';
   created_at: Date;
   updated_at: Date;
@@ -154,8 +157,8 @@ export class ProviderModel {
    */
   async createProvider(data: Omit<Provider, 'id' | 'created_at' | 'updated_at'>): Promise<Provider> {
     const query = `
-      INSERT INTO providers (rut, legal_name, trade_name, legal_entity_type, address, city, department, country, email, status, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      INSERT INTO providers (rut, legal_name, trade_name, legal_entity_type, address, city, department, country, email, phone, nombre_sede, codigo_habilitacion, status, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *
     `;
 
@@ -169,6 +172,9 @@ export class ProviderModel {
       data.department,
       data.country,
       data.email || null,
+      data.phone || null,
+      data.nombre_sede || null,
+      data.codigo_habilitacion || null,
       data.status,
       data.created_by || null,
       data.updated_by || null,

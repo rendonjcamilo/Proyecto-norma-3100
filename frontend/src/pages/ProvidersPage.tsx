@@ -6,6 +6,30 @@ import React, { useEffect, useState } from 'react';
 import { providersApi, usersApi, repsApi, User } from '../services/api';
 import './Pages.css';
 
+/**
+ * Extrae el primer número móvil colombiano de un string de teléfono del REPS.
+ * Solo retorna número si es móvil (10 dígitos, empieza por 3) — candidato a WhatsApp.
+ * Los números fijos (locales) no son WhatsApp y se descartan.
+ */
+const extractMobileNumber = (rawPhone: string | undefined): string => {
+  if (!rawPhone) return '';
+  // Separar por delimitadores comunes: / - , ; |
+  const parts = rawPhone.split(/[/\-,;|]/);
+  for (const part of parts) {
+    const digits = part.replace(/\D/g, '');
+    // Móvil colombiano: 10 dígitos empezando por 3
+    if (digits.length === 10 && digits.startsWith('3')) {
+      return digits;
+    }
+    // Formato internacional +57 3xx: 12 dígitos empezando por 57 3
+    if (digits.length === 12 && digits.startsWith('573')) {
+      return digits.slice(2);
+    }
+  }
+  // No se encontró número móvil → no autocompletar
+  return '';
+};
+
 interface Provider {
   id: string;
   legal_name: string;
@@ -50,6 +74,10 @@ interface FormData {
   city: string;
   department: string;
   email: string;
+  phone: string;
+  nombre_sede: string;
+  codigo_habilitacion: string;
+  tipo_prestador: string;
   auditor_id: string;
   admin_first_name: string;
   admin_last_name: string;
@@ -64,6 +92,10 @@ const INITIAL_FORM: FormData = {
   city: '',
   department: '',
   email: '',
+  phone: '',
+  nombre_sede: '',
+  codigo_habilitacion: '',
+  tipo_prestador: '',
   auditor_id: '',
   admin_first_name: '',
   admin_last_name: '',
@@ -131,7 +163,7 @@ export const ProvidersPage: React.FC = () => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [repsSearchCode, setRepsSearchCode] = useState('');
   const [repsSearching, setRepsSearching] = useState(false);
-  const [repsFound, setRepsFound] = useState<{ nombre: string; nit: string; municipio: string; departamento: string } | null>(null);
+  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string } | null>(null);
   const [repsError, setRepsError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -218,11 +250,15 @@ export const ProvidersPage: React.FC = () => {
         city: formData.city.trim(),
         department: formData.department.trim(),
         email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        nombre_sede: formData.nombre_sede.trim() || undefined,
+        codigo_habilitacion: formData.codigo_habilitacion.trim() || undefined,
+        legal_entity_type: formData.tipo_prestador.trim() || undefined,
         admin_email: formData.admin_email.trim(),
         admin_password: formData.admin_password,
         admin_first_name: formData.admin_first_name.trim(),
         admin_last_name: formData.admin_last_name.trim(),
-      });
+      } as any);
 
       const newProviderId = (createRes.data as any).provider.id;
 
@@ -327,6 +363,11 @@ export const ProvidersPage: React.FC = () => {
       address: provider.address || '',
       city: provider.city,
       department: provider.department,
+      email: (provider as any).email || '',
+      phone: (provider as any).phone || '',
+      nombre_sede: (provider as any).nombre_sede || '',
+      codigo_habilitacion: (provider as any).codigo_habilitacion || '',
+      tipo_prestador: (provider as any).legal_entity_type || '',
       auditor_id: '',
       admin_first_name: '',
       admin_last_name: '',
@@ -351,7 +392,8 @@ export const ProvidersPage: React.FC = () => {
       const res = await repsApi.consultar(repsSearchCode.trim());
       if (res.data?.found && res.data.data) {
         const d = res.data.data;
-        setRepsFound({ nombre: d.nombre_prestador, nit: d.nit, municipio: d.municipio, departamento: d.departamento });
+        const mobileNumber = extractMobileNumber(d.telefono);
+        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '' });
         // Autocompletar campos del formulario directamente desde REPS
         setFormData((prev) => ({
           ...prev,
@@ -361,6 +403,10 @@ export const ProvidersPage: React.FC = () => {
           department: d.departamento,
           city: d.municipio,
           email: d.email || prev.email,
+          phone: extractMobileNumber(d.telefono) || prev.phone,
+          nombre_sede: d.nombre_sede || prev.nombre_sede,
+          codigo_habilitacion: d.codigo_habilitacion || prev.codigo_habilitacion,
+          tipo_prestador: d.tipo_prestador || prev.tipo_prestador,
         }));
       } else {
         setRepsError('No se encontró el prestador en REPS. Verifique el código de habilitación o NIT.');
@@ -566,15 +612,21 @@ export const ProvidersPage: React.FC = () => {
                     <p style={{ marginTop: '8px', fontSize: '13px', color: '#dc2626' }}>{repsError}</p>
                   )}
                   {repsFound && (
-                    <div style={{ marginTop: '10px', padding: '10px', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', color: '#065f46' }}>
-                      ✓ Datos cargados: <strong>{repsFound.nombre}</strong> — NIT: {repsFound.nit} — {repsFound.municipio}, {repsFound.departamento}
+                    <div style={{ marginTop: '10px', padding: '10px 14px', background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '6px', fontSize: '13px', color: '#065f46' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '6px' }}>✓ Datos cargados: {repsFound.nombre}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                        <span><strong>Identificación:</strong> {repsFound.identificacion || '—'}</span>
+                        <span><strong>Teléfono:</strong> {repsFound.telefono || '—'}</span>
+                        <span><strong>Código de prestador:</strong> {repsFound.codigo_prestador || '—'}</span>
+                        <span><strong>Sede:</strong> {repsFound.sede || '—'}</span>
+                      </div>
                     </div>
                   )}
                 </div>
               )}
 
               <div className="dashboard-form-group">
-                <label htmlFor="rut">RUT *</label>
+                <label htmlFor="rut">Identificación *</label>
                 <input
                   id="rut"
                   type="text"
@@ -584,8 +636,44 @@ export const ProvidersPage: React.FC = () => {
                   disabled={creating}
                 />
                 <small style={{ color: '#6b778c', marginTop: '4px' }}>
-                  Formato: 10-11 dígitos + guion + 1 dígito de verificación
+                  NIT o número de identificación del prestador
                 </small>
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="phone">Número de teléfono</label>
+                <input
+                  id="phone"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="codigo_habilitacion">Código de prestador</label>
+                <input
+                  id="codigo_habilitacion"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
+                  value={formData.codigo_habilitacion}
+                  onChange={(e) => setFormData({ ...formData, codigo_habilitacion: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="nombre_sede">Sede</label>
+                <input
+                  id="nombre_sede"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
+                  value={formData.nombre_sede}
+                  onChange={(e) => setFormData({ ...formData, nombre_sede: e.target.value })}
+                  disabled={creating}
+                />
               </div>
 
               <div className="dashboard-form-group">
@@ -644,6 +732,18 @@ export const ProvidersPage: React.FC = () => {
                   placeholder="Se autocompleta desde REPS o ingresa manualmente"
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="tipo_prestador">Clase de prestador</label>
+                <input
+                  id="tipo_prestador"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
+                  value={formData.tipo_prestador}
+                  onChange={(e) => setFormData({ ...formData, tipo_prestador: e.target.value })}
                   disabled={creating}
                 />
               </div>
