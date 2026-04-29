@@ -550,7 +550,7 @@ export class ReportService {
         `SELECT
                 CASE
                   WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL
-                  THEN ec.code || ': ' || ec.name
+                  THEN ec.name
                   ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
                 END AS title,
                 COALESCE(ec.code, '') AS criterion_code,
@@ -577,7 +577,7 @@ export class ReportService {
         semaforo,
         hallazgos: hallazgosResult.rows.map(h => ({
           criterio: h.criterion_code,
-          descripcion: h.title,
+          descripcion: h.title.replace(/^\d+(\.\d+)*\.\s*/, ''),
           tipo: 'no_conformidad',
           severidad: h.severity || 'media',
         })),
@@ -879,13 +879,11 @@ export class ReportService {
         ],
       });
 
-    // Helper: celda de tabla con fondo D9E2F3 (azul claro del documento original)
     const labelCell = (text: string) =>
       new TableCell({
-        shading: { fill: 'D9E2F3', type: ShadingType.CLEAR, color: 'auto' },
         children: [
           new Paragraph({
-            children: [new TextRun({ text, font: 'Arial', size: 22, bold: false, color: '000000' })],
+            children: [new TextRun({ text, font: 'Arial', size: 24, bold: true, color: '000000' })],
             spacing: { before: 60, after: 60 },
           }),
         ],
@@ -895,7 +893,7 @@ export class ReportService {
       new TableCell({
         children: [
           new Paragraph({
-            children: [new TextRun({ text, font: 'Arial', size: 22, color: '000000' })],
+            children: [new TextRun({ text, font: 'Arial', size: 24, color: '000000' })],
             spacing: { before: 60, after: 60 },
           }),
         ],
@@ -998,7 +996,7 @@ export class ReportService {
             );
           });
         } else {
-          paras.push(p('Sin hallazgos identificados para este estándar.', { spaceAfter: 100 }));
+          paras.push(p('Todo se cumple en este estándar.', { spaceAfter: 100 }));
         }
 
         return paras;
@@ -1014,21 +1012,21 @@ export class ReportService {
         rows: [
           new TableRow({
             children: [
-              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Estándar', font: 'Arial', size: 22, bold: true, color: 'FFFFFF' })] })] }),
-              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'C', font: 'Arial', size: 22, bold: true, color: 'FFFFFF' })] })] }),
-              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'NC', font: 'Arial', size: 22, bold: true, color: 'FFFFFF' })] })] }),
-              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: '% Cumpl.', font: 'Arial', size: 22, bold: true, color: 'FFFFFF' })] })] }),
-              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Semáforo', font: 'Arial', size: 22, bold: true, color: 'FFFFFF' })] })] }),
+              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Estándar', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'C', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'NC', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: '% Cumpl.', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+              new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Semáforo', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
             ],
           }),
           ...data.estandares.map((est) =>
             new TableRow({
               children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 20, color: '000000' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 20, color: '000000' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 20, color: '000000' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 20, color: '000000' })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 20, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 24, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
               ],
             })
           ),
@@ -1036,40 +1034,6 @@ export class ReportService {
       }),
 
       p('', { spaceAfter: 200 }),
-
-      // ── CONCEPTO DE HABILITACIÓN ─────────────────────────────────
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 200, after: 120 },
-        children: [
-          new TextRun({
-            text: `CONCEPTO: ${
-              data.conceptoHabilitacion === 'habilitado'
-                ? 'HABILITADO'
-                : data.conceptoHabilitacion === 'habilitado_condicionado'
-                ? 'HABILITADO CON CONDICIONAMIENTOS'
-                : 'NO HABILITADO'
-            }`,
-            font: 'Arial',
-            size: 28,
-            bold: true,
-            color: data.conceptoHabilitacion === 'habilitado' ? '007000' : data.conceptoHabilitacion === 'no_habilitado' ? 'CC0000' : 'E06000',
-          }),
-        ],
-      }),
-
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 0, after: 360 },
-        children: [
-          new TextRun({
-            text: `Porcentaje de cumplimiento: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`,
-            font: 'Arial',
-            size: 22,
-            color: '000000',
-          }),
-        ],
-      }),
 
       // ── FIRMA DEL AUDITOR ────────────────────────────────────────
       p('', { spaceAfter: 240 }),
@@ -1094,23 +1058,23 @@ export class ReportService {
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
         children: [
-          new TextRun({ text: 'Profesional que realizó la Auditoría:', font: 'Arial', size: 22, bold: true, color: '000000' }),
+          new TextRun({ text: 'Profesional que realizó la Auditoría:', font: 'Arial', size: 24, bold: true, color: '000000' }),
         ],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
-        children: [new TextRun({ text: 'Dra. Adriana Perdomo M.', font: 'Arial', size: 22, bold: false, color: '000000' })],
+        children: [new TextRun({ text: 'Dra. Adriana Perdomo M.', font: 'Arial', size: 24, bold: false, color: '000000' })],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
-        children: [new TextRun({ text: 'Odontóloga – Especialista en Auditoría en Salud', font: 'Arial', size: 22, color: '000000' })],
+        children: [new TextRun({ text: 'Especialista en Auditoría en Salud', font: 'Arial', size: 24, color: '000000' })],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 360 },
-        children: [new TextRun({ text: 'Verificadora en habilitación.', font: 'Arial', size: 22, color: '000000' })],
+        children: [new TextRun({ text: 'Verificadora en habilitación.', font: 'Arial', size: 24, color: '000000' })],
       }),
 
       // ── FRASE FINAL ──────────────────────────────────────────────
@@ -1119,7 +1083,7 @@ export class ReportService {
         spacing: { before: 120, after: 0 },
         children: [
           new TextRun({ text: '\u00AB', font: 'Arial', size: 24, bold: true, color: '33CCCC' }),
-          new TextRun({ text: 'El desconocimiento de la norma, no lo exime de su cumplimiento', font: 'Arial', size: 22, bold: true, color: '000000' }),
+          new TextRun({ text: 'El desconocimiento de la norma, no lo exime de su cumplimiento', font: 'Arial', size: 24, bold: true, color: '000000' }),
           new TextRun({ text: '\u00BB', font: 'Arial', size: 24, bold: true, color: '33CCCC' }),
         ],
       }),

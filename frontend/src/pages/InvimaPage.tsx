@@ -1,41 +1,15 @@
 /**
- * INVIMA Registry Page — Estándar TSMD
- * Consulta automática de registros sanitarios INVIMA
- * Gestión de inventario de medicamentos/dispositivos por proveedor
+ * INVIMA Registry Page — Consulta de registros sanitarios
+ * Busca por número de registro o texto libre; muestra todos los campos.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  invimaApi,
-  type InvimaRegistro,
-  type ProviderInvimaItem,
-  type InvimaLookupResult,
-  type InvimaSummary,
-  type InvimaAlerta,
-} from '../services/api';
-import { useRolePermission } from '../hooks/useRolePermission';
-import { DeleteConfirmationModal } from '../components/Assessment/DeleteConfirmationModal';
+import React, { useState } from 'react';
+import { invimaApi, type InvimaRegistro, type InvimaLookupResult } from '../services/api';
 import './InvimaPage.css';
 
 interface InvimaPageProps {
   providerId: string;
 }
-
-const SEMAFORO_COLORS: Record<string, string> = {
-  verde: '#059669',
-  naranja: '#d97706',
-  amarillo: '#f59e0b',
-  rojo: '#dc2626',
-  gris: '#64748b',
-};
-
-const SEMAFORO_LABELS: Record<string, string> = {
-  verde: '> 6 meses',
-  naranja: '3-6 meses',
-  amarillo: '< 3 meses',
-  rojo: 'Vencido',
-  gris: 'Sin fecha',
-};
 
 const ESTADO_COLORS: Record<string, string> = {
   vigente: '#059669',
@@ -46,1011 +20,260 @@ const ESTADO_COLORS: Record<string, string> = {
   desconocido: '#64748b',
 };
 
-const ALERTA_TIPO_COLORS: Record<string, string> = {
-  farmacovigilancia: '#6366f1',
-  tecnovigilancia: '#4f46e5',
-  retiro_mercado: '#dc2626',
-  suspension: '#d97706',
-  otro: '#64748b',
-};
+function normalizeEstado(estado: string | null | undefined): string {
+  if (!estado) return 'desconocido';
+  return estado.toLowerCase().replace(/\s+/g, '_');
+}
 
-export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
-  // Validate providerId early
-  if (!providerId || providerId.trim() === '') {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '400px',
-        color: '#d32f2f',
-        fontSize: '16px',
-      }}>
-        ⚠️ Por favor selecciona un prestador en el menú superior
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div className="inv-field">
+      <span className="inv-field-label">{label}</span>
+      <span className="inv-field-value">{value}</span>
+    </div>
+  );
+}
+
+function RegistroCard({ reg, onBack }: { reg: InvimaRegistro; onBack: () => void }) {
+  const estadoKey = normalizeEstado(reg.estado);
+  const estadoColor = ESTADO_COLORS[estadoKey] ?? '#64748b';
+
+  const rawData = reg.datos_crudos as Record<string, unknown> | null | undefined;
+
+  return (
+    <div className="inv-card">
+      <button className="inv-back-btn" onClick={onBack}>
+        ← Volver
+      </button>
+
+      <div className="inv-card-header">
+        <div className="inv-card-numero">{reg.numero_registro}</div>
+        <span className="inv-estado-badge" style={{ background: estadoColor + '22', color: estadoColor, border: `1px solid ${estadoColor}55` }}>
+          {reg.estado ?? 'Desconocido'}
+        </span>
       </div>
-    );
-  }
 
-  const [activeTab, setActiveTab] = useState<'inventario' | 'por-vencer' | 'alertas' | 'exportar'>('inventario');
-  const [items, setItems] = useState<ProviderInvimaItem[]>([]);
-  const [porVencer, setPorVencer] = useState<ProviderInvimaItem[]>([]);
-  const [alertas, setAlertas] = useState<InvimaAlerta[]>([]);
-  const [summary, setSummary] = useState<InvimaSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
-  const [lookupNumber, setLookupNumber] = useState('');
+      <h2 className="inv-card-nombre">{reg.nombre_producto ?? 'Sin nombre'}</h2>
+
+      <div className="inv-fields-grid">
+        <Field label="Categoría" value={reg.categoria} />
+        <Field label="Tipo de registro" value={reg.tipo_registro} />
+        <Field label="Clasificación de riesgo" value={reg.clasificacion_riesgo} />
+        <Field label="País de origen" value={reg.pais_origen} />
+        <Field label="Fecha de emisión" value={reg.fecha_emision} />
+        <Field label="Fecha de vencimiento" value={reg.fecha_vencimiento} />
+        <Field label="Titular / Marca" value={reg.titular_registro} />
+        <Field label="Fabricante" value={reg.titular_fabricante} />
+        <Field label="Importador" value={reg.titular_importador} />
+        <Field label="Principios activos" value={reg.principios_activos} />
+        <Field label="Presentaciones autorizadas" value={reg.presentaciones_autorizadas} />
+        <Field label="Fuente de datos" value={reg.fuente_datos} />
+        <Field label="Última consulta" value={reg.ultima_consulta ? new Date(reg.ultima_consulta).toLocaleString('es-CO') : null} />
+      </div>
+
+      {rawData && Object.keys(rawData).length > 0 && (
+        <div className="inv-raw-section">
+          <div className="inv-raw-title">Datos adicionales</div>
+          <div className="inv-fields-grid">
+            {Object.entries(rawData).map(([k, v]) =>
+              v != null && String(v).trim() !== '' ? (
+                <Field key={k} label={k.replace(/_/g, ' ')} value={String(v)} />
+              ) : null
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId: _providerId }) => {
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<InvimaRegistro[]>([]);
   const [lookupResult, setLookupResult] = useState<InvimaLookupResult | null>(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedRegistro, setSelectedRegistro] = useState<InvimaRegistro | null>(null);
-  const [addForm, setAddForm] = useState({
-    nombreComercial: '',
-    loteActual: '',
-    cantidadDisponible: '',
-    ubicacionAlmacenamiento: '',
-    condicionesAlmacenamiento: '',
-    fechaVencimientoLote: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showNewAlertForm, setShowNewAlertForm] = useState(false);
-  const [newAlertForm, setNewAlertForm] = useState({
-    numeroRegistro: '',
-    tipoAlerta: '',
-    descripcion: '',
-  });
-  const [showMarcarRevisadaForm, setShowMarcarRevisadaForm] = useState<string | null>(null);
-  const [accionTomada, setAccionTomada] = useState('');
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [confirmDeleteItem, setConfirmDeleteItem] = useState<{ id: string; name: string } | null>(null);
-  const [showManualForm, setShowManualForm] = useState(false);
-  const [manualForm, setManualForm] = useState({
-    nombreProducto: '',
-    categoria: 'medicamento',
-    estado: 'vigente',
-    titularRegistro: '',
-    fechaVencimiento: '',
-    observaciones: '',
-  });
-  const [filterSemaforo, setFilterSemaforo] = useState<string>('');
-  const { can } = useRolePermission();
+  const [selected, setSelected] = useState<InvimaRegistro | null>(null);
+  const [searched, setSearched] = useState(false);
 
-  const showToast = (type: 'success' | 'error', message: string) => {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 4000);
-  };
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
 
-  const loadTabData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setResults([]);
+    setLookupResult(null);
+    setSelected(null);
+    setSearched(true);
+
     try {
-      setLoading(true);
-      if (activeTab === 'inventario') {
-        const [itemsRes, summaryRes] = await Promise.all([
-          invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
-          invimaApi.getResumen(providerId),
-        ]);
-        setItems(itemsRes.data || []);
-        setSummary(summaryRes.data);
-      } else if (activeTab === 'por-vencer') {
-        const res = await invimaApi.getPorVencer(providerId, 90);
-        setPorVencer(res.data || []);
-      } else if (activeTab === 'alertas') {
-        const res = await invimaApi.listAlertas({ sinRevisar: false });
-        setAlertas(res.data || []);
-      } else if (activeTab === 'exportar') {
-        if (!summary) {
-          const res = await invimaApi.getResumen(providerId);
-          setSummary(res.data);
+      // Si parece número de registro (contiene letras + números con guiones) → lookup directo
+      const isRegistroNumber = /^[A-Z0-9]{2,}-?\d/i.test(q);
+
+      if (isRegistroNumber) {
+        const res = await invimaApi.lookup(q);
+        setLookupResult(res.data);
+        if (res.data.found && res.data.data) {
+          setSelected(res.data.data as InvimaRegistro);
         }
+      } else {
+        const res = await invimaApi.search(q, 30);
+        setResults(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
-      console.error('Error loading INVIMA tab:', err);
-      showToast('error', 'Error al cargar datos');
+      setError('Error al consultar INVIMA. Verifique su conexión e intente de nuevo.');
     } finally {
       setLoading(false);
     }
-  }, [activeTab, filterSemaforo, providerId, summary]);
-
-  useEffect(() => {
-    loadTabData();
-  }, [loadTabData]);
-
-  // ─── LOOKUP ───
-  const handleLookup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!lookupNumber.trim()) return;
-
-    try {
-      setLookupLoading(true);
-      setLookupResult(null);
-      const res = await invimaApi.lookup(lookupNumber.trim());
-      setLookupResult(res.data);
-
-      if (res.data.found && res.data.data) {
-        setSelectedRegistro(res.data.data as InvimaRegistro);
-      }
-    } catch (err) {
-      showToast('error', 'Error al consultar registro INVIMA');
-    } finally {
-      setLookupLoading(false);
-    }
   };
 
-  // ─── ADD ITEM ───
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedRegistro) return;
-
-    try {
-      setIsSubmitting(true);
-      await invimaApi.addProviderItem(providerId, {
-        registroId: selectedRegistro.numero_registro,
-        nombreComercial: addForm.nombreComercial || null,
-        loteActual: addForm.loteActual || null,
-        cantidadDisponible: addForm.cantidadDisponible ? parseInt(addForm.cantidadDisponible, 10) : null,
-        ubicacionAlmacenamiento: addForm.ubicacionAlmacenamiento || null,
-        condicionesAlmacenamiento: addForm.condicionesAlmacenamiento || null,
-        fechaVencimientoLote: addForm.fechaVencimientoLote || null,
-      });
-      showToast('success', 'Medicamento/dispositivo agregado al inventario');
-      setShowAddModal(false);
-      setSelectedRegistro(null);
-      setLookupResult(null);
-      setLookupNumber('');
-      setAddForm({
-        nombreComercial: '',
-        loteActual: '',
-        cantidadDisponible: '',
-        ubicacionAlmacenamiento: '',
-        condicionesAlmacenamiento: '',
-        fechaVencimientoLote: '',
-      });
-      // Reload inventory data
-      const [itemsRes, summaryRes] = await Promise.all([
-        invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
-        invimaApi.getResumen(providerId),
-      ]);
-      setItems(itemsRes.data || []);
-      setSummary(summaryRes.data);
-    } catch (err) {
-      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleBack = () => {
+    setSelected(null);
+    setLookupResult(null);
   };
 
-  // ─── DELETE ITEM ───
-  const handleDeleteItem = (item: ProviderInvimaItem) => {
-    setConfirmDeleteItem({
-      id: item.id,
-      name: item.nombre_comercial || item.nombre_producto || item.numero_registro || item.id,
-    });
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!confirmDeleteItem) return;
-    try {
-      setIsSubmitting(true);
-      await invimaApi.deleteProviderItem(providerId, confirmDeleteItem.id);
-      showToast('success', 'Item eliminado del inventario');
-      setConfirmDeleteItem(null);
-      const [itemsRes, summaryRes] = await Promise.all([
-        invimaApi.listProviderItems(providerId, filterSemaforo ? { semaforo: filterSemaforo } : undefined),
-        invimaApi.getResumen(providerId),
-      ]);
-      setItems(itemsRes.data || []);
-      setSummary(summaryRes.data);
-    } catch (err) {
-      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ─── NEW ALERTA ───
-  const handleNewAlerta = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAlertForm.numeroRegistro || !newAlertForm.tipoAlerta || !newAlertForm.descripcion) return;
-
-    try {
-      setIsSubmitting(true);
-      await invimaApi.createAlerta({
-        numeroRegistro: newAlertForm.numeroRegistro,
-        tipoAlerta: newAlertForm.tipoAlerta,
-        descripcion: newAlertForm.descripcion,
-      });
-      showToast('success', 'Alerta registrada');
-      setShowNewAlertForm(false);
-      setNewAlertForm({ numeroRegistro: '', tipoAlerta: '', descripcion: '' });
-      // Reload alertas
-      const res = await invimaApi.listAlertas({ sinRevisar: false });
-      setAlertas(res.data || []);
-    } catch (err) {
-      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ─── MARCAR ALERTA REVISADA ───
-  const handleMarcarRevisada = async (e: React.FormEvent, alertaId: string) => {
-    e.preventDefault();
-    if (!accionTomada.trim()) return;
-
-    try {
-      setIsSubmitting(true);
-      await invimaApi.marcarAlertaRevisada(alertaId, accionTomada);
-      showToast('success', 'Alerta marcada como revisada');
-      setShowMarcarRevisadaForm(null);
-      setAccionTomada('');
-      // Reload alertas
-      const res = await invimaApi.listAlertas({ sinRevisar: false });
-      setAlertas(res.data || []);
-    } catch (err) {
-      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ─── REGISTRO MANUAL (cuando lookup no encuentra) ───
-  const handleManualRegistro = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualForm.nombreProducto.trim()) return;
-
-    try {
-      setIsSubmitting(true);
-      const res = await invimaApi.createRegistro({
-        numeroRegistro: lookupNumber.trim(),
-        nombreProducto: manualForm.nombreProducto,
-        categoria: manualForm.categoria,
-        estado: manualForm.estado,
-        titularRegistro: manualForm.titularRegistro || undefined,
-        fechaVencimiento: manualForm.fechaVencimiento || undefined,
-        observaciones: manualForm.observaciones || undefined,
-      });
-      setSelectedRegistro(res.data);
-      setShowManualForm(false);
-      showToast('success', 'Registro guardado — completa los datos del inventario a continuación');
-    } catch (err) {
-      showToast('error', `Error al guardar registro: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ─── DOWNLOAD CSV ───
-  const handleDownloadCsv = async () => {
-    try {
-      const blob = await invimaApi.exportCsv(providerId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invima-${providerId}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showToast('success', 'CSV descargado');
-    } catch (err) {
-      showToast('error', `Error: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  };
-
-  // ─── SEARCH INVENTORY ───
-  const filteredItems = items.filter((item) => {
-    const query = searchText.toLowerCase();
-    return (
-      (item.nombre_producto?.toLowerCase().includes(query)) ||
-      (item.nombre_comercial?.toLowerCase().includes(query)) ||
-      (item.numero_registro?.toLowerCase().includes(query))
+  const openInvimaOficial = () => {
+    window.open(
+      'https://consultaregistro.invima.gov.co/registrosconsultaligera/registrosanitario/consultar',
+      '_blank',
+      'noopener,noreferrer'
     );
-  });
-
-  if (loading && !summary) {
-    return (
-      <div className="invima-page invima-loading">
-        <div className="page-spinner" />
-        <p>Cargando registros INVIMA...</p>
-      </div>
-    );
-  }
-
-  const alertasSinRevisar = alertas.filter((a) => !a.revisada).length;
+  };
 
   return (
     <div className="invima-page">
-      {toast && <div className={`invima-toast invima-toast-${toast.type}`}>{toast.message}</div>}
-
-      {/* HEADER */}
-      <div className="aud-hero">
-        <div className="aud-hero-content">
-          <span className="aud-hero-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
-            Estándar TSMD
-          </span>
-          <h1 className="aud-hero-title">Registros INVIMA</h1>
-          <p className="aud-hero-subtitle">Consulta y gestión de registros sanitarios de medicamentos y dispositivos médicos</p>
+      <div className="inv-header">
+        <div className="inv-header-text">
+          <span className="inv-badge">INVIMA</span>
+          <h1>Consulta de Registros Sanitarios</h1>
+          <p>Busca por número de registro, nombre de producto, marca o principio activo</p>
         </div>
-        {can('invima', 'create') && (
-          <div className="aud-hero-actions">
-            <button className="aud-hero-btn" onClick={() => setShowAddModal(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
+      </div>
+
+      <div className="inv-search-wrapper">
+        <form className="inv-search-form" onSubmit={handleSearch}>
+          <div className="inv-search-box">
+            <svg className="inv-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              className="inv-search-input"
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ej: RSAB-CM-21-010, Amoxicilina, Bayer, 2022M-001..."
+              autoFocus
+            />
+            <button className="inv-search-btn" type="submit" disabled={loading || !query.trim()}>
+              {loading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="inv-results-area">
+        {loading && (
+          <div className="inv-state-msg">
+            <div className="page-spinner" />
+            <p>Consultando base de datos INVIMA...</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="inv-state-msg inv-state-error">
+            <span>⚠️</span>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {!loading && selected && (
+          <RegistroCard reg={selected} onBack={handleBack} />
+        )}
+
+        {!loading && !selected && searched && !error && lookupResult && !lookupResult.found && (
+          <div className="inv-not-found">
+            <div className="inv-not-found-icon">🔍</div>
+            <p className="inv-not-found-title">No encontrado en registros históricos</p>
+            <p className="inv-not-found-desc">
+              El registro <strong>{query}</strong> no está en los datos abiertos de datos.gov.co
+              (que solo incluye registros vencidos). Puede estar vigente en el portal oficial de INVIMA.
+            </p>
+            <div className="inv-not-found-hint">
+              En el portal oficial, seleccione <em>"Por número de registro"</em> y escriba: <code>{query}</code>
+            </div>
+            <button className="inv-oficial-btn" onClick={openInvimaOficial}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
-              Agregar Medicamento/Dispositivo
+              Consultar en portal oficial INVIMA
             </button>
           </div>
         )}
-        <div className="aud-hero-orb" />
-      </div>
 
-      {/* RESUMEN CARDS */}
-      {summary && (
-        <div className="invima-summary-grid">
-          <div className="invima-summary-card">
-            <div className="summary-number">{summary.totalItems}</div>
-            <div className="summary-label">Total Items</div>
-          </div>
-          <div className="invima-summary-card" style={{ borderLeftColor: SEMAFORO_COLORS.verde }}>
-            <div className="summary-number" style={{ color: SEMAFORO_COLORS.verde }}>{summary.itemsVerde}</div>
-            <div className="summary-label">Vigentes OK</div>
-          </div>
-          <div className="invima-summary-card" style={{ borderLeftColor: SEMAFORO_COLORS.amarillo }}>
-            <div className="summary-number" style={{ color: SEMAFORO_COLORS.amarillo }}>{summary.itemsAmarillo + summary.itemsNaranja}</div>
-            <div className="summary-label">Por Vencer</div>
-          </div>
-          <div className="invima-summary-card" style={{ borderLeftColor: SEMAFORO_COLORS.rojo }}>
-            <div className="summary-number" style={{ color: SEMAFORO_COLORS.rojo }}>{summary.itemsRojo}</div>
-            <div className="summary-label">Vencidos</div>
-          </div>
-          <div className="invima-summary-card invima-compliance-card">
-            <div className="summary-number">{summary.porcentajeCumplimientoTsmd}%</div>
-            <div className="summary-label">Cumplimiento TSMD</div>
-          </div>
-        </div>
-      )}
-
-      {/* TABS */}
-      <nav className="invima-tabs">
-        <button
-          className={`invima-tab ${activeTab === 'inventario' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventario')}
-        >
-          Inventario
-        </button>
-        <button
-          className={`invima-tab ${activeTab === 'por-vencer' ? 'active' : ''}`}
-          onClick={() => setActiveTab('por-vencer')}
-        >
-          Por Vencer
-        </button>
-        <button
-          className={`invima-tab ${activeTab === 'alertas' ? 'active' : ''}`}
-          onClick={() => setActiveTab('alertas')}
-        >
-          Alertas {alertasSinRevisar > 0 && <span className="tab-badge">{alertasSinRevisar}</span>}
-        </button>
-        <button
-          className={`invima-tab ${activeTab === 'exportar' ? 'active' : ''}`}
-          onClick={() => setActiveTab('exportar')}
-        >
-          Exportar
-        </button>
-      </nav>
-
-      {/* TAB: INVENTARIO */}
-      {activeTab === 'inventario' && (
-        <div className="invima-tab-content">
-          {/* FILTROS */}
-          <div className="invima-filters">
-            <span className="filter-label">Filtrar por semáforo:</span>
-            {['', 'verde', 'amarillo', 'naranja', 'rojo'].map((s) => (
-              <button
-                key={s}
-                className={`filter-btn ${filterSemaforo === s ? 'active' : ''}`}
-                style={
-                  s
-                    ? {
-                        borderColor: SEMAFORO_COLORS[s],
-                        color: filterSemaforo === s ? '#fff' : SEMAFORO_COLORS[s],
-                        background: filterSemaforo === s ? SEMAFORO_COLORS[s] : 'transparent',
-                      }
-                    : undefined
-                }
-                onClick={() => setFilterSemaforo(s)}
-              >
-                {s ? SEMAFORO_LABELS[s] : 'Todos'}
-              </button>
-            ))}
-          </div>
-
-          {/* BÚSQUEDA */}
-          <div className="search-section">
-            <input
-              type="text"
-              placeholder="Buscar por nombre de producto, nombre comercial o registro INVIMA..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="search-input"
-            />
-          </div>
-
-          {/* TABLA DE ITEMS */}
-          {filteredItems.length === 0 ? (
-            <div className="invima-empty">
-              <h3>{searchText ? 'Sin resultados' : 'Sin registros INVIMA'}</h3>
-              <p>
-                {searchText
-                  ? 'No hay medicamentos que coincidan con tu búsqueda'
-                  : 'Agrega medicamentos o dispositivos médicos con su registro INVIMA para el control de cumplimiento TSMD'}
-              </p>
-            </div>
-          ) : (
-            <div className="invima-table-wrapper">
-              <table className="invima-table">
-                <thead>
-                  <tr>
-                    <th>Semáforo</th>
-                    <th>Registro INVIMA</th>
-                    <th>Producto</th>
-                    <th>Nombre Comercial</th>
-                    <th>Lote</th>
-                    <th>Cantidad</th>
-                    <th>Vence Lote</th>
-                    <th>Venc. Registro</th>
-                    <th>Estado Registro</th>
-                    <th>Almacenamiento</th>
-                    {can('invima', 'delete') && <th>Acciones</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.map((item) => (
-                    <tr key={item.id} className={item.semaforo === 'rojo' ? 'row-alert' : ''}>
-                      <td>
-                        <span
-                          className="semaforo-dot"
-                          style={{ background: SEMAFORO_COLORS[item.semaforo] || '#ccc' }}
-                          title={SEMAFORO_LABELS[item.semaforo]}
-                        />
-                      </td>
-                      <td className="mono">{item.numero_registro}</td>
-                      <td>{item.nombre_producto || '—'}</td>
-                      <td>{item.nombre_comercial || '—'}</td>
-                      <td className="mono">{item.lote_actual || '—'}</td>
-                      <td>{item.cantidad_disponible ?? '—'}</td>
-                      <td>{item.fecha_vencimiento_lote ? new Date(item.fecha_vencimiento_lote).toLocaleDateString('es-CO') : '—'}</td>
-                      <td>{item.vencimiento_registro ? new Date(item.vencimiento_registro).toLocaleDateString('es-CO') : '—'}</td>
-                      <td>
-                        <span
-                          className="estado-badge"
-                          style={{
-                            background: `${ESTADO_COLORS[item.estado_registro || 'desconocido']}15`,
-                            color: ESTADO_COLORS[item.estado_registro || 'desconocido'],
-                          }}
-                        >
-                          {item.estado_registro || 'N/D'}
-                        </span>
-                      </td>
-                      <td>{item.condiciones_almacenamiento || '—'}</td>
-                      {can('invima', 'delete') && (
-                        <td>
-                          <button
-                            className="btn-action-delete"
-                            onClick={() => handleDeleteItem(item)}
-                            title="Eliminar item"
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB: POR VENCER */}
-      {activeTab === 'por-vencer' && (
-        <div className="invima-tab-content">
-          <div className="por-vencer-header">
-            <h2>{porVencer.length} medicamentos vencen en los próximos 90 días</h2>
-          </div>
-
-          {porVencer.length === 0 ? (
-            <div className="invima-empty">
-              <h3>Sin medicamentos por vencer</h3>
-              <p>Todos los medicamentos en el inventario tienen vigencia mayor a 90 días</p>
-            </div>
-          ) : (
-            <div className="invima-table-wrapper">
-              <table className="invima-table">
-                <thead>
-                  <tr>
-                    <th>Semáforo</th>
-                    <th>Producto</th>
-                    <th>Registro INVIMA</th>
-                    <th>Lote</th>
-                    <th>Fecha Venc. Lote</th>
-                    <th>Días Restantes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {porVencer.map((item) => {
-                    const diasRestantes = item.fecha_vencimiento_lote
-                      ? Math.ceil((new Date(item.fecha_vencimiento_lote).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-                      : 0;
-                    return (
-                      <tr key={item.id} className={diasRestantes <= 0 ? 'row-alert' : ''}>
-                        <td>
-                          <span
-                            className="semaforo-dot"
-                            style={{ background: SEMAFORO_COLORS[item.semaforo] || '#ccc' }}
-                            title={SEMAFORO_LABELS[item.semaforo]}
-                          />
-                        </td>
-                        <td>{item.nombre_producto || '—'}</td>
-                        <td className="mono">{item.numero_registro}</td>
-                        <td className="mono">{item.lote_actual || '—'}</td>
-                        <td>{item.fecha_vencimiento_lote ? new Date(item.fecha_vencimiento_lote).toLocaleDateString('es-CO') : '—'}</td>
-                        <td>
-                          <strong style={{ color: diasRestantes <= 0 ? SEMAFORO_COLORS.rojo : diasRestantes <= 30 ? SEMAFORO_COLORS.naranja : SEMAFORO_COLORS.verde }}>
-                            {diasRestantes} días
-                          </strong>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB: ALERTAS */}
-      {activeTab === 'alertas' && (
-        <div className="invima-tab-content">
-          {can('invima', 'create') && (
-            <div className="alertas-actions">
-              <button className="invima-btn-primary" onClick={() => setShowNewAlertForm(true)}>
-                + Nueva Alerta
-              </button>
-            </div>
-          )}
-
-          {alertas.length === 0 ? (
-            <div className="invima-empty">
-              <h3>Sin alertas INVIMA</h3>
-              <p>No hay alertas de farmacovigilancia o tecnovigilancia registradas</p>
-            </div>
-          ) : (
-            <div className="alertas-list">
-              {alertas.map((alerta) => (
-                <div key={alerta.id} className="alerta-item">
-                  <div className="alerta-header">
-                    <span
-                      className="alerta-tipo-badge"
-                      style={{
-                        background: `${ALERTA_TIPO_COLORS[alerta.tipo_alerta]}15`,
-                        color: ALERTA_TIPO_COLORS[alerta.tipo_alerta],
-                      }}
-                    >
-                      {alerta.tipo_alerta.replace(/_/g, ' ').toUpperCase()}
-                    </span>
-                    <span className={`alerta-status ${alerta.revisada ? 'revisada' : 'pendiente'}`}>
-                      {alerta.revisada ? '✓ Revisada' : '⊘ Pendiente'}
-                    </span>
+        {!loading && !selected && results.length > 0 && (
+          <div className="inv-results-list">
+            <div className="inv-results-count">{results.length} resultado{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}</div>
+            {results.map((reg) => {
+              const estadoKey = normalizeEstado(reg.estado);
+              const estadoColor = ESTADO_COLORS[estadoKey] ?? '#64748b';
+              return (
+                <button key={reg.id} className="inv-result-item" onClick={() => setSelected(reg)}>
+                  <div className="inv-result-main">
+                    <span className="inv-result-numero">{reg.numero_registro}</span>
+                    <span className="inv-result-nombre">{reg.nombre_producto ?? 'Sin nombre'}</span>
                   </div>
-                  <div className="alerta-content">
-                    <p className="alerta-numero">
-                      <strong>Registro:</strong> {alerta.numero_registro}
-                    </p>
-                    <p className="alerta-descripcion">{alerta.descripcion}</p>
-                    <p className="alerta-fecha">
-                      {new Date(alerta.fecha_alerta).toLocaleDateString('es-CO')}
-                    </p>
-                    {alerta.accion_tomada && <p className="alerta-accion"><strong>Acción:</strong> {alerta.accion_tomada}</p>}
+                  <div className="inv-result-meta">
+                    {reg.titular_registro && <span>{reg.titular_registro}</span>}
+                    {reg.categoria && <span>{reg.categoria}</span>}
+                    <span className="inv-result-estado" style={{ color: estadoColor }}>{reg.estado}</span>
                   </div>
-                  {!alerta.revisada && can('invima', 'create') && (
-                    <>
-                      {showMarcarRevisadaForm === alerta.id ? (
-                        <form onSubmit={(e) => handleMarcarRevisada(e, alerta.id)} className="alerta-form">
-                          <textarea
-                            placeholder="Describe la acción tomada..."
-                            value={accionTomada}
-                            onChange={(e) => setAccionTomada(e.target.value)}
-                            className="alerta-textarea"
-                            required
-                          />
-                          <div className="alerta-form-actions">
-                            <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
-                              {isSubmitting ? 'Guardando...' : 'Guardar'}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-cancel"
-                              onClick={() => {
-                                setShowMarcarRevisadaForm(null);
-                                setAccionTomada('');
-                              }}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </form>
-                      ) : (
-                        <button className="btn-marcar-revisada" onClick={() => setShowMarcarRevisadaForm(alerta.id)}>
-                          Marcar revisada
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* FORM: NUEVA ALERTA */}
-          {showNewAlertForm && (
-            <div className="invima-modal-overlay" onClick={() => setShowNewAlertForm(false)}>
-              <div className="invima-modal" onClick={(e) => e.stopPropagation()}>
-                <h2>Registrar Nueva Alerta INVIMA</h2>
-                <form onSubmit={handleNewAlerta}>
-                  <div className="form-field">
-                    <label>Número de Registro INVIMA</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: INVIMA 2020M-0012345"
-                      value={newAlertForm.numeroRegistro}
-                      onChange={(e) => setNewAlertForm({ ...newAlertForm, numeroRegistro: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Tipo de Alerta</label>
-                    <select
-                      value={newAlertForm.tipoAlerta}
-                      onChange={(e) => setNewAlertForm({ ...newAlertForm, tipoAlerta: e.target.value })}
-                      required
-                    >
-                      <option value="">Selecciona un tipo</option>
-                      <option value="farmacovigilancia">Farmacovigilancia</option>
-                      <option value="tecnovigilancia">Tecnovigilancia</option>
-                      <option value="retiro_mercado">Retiro de Mercado</option>
-                      <option value="suspension">Suspensión</option>
-                      <option value="otro">Otro</option>
-                    </select>
-                  </div>
-                  <div className="form-field">
-                    <label>Descripción</label>
-                    <textarea
-                      placeholder="Describe los detalles de la alerta..."
-                      value={newAlertForm.descripcion}
-                      onChange={(e) => setNewAlertForm({ ...newAlertForm, descripcion: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="modal-actions">
-                    <button type="button" className="btn-cancel" onClick={() => setShowNewAlertForm(false)}>
-                      Cancelar
-                    </button>
-                    <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
-                      {isSubmitting ? 'Registrando...' : 'Registrar Alerta'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB: EXPORTAR */}
-      {activeTab === 'exportar' && (
-        <div className="invima-tab-content">
-          <div className="export-section">
-            <h2>Exportar Cumplimiento TSMD</h2>
-            <p>Descarga el inventario completo de medicamentos y dispositivos en formato CSV para análisis en Excel.</p>
-
-            {summary && (
-              <div className="export-summary-grid">
-                <div className="export-card">
-                  <div className="export-number">{summary.totalItems}</div>
-                  <div className="export-label">Total de Items</div>
-                </div>
-                <div className="export-card">
-                  <div className="export-number">{summary.porcentajeCumplimientoTsmd}%</div>
-                  <div className="export-label">Cumplimiento TSMD</div>
-                </div>
-                <div className="export-card">
-                  <div className="export-number">{summary.registrosVigentes}</div>
-                  <div className="export-label">Registros Vigentes</div>
-                </div>
-              </div>
-            )}
-
-            <div className="export-actions">
-              <button className="invima-btn-primary invima-btn-large" onClick={handleDownloadCsv}>
-                ⬇️ Descargar CSV
-              </button>
-            </div>
-
-            <div className="export-info">
-              <h3>Contenido del archivo</h3>
-              <ul>
-                <li>Número de Registro INVIMA</li>
-                <li>Nombre del Producto</li>
-                <li>Nombre Comercial</li>
-                <li>Lote Actual</li>
-                <li>Cantidad Disponible</li>
-                <li>Fecha de Vencimiento del Lote</li>
-                <li>Fecha de Vencimiento del Registro</li>
-                <li>Estado del Registro</li>
-                <li>Semáforo de Cumplimiento</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: CONFIRMAR ELIMINACIÓN */}
-      {confirmDeleteItem && (
-        <DeleteConfirmationModal
-          title="Eliminar del inventario"
-          message="¿Estás seguro de que deseas eliminar este medicamento/dispositivo del inventario?"
-          itemName={confirmDeleteItem.name}
-          isLoading={isSubmitting}
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setConfirmDeleteItem(null)}
-        />
-      )}
-
-      {/* MODAL: AGREGAR ITEM */}
-      {showAddModal && (
-        <div className="invima-modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="invima-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Agregar Medicamento / Dispositivo</h2>
-
-            {/* STEP 1: Lookup */}
-            <div className="lookup-section">
-              <h3>1. Consultar Registro INVIMA</h3>
-              <form onSubmit={handleLookup} className="lookup-form">
-                <input
-                  type="text"
-                  placeholder="Ingresa número de registro INVIMA (Ej: INVIMA 2020M-0012345)"
-                  value={lookupNumber}
-                  onChange={(e) => setLookupNumber(e.target.value)}
-                  className="lookup-input"
-                  required
-                />
-                <button type="submit" className="invima-btn-primary" disabled={lookupLoading}>
-                  {lookupLoading ? 'Consultando...' : 'Consultar'}
+                  <svg className="inv-result-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
-              </form>
-
-              {/* Resultado del lookup */}
-              {lookupResult && (
-                <div className={`lookup-result ${lookupResult.found ? 'found' : 'not-found'}`}>
-                  {lookupResult.found && lookupResult.data ? (
-                    <>
-                      <div className="result-header">
-                        <span className="result-badge found">Encontrado</span>
-                        <span className="result-source">Fuente: {lookupResult.source}</span>
-                        {lookupResult.cached && <span className="result-cached">Cache</span>}
-                      </div>
-                      <div className="result-grid">
-                        <div>
-                          <strong>Producto:</strong> {lookupResult.data.nombre_producto || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>Categoría:</strong> {lookupResult.data.categoria || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>Estado:</strong>
-                          <span style={{ color: ESTADO_COLORS[lookupResult.data.estado || 'desconocido'] }}>
-                            {' '}
-                            {lookupResult.data.estado}
-                          </span>
-                        </div>
-                        <div>
-                          <strong>Titular:</strong> {lookupResult.data.titular_registro || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>Fabricante:</strong> {lookupResult.data.titular_fabricante || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>Principios Activos:</strong> {lookupResult.data.principios_activos || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>Vencimiento Registro:</strong> {lookupResult.data.fecha_vencimiento || 'N/D'}
-                        </div>
-                        <div>
-                          <strong>País:</strong> {lookupResult.data.pais_origen || 'N/D'}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div>
-                      <div className="result-header">
-                        <span className="result-badge not-found">No encontrado en datos.gov.co</span>
-                        <p>El registro no se encontró en las fuentes oficiales. Puedes ingresarlo manualmente.</p>
-                      </div>
-                      {!showManualForm ? (
-                        <button
-                          type="button"
-                          className="invima-btn-primary"
-                          style={{ marginTop: '8px' }}
-                          onClick={() => setShowManualForm(true)}
-                        >
-                          + Registrar manualmente
-                        </button>
-                      ) : (
-                        <form onSubmit={handleManualRegistro} className="add-item-form" style={{ marginTop: '12px' }}>
-                          <h4 style={{ margin: '0 0 12px' }}>Datos del Registro INVIMA</h4>
-                          <div className="form-row">
-                            <div className="form-field">
-                              <label>Nombre del Producto *</label>
-                              <input
-                                type="text"
-                                value={manualForm.nombreProducto}
-                                onChange={(e) => setManualForm({ ...manualForm, nombreProducto: e.target.value })}
-                                placeholder="Nombre genérico o comercial"
-                                required
-                              />
-                            </div>
-                            <div className="form-field">
-                              <label>Categoría</label>
-                              <select
-                                value={manualForm.categoria}
-                                onChange={(e) => setManualForm({ ...manualForm, categoria: e.target.value })}
-                              >
-                                <option value="medicamento">Medicamento</option>
-                                <option value="dispositivo_medico">Dispositivo Médico</option>
-                                <option value="cosmetico">Cosmético</option>
-                                <option value="fitoterapeutico">Fitoterapéutico</option>
-                                <option value="suplemento_dietario">Suplemento Dietario</option>
-                                <option value="reactivo_diagnostico">Reactivo de Diagnóstico</option>
-                                <option value="otro">Otro</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="form-row">
-                            <div className="form-field">
-                              <label>Estado</label>
-                              <select
-                                value={manualForm.estado}
-                                onChange={(e) => setManualForm({ ...manualForm, estado: e.target.value })}
-                              >
-                                <option value="vigente">Vigente</option>
-                                <option value="vencido">Vencido</option>
-                                <option value="suspendido">Suspendido</option>
-                                <option value="en_tramite">En Trámite</option>
-                              </select>
-                            </div>
-                            <div className="form-field">
-                              <label>Vencimiento Registro</label>
-                              <input
-                                type="date"
-                                value={manualForm.fechaVencimiento}
-                                onChange={(e) => setManualForm({ ...manualForm, fechaVencimiento: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                          <div className="form-field">
-                            <label>Titular / Empresa</label>
-                            <input
-                              type="text"
-                              value={manualForm.titularRegistro}
-                              onChange={(e) => setManualForm({ ...manualForm, titularRegistro: e.target.value })}
-                              placeholder="Nombre del titular del registro"
-                            />
-                          </div>
-                          <div className="form-field">
-                            <label>Observaciones</label>
-                            <input
-                              type="text"
-                              value={manualForm.observaciones}
-                              onChange={(e) => setManualForm({ ...manualForm, observaciones: e.target.value })}
-                              placeholder="Ej: Registro en renovación, verificar con proveedor"
-                            />
-                          </div>
-                          <div className="modal-actions">
-                            <button type="button" className="btn-cancel" onClick={() => setShowManualForm(false)}>
-                              Cancelar
-                            </button>
-                            <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
-                              {isSubmitting ? 'Guardando...' : 'Guardar Registro'}
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* STEP 2: Datos del proveedor */}
-            {selectedRegistro && (
-              <form onSubmit={handleAddItem} className="add-item-form">
-                <h3>2. Datos del Inventario</h3>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Nombre Comercial</label>
-                    <input
-                      type="text"
-                      value={addForm.nombreComercial}
-                      onChange={(e) => setAddForm({ ...addForm, nombreComercial: e.target.value })}
-                      placeholder="Nombre usado internamente"
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Lote Actual</label>
-                    <input
-                      type="text"
-                      value={addForm.loteActual}
-                      onChange={(e) => setAddForm({ ...addForm, loteActual: e.target.value })}
-                      placeholder="Número de lote"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Cantidad Disponible</label>
-                    <input
-                      type="number"
-                      value={addForm.cantidadDisponible}
-                      onChange={(e) => setAddForm({ ...addForm, cantidadDisponible: e.target.value })}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Fecha Vencimiento Lote</label>
-                    <input
-                      type="date"
-                      value={addForm.fechaVencimientoLote}
-                      onChange={(e) => setAddForm({ ...addForm, fechaVencimientoLote: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-field">
-                    <label>Ubicación Almacenamiento</label>
-                    <input
-                      type="text"
-                      value={addForm.ubicacionAlmacenamiento}
-                      onChange={(e) => setAddForm({ ...addForm, ubicacionAlmacenamiento: e.target.value })}
-                      placeholder="Ej: Farmacia Piso 2, Bodega A"
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label>Condiciones Almacenamiento</label>
-                    <input
-                      type="text"
-                      value={addForm.condicionesAlmacenamiento}
-                      onChange={(e) => setAddForm({ ...addForm, condicionesAlmacenamiento: e.target.value })}
-                      placeholder="Ej: 2-8°C, Temp. ambiente"
-                    />
-                  </div>
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="btn-cancel" onClick={() => setShowAddModal(false)}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="invima-btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? 'Guardando...' : 'Agregar al Inventario'}
-                  </button>
-                </div>
-              </form>
-            )}
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+
+        {!loading && !selected && searched && !error && results.length === 0 && !(lookupResult && !lookupResult.found) && !lookupResult && (
+          <div className="inv-not-found">
+            <div className="inv-not-found-icon">🔍</div>
+            <p className="inv-not-found-title">Sin resultados en registros históricos</p>
+            <p className="inv-not-found-desc">
+              No hay coincidencias para <strong>{query}</strong> en los datos abiertos.
+              Si busca un registro vigente, consúltelo directamente en el portal oficial de INVIMA.
+            </p>
+            <div className="inv-not-found-hint">
+              En el portal oficial busque por nombre: <code>{query}</code>
+            </div>
+            <button className="inv-oficial-btn" onClick={openInvimaOficial}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Consultar en portal oficial INVIMA
+            </button>
+          </div>
+        )}
+
+        {!searched && (
+          <div className="inv-placeholder">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#c7d2fe" strokeWidth="1.5">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <p>Ingrese un número de registro o el nombre de un producto para consultar</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

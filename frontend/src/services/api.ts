@@ -628,6 +628,7 @@ export interface InvimaRegistro {
   fecha_vencimiento: string | null;
   fuente_datos: string;
   ultima_consulta: string;
+  datos_crudos?: Record<string, unknown> | null;
 }
 
 export interface InvimaLookupResult {
