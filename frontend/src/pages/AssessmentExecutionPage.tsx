@@ -22,6 +22,7 @@ import {
 interface Criterion {
   id: string;
   code: string;
+  number?: string;
   name: string;
   description: string;
   evidenceRequirement: string;
@@ -230,7 +231,7 @@ export const AssessmentExecutionPage: React.FC = () => {
       // Actualizar estado local con la respuesta del backend
       setAssessment({
         ...assessment,
-        compliance_percent: result.data.compliance_percent,
+        compliance_percent: (result.data as any).compliancePercent ?? result.data.compliance_percent,
         semaforo: result.data.semaforo,
         updated_at: new Date().toISOString(),
       });

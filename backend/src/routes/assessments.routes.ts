@@ -320,13 +320,14 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   router.put(
     '/assessments/:id',
     authMiddleware,
-    rbacMiddleware(['auditor', 'super_admin']),
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
         const { responses } = req.body;
         const userId = (req as any).user?.user_id;
         const userRole = (req as any).user?.role;
+        const userProviderId = (req as any).user?.provider_id;
 
         if (!responses || !Array.isArray(responses)) {
           return res.status(400).json({ error: 'responses array is required' });
@@ -336,6 +337,14 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         const assessment = await assessmentService.getAssessment(id);
         if (!assessment) {
           return res.status(404).json({ error: 'Assessment not found' });
+        }
+
+        // RBAC: provider_admin can only update their own provider's assessments
+        if (userRole === 'provider_admin' && userProviderId !== assessment.providerId) {
+          return res.status(403).json({
+            error: 'Access denied',
+            message: 'You can only modify assessments of your own provider',
+          });
         }
 
         // RBAC: auditor can only update assigned providers

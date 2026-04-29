@@ -874,7 +874,7 @@ export class ReportService {
             font: 'Arial',
             size: opts.size ?? 24,
             bold: opts.bold ?? false,
-            color: opts.color,
+            color: opts.color ?? '000000',
           }),
         ],
       });
@@ -885,7 +885,7 @@ export class ReportService {
         shading: { fill: 'D9E2F3', type: ShadingType.CLEAR, color: 'auto' },
         children: [
           new Paragraph({
-            children: [new TextRun({ text, font: 'Arial', size: 22, bold: false })],
+            children: [new TextRun({ text, font: 'Arial', size: 22, bold: false, color: '000000' })],
             spacing: { before: 60, after: 60 },
           }),
         ],
@@ -895,32 +895,35 @@ export class ReportService {
       new TableCell({
         children: [
           new Paragraph({
-            children: [new TextRun({ text, font: 'Arial', size: 22 })],
+            children: [new TextRun({ text, font: 'Arial', size: 22, color: '000000' })],
             spacing: { before: 60, after: 60 },
           }),
         ],
       });
 
-    // ── HEADER: imagen de membrete como fondo de página ─────────────
+    // ── HEADER: vacío (el membrete se mueve al body para que behindDocument funcione) ──
     const headerChildren: any[] = [];
+
+    // ── FONDO DE PÁGINA: membrete colocado en el body como primer hijo ───────────────
+    // Word no aplica behindDocument correctamente para imágenes flotantes en headers
+    // cuando cubren el área del body. Colocarlo en el body sí respeta el z-order.
+    const bgParagraph: any[] = [];
     if (letterheadBuf) {
-      headerChildren.push(
+      bgParagraph.push(
         new Paragraph({
           children: [
             new ImageRun({
               data: letterheadBuf,
               type: 'png',
-              // Dimensiones originales: 7765576 x 10052258 EMU → docx usa 96 DPI (9525 EMU/px)
               transformation: { width: 815, height: 1055 },
               floating: {
                 horizontalPosition: {
                   relative: HorizontalPositionRelativeFrom.PAGE,
-                  offset: -451011,
+                  offset: 0,
                 },
                 verticalPosition: {
-                  // El original usa relativeFrom="paragraph" (párrafo del header)
-                  relative: VerticalPositionRelativeFrom.PARAGRAPH,
-                  offset: -451011,
+                  relative: VerticalPositionRelativeFrom.PAGE,
+                  offset: 0,
                 },
                 behindDocument: true,
                 wrap: { type: TextWrappingType.NONE },
@@ -933,6 +936,7 @@ export class ReportService {
 
     // ── CONTENIDO PRINCIPAL ──────────────────────────────────────────
     const children: any[] = [
+      ...bgParagraph,
 
       // Título principal
       new Paragraph({
@@ -944,6 +948,7 @@ export class ReportService {
             font: 'Arial',
             size: 24,
             bold: true,
+            color: '000000',
           }),
         ],
       }),
@@ -988,7 +993,7 @@ export class ReportService {
               new Paragraph({
                 bullet: { level: 0 },
                 spacing: { before: 0, after: 100 },
-                children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24 })],
+                children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24, color: '000000' })],
               })
             );
           });
@@ -1019,10 +1024,10 @@ export class ReportService {
           ...data.estandares.map((est) =>
             new TableRow({
               children: [
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 20 })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 20 })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 20 })] })] }),
-                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 20 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 20, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 20, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 20, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 20, color: '000000' })] })] }),
                 new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 20, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
               ],
             })
@@ -1061,6 +1066,7 @@ export class ReportService {
             text: `Porcentaje de cumplimiento: ${data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica}%`,
             font: 'Arial',
             size: 22,
+            color: '000000',
           }),
         ],
       }),
@@ -1088,23 +1094,23 @@ export class ReportService {
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
         children: [
-          new TextRun({ text: 'Profesional que realizó la Auditoría:', font: 'Arial', size: 22, bold: true }),
+          new TextRun({ text: 'Profesional que realizó la Auditoría:', font: 'Arial', size: 22, bold: true, color: '000000' }),
         ],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
-        children: [new TextRun({ text: 'Dra. Adriana Perdomo M.', font: 'Arial', size: 22, bold: false })],
+        children: [new TextRun({ text: 'Dra. Adriana Perdomo M.', font: 'Arial', size: 22, bold: false, color: '000000' })],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 60 },
-        children: [new TextRun({ text: 'Odontóloga – Especialista en Auditoría en Salud', font: 'Arial', size: 22 })],
+        children: [new TextRun({ text: 'Odontóloga – Especialista en Auditoría en Salud', font: 'Arial', size: 22, color: '000000' })],
       }),
       new Paragraph({
         alignment: AlignmentType.LEFT,
         spacing: { before: 0, after: 360 },
-        children: [new TextRun({ text: 'Verificadora en habilitación.', font: 'Arial', size: 22 })],
+        children: [new TextRun({ text: 'Verificadora en habilitación.', font: 'Arial', size: 22, color: '000000' })],
       }),
 
       // ── FRASE FINAL ──────────────────────────────────────────────

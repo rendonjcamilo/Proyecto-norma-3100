@@ -35,6 +35,7 @@ services:
       - ./backend/.env:/app/.env
       - ./backend/src:/app/src
       - ./backend/db:/app/db
+      - ./backend/scripts:/app/scripts
       - ./docs:/app/docs
       - /app/node_modules
     # healthcheck:

@@ -461,9 +461,19 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             padding: '24px',
             maxWidth: '500px',
             width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
           }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>{user?.role === 'auditor' ? 'Nueva Auditoría' : 'Nueva Evaluación'}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px' }}>{user?.role === 'auditor' ? 'Nueva Auditoría' : 'Nueva Evaluación'}</h2>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6b778c', lineHeight: 1, padding: '0 4px' }}
+                title="Cancelar"
+              >×</button>
+            </div>
 
             {modalError && (
               <div style={{
@@ -686,6 +696,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                     border: '1px solid #ddd',
                     borderRadius: '4px',
                     background: 'white',
+                    color: '#172b4d',
                     cursor: 'pointer',
                     fontSize: '14px',
                   }}

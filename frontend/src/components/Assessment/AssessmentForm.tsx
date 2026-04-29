@@ -13,7 +13,7 @@
  * - Submit button (only if all criteria answered)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './AssessmentForm.css';
 import CriterionInput from './CriterionInput';
 import ProgressBar from './ProgressBar';
@@ -165,6 +165,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setIsSubmitting(true);
     setErrorMessage('');
     try {
+      // Guardar respuestas actuales antes de enviar
+      if (onSave && responses.size > 0) {
+        await onSave(Array.from(responses.values()));
+      }
       await onSubmit();
     } catch (error) {
       setErrorMessage('Error al enviar la evaluación');
@@ -191,6 +195,18 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const totalCriteria = questionnaiireData.standards.reduce((acc, s) => acc + s.criteria.length, 0);
   const answeredCriteria = responses.size;
 
+  // Cálculo en tiempo real: solo C y NC cuentan, NA excluido
+  const liveCompliance = useMemo(() => {
+    const vals = Array.from(responses.values());
+    const cumple = vals.filter((r) => r.status === 'C').length;
+    const noCumple = vals.filter((r) => r.status === 'NC').length;
+    const denom = cumple + noCumple;
+    return denom > 0 ? Math.round((cumple / denom) * 100) : 0;
+  }, [responses]);
+
+  const liveSemaforo: 'verde' | 'naranja' | 'rojo' =
+    liveCompliance >= 80 ? 'verde' : liveCompliance >= 50 ? 'naranja' : 'rojo';
+
   // Group standards (transversales first, then service-specific)
   const transversales = questionnaiireData.standards.filter((s) => s.isTransversal);
   const serviceSpecific = questionnaiireData.standards.filter((s) => !s.isTransversal);
@@ -204,7 +220,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
         {/* Progress & Scores */}
         <div className="form-stats">
           <ProgressBar completed={answeredCriteria} total={totalCriteria} />
-          <ScoresDisplay compliance={assessment.compliancePercent} semaforo={assessment.semaforo} />
+          <ScoresDisplay compliance={liveCompliance} semaforo={liveSemaforo} />
         </div>
 
         {/* Last Saved Indicator */}

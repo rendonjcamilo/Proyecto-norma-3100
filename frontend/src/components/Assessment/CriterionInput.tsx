@@ -17,6 +17,7 @@ interface Criterion {
   description: string;
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
+  ncHint?: string;
 }
 
 interface CriterionResponse {
@@ -29,33 +30,46 @@ interface CriterionResponse {
 
 interface CriterionInputProps {
   criterion: Criterion;
-  number: number;
+  number: number | string;
   response?: CriterionResponse;
   onChange: (response: CriterionResponse) => void;
   readOnly?: boolean;
 }
 
+// Detecta el nivel jerárquico del número oficial embebido en el nombre
+// Ej: "4.1. Convenio..." → nivel 1 | "13.1.1. Profesional..." → nivel 2 | "1. El prestador..." → nivel 0
+function getSubLevel(name: string): number {
+  const match = name.match(/^(\d+(?:\.\d+)+)\./);
+  if (!match) return 0;
+  return match[1].split('.').length - 1;
+}
+
 const CriterionInput: React.FC<CriterionInputProps> = ({
   criterion,
-  number,
+  number: _number,
   response,
   onChange,
   readOnly = false,
 }) => {
+  const subLevel = getSubLevel(criterion.name);
+
   const [localResponse, setLocalResponse] = useState<CriterionResponse>(
     response || { criterionId: criterion.id, status: 'C' }
   );
 
   const handleStatusChange = (status: 'C' | 'NC' | 'NA') => {
     const newResponse = { ...localResponse, status };
-    // Clear description if not NC
     if (status !== 'NC') {
       newResponse.description = '';
       newResponse.comments = '';
-    } else if (status === 'NC' && !localResponse.description) {
-      // Auto-generate negation when marking as NC in the required description field
-      newResponse.description = `NO se cumple que: ${criterion.name}`;
     }
+    setLocalResponse(newResponse);
+    onChange(newResponse);
+  };
+
+  const handleSuggest = () => {
+    if (!criterion.ncHint) return;
+    const newResponse = { ...localResponse, description: criterion.ncHint };
     setLocalResponse(newResponse);
     onChange(newResponse);
   };
@@ -86,11 +100,10 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
 
   if (isHeader) {
     return (
-      <div className="criterion-input criterion-section-header">
+      <div className={`criterion-input criterion-section-header${subLevel > 0 ? ` sub-level-${subLevel}` : ''}`}>
         <div className="criterion-header">
-          <div className="criterion-number">{number}.</div>
           <div className="criterion-details">
-            <div className="criterion-code">{criterion.code}</div>
+            <span className="criterion-code-badge">{criterion.code}</span>
             <h5 className="criterion-name">{criterion.name}</h5>
             {criterion.description && criterion.description !== criterion.name && (
               <p className="criterion-description">{criterion.description}</p>
@@ -105,13 +118,10 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   }
 
   return (
-    <div className={`criterion-input ${hasError ? 'error' : ''} ${readOnly ? 'read-only' : ''}`}>
+    <div className={`criterion-input${subLevel > 0 ? ` sub-level-${subLevel}` : ''} ${hasError ? 'error' : ''} ${readOnly ? 'read-only' : ''}`}>
       <div className="criterion-header">
-        <div className="criterion-number">{number}.</div>
         <div className="criterion-details">
-          <div className="criterion-code">
-            {criterion.code}
-          </div>
+          <span className="criterion-code-badge">{criterion.code}</span>
           <h5 className="criterion-name">{criterion.name}</h5>
           {criterion.description && criterion.description !== criterion.name && (
             <p className="criterion-description">{criterion.description}</p>
@@ -169,12 +179,24 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
         {/* Hallazgo Description (for NC only) */}
         {localResponse.status === 'NC' && (
           <div className="hallazgo-field">
-            <label htmlFor={`hallazgo-${criterion.id}`}>
-              <strong>* Descripción del incumplimiento (requerida):</strong>
-              <span className="char-count">
-                {localResponse.description?.length || 0}/500
-              </span>
-            </label>
+            <div className="hallazgo-label-row">
+              <label htmlFor={`hallazgo-${criterion.id}`}>
+                <strong>* Descripción del incumplimiento (requerida):</strong>
+                <span className="char-count">
+                  {localResponse.description?.length || 0}/500
+                </span>
+              </label>
+              {criterion.ncHint && !readOnly && (
+                <button
+                  type="button"
+                  className="btn-suggest"
+                  onClick={handleSuggest}
+                  title="Usar sugerencia generada automáticamente"
+                >
+                  💡 Sugerir
+                </button>
+              )}
+            </div>
             <textarea
               id={`hallazgo-${criterion.id}`}
               value={localResponse.description || ''}

@@ -18,7 +18,7 @@
     "migrate:down": "tsx db/migrations.ts down",
     "migrate:create": "tsx db/migrations.ts create",
     "seed": "tsx db/seed.ts",
-    "generate:nc-hints": "tsx src/scripts/generate-nc-hints.ts"
+    "generate:nc-hints": "tsx scripts/generate-nc-hints.ts"
   },
   "keywords": [
     "norma3100",
