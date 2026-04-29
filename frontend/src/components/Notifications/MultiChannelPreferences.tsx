@@ -37,7 +37,7 @@ export const MultiChannelPreferences: React.FC<MultiChannelPreferencesProps> = (
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'email' | 'sms' | 'push'>('email');
+  const [activeTab, setActiveTab] = useState<'email' | 'push'>('email');
 
   useEffect(() => {
     fetchPreferences();
@@ -118,12 +118,6 @@ export const MultiChannelPreferences: React.FC<MultiChannelPreferencesProps> = (
           📧 Email
         </button>
         <button
-          className={`tab-button ${activeTab === 'sms' ? 'active' : ''}`}
-          onClick={() => setActiveTab('sms')}
-        >
-          💬 SMS
-        </button>
-        <button
           className={`tab-button ${activeTab === 'push' ? 'active' : ''}`}
           onClick={() => setActiveTab('push')}
         >
@@ -193,71 +187,6 @@ export const MultiChannelPreferences: React.FC<MultiChannelPreferencesProps> = (
                   </div>
                   <small>
                     No recibirás notificaciones en este rango horario
-                  </small>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* SMS Tab */}
-        {activeTab === 'sms' && (
-          <div className="preference-section">
-            <h3>Preferencias de SMS</h3>
-
-            <div className="preference-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={preferences.smsEnabled}
-                  onChange={(e) =>
-                    updatePreference('smsEnabled', e.target.checked)
-                  }
-                />
-                <span>Habilitar notificaciones por SMS</span>
-              </label>
-            </div>
-
-            {preferences.smsEnabled && (
-              <>
-                <div className="preference-group">
-                  <label>Número de teléfono:</label>
-                  <input
-                    type="tel"
-                    value={preferences.phoneNumber || ''}
-                    onChange={(e) =>
-                      updatePreference('phoneNumber', e.target.value)
-                    }
-                    placeholder="+573001234567"
-                  />
-                  {preferences.smsVerified && (
-                    <span className="verified-badge">✓ Verificado</span>
-                  )}
-                </div>
-
-                <div className="preference-group">
-                  <label>Horas silenciosas (opcional):</label>
-                  <div className="time-range">
-                    <input
-                      type="time"
-                      value={preferences.smsQuietHoursStart || ''}
-                      onChange={(e) =>
-                        updatePreference('smsQuietHoursStart', e.target.value)
-                      }
-                      placeholder="Inicio"
-                    />
-                    <span>a</span>
-                    <input
-                      type="time"
-                      value={preferences.smsQuietHoursEnd || ''}
-                      onChange={(e) =>
-                        updatePreference('smsQuietHoursEnd', e.target.value)
-                      }
-                      placeholder="Fin"
-                    />
-                  </div>
-                  <small>
-                    No recibirás SMS en este rango horario
                   </small>
                 </div>
               </>

@@ -48,10 +48,6 @@ const routeTitles: Record<string, { title: string; subtitle: string }> = {
     title: 'Plantillas de Email',
     subtitle: 'Crear y editar plantillas de correo electrónico',
   },
-  '/notifications/sms-templates': {
-    title: 'Plantillas de SMS',
-    subtitle: 'Crear y editar plantillas de mensajes SMS',
-  },
   '/notifications/push-templates': {
     title: 'Plantillas Push',
     subtitle: 'Crear y editar notificaciones push',

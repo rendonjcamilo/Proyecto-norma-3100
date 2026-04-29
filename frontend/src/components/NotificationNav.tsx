@@ -42,9 +42,6 @@ export const NotificationNav: React.FC<NotificationNavProps> = ({ isOpen = false
             <Link to="/notifications/templates/email" className="nav-link">
               📧 Email
             </Link>
-            <Link to="/notifications/templates/sms" className="nav-link">
-              💬 SMS
-            </Link>
             <Link to="/notifications/templates/push" className="nav-link">
               🔔 Push
             </Link>

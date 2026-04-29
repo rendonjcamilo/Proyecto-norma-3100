@@ -21,7 +21,6 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
-import { SmsTemplateEditor } from "./components/Notifications/SmsTemplateEditor";
 import { MultiChannelPreferences } from "./components/Notifications/MultiChannelPreferences";
 import { NotificationAnalyticsDashboard } from "./components/Notifications/NotificationAnalyticsDashboard";
 import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
@@ -76,11 +75,6 @@ const NotificationCenterWrapper = () => {
 const EmailTemplateEditorWrapper = () => {
   const { user } = useAuth();
   return <EmailTemplateEditor userId={user?.id || ""} />;
-};
-
-const SmsTemplateEditorWrapper = () => {
-  const { user } = useAuth();
-  return <SmsTemplateEditor userId={user?.id || ""} />;
 };
 
 const MultiChannelPreferencesWrapper = () => {
@@ -269,10 +263,6 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications/email-templates"
               element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/sms-templates"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><SmsTemplateEditorWrapper /></ProtectedRoute>}
             />
             <Route
               path="/notifications/preferences"

@@ -34,7 +34,7 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
   const [stats, setStats] = useState<ChannelStats[]>([]);
   const [queueHealth, setQueueHealth] = useState<QueueHealth | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedChannel, setSelectedChannel] = useState<'email' | 'sms' | 'push' | 'all'>(
+  const [selectedChannel, setSelectedChannel] = useState<'email' | 'push' | 'all'>(
     'all'
   );
   const [days, setDays] = useState(7);
@@ -53,10 +53,6 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
           `/api/notifications/multichannel/stats/email?days=${days}`,
           { headers: { 'x-user-id': userId } }
         );
-        const smsResult = await axios.get(
-          `/api/notifications/multichannel/stats/sms?days=${days}`,
-          { headers: { 'x-user-id': userId } }
-        );
         const pushResult = await axios.get(
           `/api/notifications/multichannel/stats/push?days=${days}`,
           { headers: { 'x-user-id': userId } }
@@ -64,7 +60,6 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
 
         setStats([
           ...(emailResult.data.stats || []),
-          ...(smsResult.data.stats || []),
           ...(pushResult.data.stats || []),
         ]);
       } else {
@@ -134,13 +129,12 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
             value={selectedChannel}
             onChange={(e) =>
               setSelectedChannel(
-                e.target.value as 'email' | 'sms' | 'push' | 'all'
+                e.target.value as 'email' | 'push' | 'all'
               )
             }
           >
             <option value="all">Todos los canales</option>
             <option value="email">📧 Email</option>
-            <option value="sms">💬 SMS</option>
             <option value="push">🔔 Push</option>
           </select>
         </div>

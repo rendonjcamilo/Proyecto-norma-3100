@@ -2,6 +2,9 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar con este repositorio.
 
+## 🌐 Idioma
+Responde siempre en español.
+
 ## 📋 El Proyecto
 
 **Sistema de Gestión de Cumplimiento — Resolución 3100 de 2019 (Colombia)**

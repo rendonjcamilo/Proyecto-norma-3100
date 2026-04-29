@@ -543,21 +543,24 @@ export class ReportService {
       const semaforo: 'verde' | 'naranja' | 'rojo' | 'na' =
         pct === -1 ? 'na' : pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
 
-      // Hallazgos NC de este estándar
+      // Hallazgos NC de este estándar — usa el texto negado de la respuesta si existe
       const hallazgosResult = await this.pool.query<{
         title: string; criterion_code: string; severity: string; status: string;
       }>(
         `SELECT
-                CASE
-                  WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL
-                  THEN ec.name
-                  ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
-                END AS title,
+                COALESCE(
+                  NULLIF(acr.description, ''),
+                  CASE
+                    WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.name
+                    ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
+                  END
+                ) AS title,
                 COALESCE(ec.code, '') AS criterion_code,
                 f.severity, f.status
          FROM findings f
          LEFT JOIN evaluation_criteria ec ON ec.id = f.criterion_id
          LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
+         LEFT JOIN assessment_responses_detailed acr ON acr.id = f.assessment_response_id
          WHERE f.provider_id = $1
            AND es.code = $2
            AND f.status NOT IN ('cerrada', 'closed')

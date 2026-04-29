@@ -1,11 +1,11 @@
 /**
  * Auditor Notification Sender
- * Permite al auditor enviar notificaciones por email/SMS a prestadores asignados
+ * Permite al auditor enviar notificaciones por email a prestadores asignados
  */
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { notificationsApi, providersApi, Provider, EmailTemplate, SmsTemplate } from '../../services/api';
+import { notificationsApi, providersApi, Provider, EmailTemplate } from '../../services/api';
 import './AuditorNotificationSender.css';
 
 interface PreviewData {
@@ -16,12 +16,11 @@ interface PreviewData {
 
 export const AuditorNotificationSender: React.FC = () => {
   const { user } = useAuth();
-  const [channel, setChannel] = useState<'email' | 'sms'>('email');
   const [recipientMode, setRecipientMode] = useState<'provider' | 'direct'>('provider');
   const [directEmail, setDirectEmail] = useState('');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState('');
-  const [templates, setTemplates] = useState<EmailTemplate[] | SmsTemplate[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState('');
@@ -35,11 +34,10 @@ export const AuditorNotificationSender: React.FC = () => {
     if (user?.id) loadProviders();
   }, [user?.id]);
 
-  // Load templates when channel changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Load templates on mount
   useEffect(() => {
     loadTemplates();
-  }, [channel]);
+  }, []);
 
   // Generate preview when template or variables change
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,7 +45,7 @@ export const AuditorNotificationSender: React.FC = () => {
     if (selectedTemplate) {
       generatePreview();
     }
-  }, [selectedTemplate, variables, channel]);
+  }, [selectedTemplate, variables]);
 
   const loadProviders = async () => {
     try {
@@ -66,18 +64,14 @@ export const AuditorNotificationSender: React.FC = () => {
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const response =
-        channel === 'email'
-          ? await notificationsApi.getEmailTemplates()
-          : await notificationsApi.getSmsTemplates();
-
+      const response = await notificationsApi.getEmailTemplates();
       setTemplates(response.templates || []);
       setSelectedTemplate('');
       setVariables({});
       setPreview('');
     } catch (err) {
       console.error('Error loading templates:', err);
-      setMessage(`Error cargando plantillas de ${channel === 'email' ? 'email' : 'SMS'}`);
+      setMessage('Error cargando plantillas de email');
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -90,7 +84,7 @@ export const AuditorNotificationSender: React.FC = () => {
       return;
     }
 
-    const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate | undefined;
+    const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | undefined;
     if (!template) return;
 
     const selectedProv = providers.find((p) => p.id === selectedProvider);
@@ -103,10 +97,7 @@ export const AuditorNotificationSender: React.FC = () => {
       auditorName,
     };
 
-    let text =
-      channel === 'email'
-        ? (template as EmailTemplate).html_body
-        : (template as SmsTemplate).message_template;
+    let text = template.html_body;
 
     // Replace variables
     Object.entries({ ...defaultVars, ...variables }).forEach(([key, value]) => {
@@ -149,9 +140,9 @@ export const AuditorNotificationSender: React.FC = () => {
 
     try {
       setSending(true);
-      const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | SmsTemplate;
+      const template = templates.find((t) => t.id === selectedTemplate) as EmailTemplate;
 
-      if (recipientMode === 'direct' && channel === 'email') {
+      if (recipientMode === 'direct') {
         await notificationsApi.sendDirectEmail({
           email: directEmail.trim(),
           templateName: template.template_name,
@@ -163,7 +154,7 @@ export const AuditorNotificationSender: React.FC = () => {
         await notificationsApi.sendToProvider({
           providerId: selectedProvider,
           templateName: template.template_name,
-          channel,
+          channel: 'email',
           variables,
         });
       }
@@ -183,10 +174,7 @@ export const AuditorNotificationSender: React.FC = () => {
     }
   };
 
-  const selectedTemplateObj = templates.find((t) => t.id === selectedTemplate) as
-    | EmailTemplate
-    | SmsTemplate
-    | undefined;
+  const selectedTemplateObj = templates.find((t) => t.id === selectedTemplate) as EmailTemplate | undefined;
   const templateVariables = selectedTemplateObj?.variables || [];
 
   return (
@@ -199,7 +187,7 @@ export const AuditorNotificationSender: React.FC = () => {
             Comunicaciones
           </span>
           <h2>Enviar notificación</h2>
-          <p>Comunícate con los prestadores asignados vía email o SMS</p>
+          <p>Comunícate con los prestadores asignados vía email</p>
         </div>
 
         {/* Message */}
@@ -212,25 +200,6 @@ export const AuditorNotificationSender: React.FC = () => {
         <div className="ans-layout">
           {/* Left: Form */}
           <div className="ans-form">
-            {/* Channel Toggle */}
-            <div className="ans-form-group">
-              <label>Canal de Comunicación</label>
-              <div className="ans-toggle-group">
-                <button
-                  className={`ans-toggle-btn ${channel === 'email' ? 'active' : ''}`}
-                  onClick={() => setChannel('email')}
-                >
-                  📧 Email
-                </button>
-                <button
-                  className={`ans-toggle-btn ${channel === 'sms' ? 'active' : ''}`}
-                  onClick={() => setChannel('sms')}
-                >
-                  📱 SMS
-                </button>
-              </div>
-            </div>
-
             {/* Recipient Mode Toggle */}
             <div className="ans-form-group">
               <label>Destinatario</label>
@@ -244,7 +213,6 @@ export const AuditorNotificationSender: React.FC = () => {
                 <button
                   className={`ans-toggle-btn ${recipientMode === 'direct' ? 'active' : ''}`}
                   onClick={() => setRecipientMode('direct')}
-                  disabled={channel === 'sms'}
                 >
                   ✉️ Correo libre
                 </button>
@@ -348,33 +316,22 @@ export const AuditorNotificationSender: React.FC = () => {
           <div className="ans-preview">
             <div className="ans-preview-header">
               <h3>Vista Previa</h3>
-              <span className="ans-preview-type">
-                {channel === 'email' ? '📧 Email' : '📱 SMS'}
-              </span>
+              <span className="ans-preview-type">📧 Email</span>
             </div>
 
             {selectedTemplate ? (
               <div className="ans-preview-content">
-                {channel === 'email' && (
-                  <>
-                    <div className="ans-preview-subject">
-                      <strong>Asunto:</strong>{' '}
-                      {(selectedTemplateObj as EmailTemplate)?.subject || '—'}
-                    </div>
-                    <div className="ans-preview-body">
-                      <div
-                        dangerouslySetInnerHTML={{
-                          __html: preview || 'Selecciona plantilla y variables...',
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-                {channel === 'sms' && (
-                  <div className="ans-preview-sms">
-                    <div className="ans-sms-bubble">{preview || 'Selecciona plantilla...'}</div>
-                  </div>
-                )}
+                <div className="ans-preview-subject">
+                  <strong>Asunto:</strong>{' '}
+                  {selectedTemplateObj?.subject || '—'}
+                </div>
+                <div className="ans-preview-body">
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: preview || 'Selecciona plantilla y variables...',
+                    }}
+                  />
+                </div>
               </div>
             ) : (
               <div className="ans-preview-empty">

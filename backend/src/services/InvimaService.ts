@@ -150,7 +150,7 @@ export class InvimaService {
 
     // 1. Buscar en cache local
     const cached = await this.pool.query(
-      `SELECT * FROM invima_registros WHERE numero_registro = $1`,
+      `SELECT *, datos_completos AS datos_crudos FROM invima_registros WHERE numero_registro = $1`,
       [cleanNumber]
     );
 
@@ -490,19 +490,27 @@ export class InvimaService {
       `INSERT INTO invima_registros (
         numero_registro, nombre_producto, estado, categoria,
         principios_activos, clasificacion_riesgo, titular_registro,
-        fecha_vencimiento, datos_completos
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        titular_fabricante, titular_importador, pais_origen,
+        fecha_emision, fecha_vencimiento, presentaciones_autorizadas,
+        fuente_datos, datos_completos
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       ON CONFLICT (numero_registro) DO UPDATE SET
-        nombre_producto = COALESCE(EXCLUDED.nombre_producto, invima_registros.nombre_producto),
-        estado = COALESCE(EXCLUDED.estado, invima_registros.estado),
-        categoria = COALESCE(EXCLUDED.categoria, invima_registros.categoria),
-        principios_activos = COALESCE(EXCLUDED.principios_activos, invima_registros.principios_activos),
-        clasificacion_riesgo = COALESCE(EXCLUDED.clasificacion_riesgo, invima_registros.clasificacion_riesgo),
-        titular_registro = COALESCE(EXCLUDED.titular_registro, invima_registros.titular_registro),
-        fecha_vencimiento = COALESCE(EXCLUDED.fecha_vencimiento, invima_registros.fecha_vencimiento),
-        datos_completos = EXCLUDED.datos_completos,
-        consultado_en = NOW()
-      RETURNING *`,
+        nombre_producto           = COALESCE(EXCLUDED.nombre_producto, invima_registros.nombre_producto),
+        estado                    = COALESCE(EXCLUDED.estado, invima_registros.estado),
+        categoria                 = COALESCE(EXCLUDED.categoria, invima_registros.categoria),
+        principios_activos        = COALESCE(EXCLUDED.principios_activos, invima_registros.principios_activos),
+        clasificacion_riesgo      = COALESCE(EXCLUDED.clasificacion_riesgo, invima_registros.clasificacion_riesgo),
+        titular_registro          = COALESCE(EXCLUDED.titular_registro, invima_registros.titular_registro),
+        titular_fabricante        = COALESCE(EXCLUDED.titular_fabricante, invima_registros.titular_fabricante),
+        titular_importador        = COALESCE(EXCLUDED.titular_importador, invima_registros.titular_importador),
+        pais_origen               = COALESCE(EXCLUDED.pais_origen, invima_registros.pais_origen),
+        fecha_emision             = COALESCE(EXCLUDED.fecha_emision, invima_registros.fecha_emision),
+        fecha_vencimiento         = COALESCE(EXCLUDED.fecha_vencimiento, invima_registros.fecha_vencimiento),
+        presentaciones_autorizadas= COALESCE(EXCLUDED.presentaciones_autorizadas, invima_registros.presentaciones_autorizadas),
+        fuente_datos              = COALESCE(EXCLUDED.fuente_datos, invima_registros.fuente_datos),
+        datos_completos           = EXCLUDED.datos_completos,
+        consultado_en             = NOW()
+      RETURNING *, datos_completos AS datos_crudos`,
       [
         data.numero_registro,
         data.nombre_producto || null,
@@ -511,7 +519,13 @@ export class InvimaService {
         data.principios_activos || null,
         data.clasificacion_riesgo || null,
         data.titular_registro || null,
+        data.titular_fabricante || null,
+        data.titular_importador || null,
+        data.pais_origen || null,
+        data.fecha_emision || null,
         data.fecha_vencimiento || null,
+        data.presentaciones_autorizadas || null,
+        data.fuente_datos || 'datos_gov',
         data.datos_crudos ? JSON.stringify(data.datos_crudos) : null,
       ]
     );
@@ -521,7 +535,7 @@ export class InvimaService {
 
   async getRegistroByNumero(numero: string): Promise<InvimaRegistro | null> {
     const result = await this.pool.query(
-      `SELECT * FROM invima_registros WHERE numero_registro = $1`,
+      `SELECT *, datos_completos AS datos_crudos FROM invima_registros WHERE numero_registro = $1`,
       [numero.trim().toUpperCase()]
     );
     return result.rows[0] || null;
@@ -529,12 +543,13 @@ export class InvimaService {
 
   async searchRegistros(query: string, limit = 20): Promise<InvimaRegistro[]> {
     const result = await this.pool.query(
-      `SELECT * FROM invima_registros
+      `SELECT *, datos_completos AS datos_crudos
+       FROM invima_registros
        WHERE numero_registro ILIKE $1
           OR nombre_producto ILIKE $1
           OR titular_registro ILIKE $1
           OR principios_activos ILIKE $1
-       ORDER BY updated_at DESC
+       ORDER BY consultado_en DESC
        LIMIT $2`,
       [`%${query}%`, limit]
     );

@@ -425,6 +425,14 @@ export const servicesApi = {
   },
 };
 
+export const providerServicesApi = {
+  getForProvider: (providerId: string) =>
+    get<{ data: HealthService[] }>(`/api/providers/${providerId}/services`),
+
+  setForProvider: (providerId: string, serviceIds: string[]) =>
+    put<{ message: string; count: number }>(`/api/providers/${providerId}/services`, { serviceIds }),
+};
+
 // ─────────────────────────────────────────────
 // CUESTIONARIOS
 // ─────────────────────────────────────────────

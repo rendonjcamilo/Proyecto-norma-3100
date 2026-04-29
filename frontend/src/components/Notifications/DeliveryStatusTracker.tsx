@@ -205,7 +205,6 @@ export const DeliveryStatusTracker: React.FC<DeliveryStatusTrackerProps> = ({
           >
             <option value="all">Todos los canales</option>
             <option value="email">📧 Email</option>
-            <option value="sms">💬 SMS</option>
             <option value="push">🔔 Push</option>
           </select>
         </div>

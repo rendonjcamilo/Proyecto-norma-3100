@@ -55,6 +55,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           admin_password,
           admin_first_name,
           admin_last_name,
+          serviceIds,
         } = req.body;
 
         // Validate required provider fields
@@ -165,6 +166,18 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
              ON CONFLICT (auditor_id, provider_id) DO NOTHING`,
             [user?.user_id, provider.id, user?.user_id]
           );
+
+          // 4. Assign services if provided
+          if (Array.isArray(serviceIds) && serviceIds.length > 0) {
+            for (const serviceId of serviceIds) {
+              await client.query(
+                `INSERT INTO services_enabled (id, provider_id, service_id, status)
+                 VALUES (gen_random_uuid(), $1, $2, 'active')
+                 ON CONFLICT (provider_id, service_id, location_id) DO UPDATE SET status = 'active'`,
+                [provider.id, serviceId]
+              );
+            }
+          }
 
           // Commit transaction
           await client.query('COMMIT');
@@ -951,6 +964,88 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
       res.status(500).json({ error: 'Failed to fetch municipalities' });
     }
   });
+
+  // ===== PROVIDER SERVICES =====
+
+  /**
+   * GET /api/providers/:providerId/services
+   * List services enabled for a provider
+   */
+  router.get(
+    '/providers/:providerId/services',
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        const { providerId } = req.params;
+        const result = await pool.query(
+          `SELECT s.id, s.code, s.name, s.category, s.status,
+                  se.enabled_from, se.enabled_until, se.status AS enabled_status
+           FROM services_enabled se
+           JOIN services s ON s.id = se.service_id
+           WHERE se.provider_id = $1 AND se.status = 'active'
+           ORDER BY s.category, s.name`,
+          [providerId]
+        );
+        res.json({ data: result.rows });
+      } catch (err) {
+        logger.error({ msg: 'Error fetching provider services', error: String(err) });
+        res.status(500).json({ error: 'Error al obtener servicios del prestador' });
+      }
+    }
+  );
+
+  /**
+   * PUT /api/providers/:providerId/services
+   * Replace all services for a provider (full sync)
+   */
+  router.put(
+    '/providers/:providerId/services',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { providerId } = req.params;
+        const { serviceIds } = req.body as { serviceIds: string[] };
+
+        if (!Array.isArray(serviceIds)) {
+          return res.status(400).json({ error: 'serviceIds debe ser un array' });
+        }
+
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+
+          // Deactivate all current services
+          await client.query(
+            `UPDATE services_enabled SET status = 'inactive' WHERE provider_id = $1`,
+            [providerId]
+          );
+
+          // Upsert active services
+          for (const serviceId of serviceIds) {
+            await client.query(
+              `INSERT INTO services_enabled (id, provider_id, service_id, status)
+               VALUES (gen_random_uuid(), $1, $2, 'active')
+               ON CONFLICT (provider_id, service_id, location_id)
+               DO UPDATE SET status = 'active', enabled_from = CURRENT_DATE`,
+              [providerId, serviceId]
+            );
+          }
+
+          await client.query('COMMIT');
+          res.json({ message: 'Servicios actualizados', count: serviceIds.length });
+        } catch (err) {
+          await client.query('ROLLBACK');
+          throw err;
+        } finally {
+          client.release();
+        }
+      } catch (err) {
+        logger.error({ msg: 'Error updating provider services', error: String(err) });
+        res.status(500).json({ error: 'Error al actualizar servicios del prestador' });
+      }
+    }
+  );
 
   return router;
 }

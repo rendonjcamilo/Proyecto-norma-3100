@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { assessmentsApi, servicesApi, providersApi, type Assessment, type HealthService } from '../services/api';
+import { assessmentsApi, servicesApi, providerServicesApi, providersApi, type Assessment, type HealthService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useAuth } from '../context/AuthContext';
 import './Pages.css';
@@ -52,6 +52,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [services, setServices] = useState<HealthService[]>([]);
+  const [servicesFiltered, setServicesFiltered] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [auditorsProviders, setAuditorsProviders] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -131,20 +132,32 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
         setAssessments(loadedAssessments);
 
-        // Cargar servicios reales desde la BD (con UUID, con autenticación JWT)
-        console.log('[DEBUG] Starting to load services...');
+        // Cargar servicios: filtrados por prestador (si aplica) o todos
         try {
-          console.log('[DEBUG] Calling servicesApi.getAll()...');
-          const svcData = await servicesApi.getAll();
-          console.log('[DEBUG] servicesApi.getAll() SUCCESS:', svcData);
-          if (svcData.data && svcData.data.length > 0) {
-            console.log('[DEBUG] First service:', svcData.data[0]);
-            console.log('[DEBUG] Setting services, count:', svcData.data.length);
-            setServices(svcData.data);
+          let loadedServices: HealthService[] = [];
+          if (providerId && user?.role !== 'auditor') {
+            const provSvcRes = await providerServicesApi.getForProvider(providerId);
+            loadedServices = provSvcRes.data?.data || [];
+          }
+          if (loadedServices.length > 0) {
+            setServicesFiltered(true);
+            setServices(loadedServices);
+            if (loadedServices.length === 1) {
+              setFormData((prev) => ({ ...prev, serviceId: loadedServices[0].id }));
+            }
+          } else {
+            setServicesFiltered(false);
+            const svcData = await servicesApi.getAll();
+            if (svcData.data && svcData.data.length > 0) {
+              setServices(svcData.data);
+            }
           }
         } catch (svcErr) {
-          console.error('[DEBUG] Error cargando servicios:', svcErr);
-          console.error('[DEBUG] Full error:', JSON.stringify(svcErr));
+          console.error('Error cargando servicios:', svcErr);
+          try {
+            const svcData = await servicesApi.getAll();
+            if (svcData.data && svcData.data.length > 0) setServices(svcData.data);
+          } catch { /* sin servicios */ }
         }
       } catch (err) {
         console.error('Error cargando datos:', err);
@@ -645,20 +658,22 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   }}
                 >
                   <option value="">-- Selecciona un servicio de salud --</option>
-                  {/* Agrupar servicios por categoría */}
-                  {['Consulta Externa', 'Apoyo Diagnóstico', 'Internación', 'Quirúrgico', 'Atención Inmediata'].map(category => {
-                    const categoryServices = services.filter(s => s.category === category);
-                    return categoryServices.length > 0 ? (
+                  {[...new Set(services.map((s) => s.category))].sort().map((category) => {
+                    const categoryServices = services.filter((s) => s.category === category);
+                    return (
                       <optgroup key={category} label={`${category} (${categoryServices.length})`}>
-                        {categoryServices.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
+                        {categoryServices.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </optgroup>
-                    ) : null;
+                    );
                   })}
                 </select>
+                {servicesFiltered && (
+                  <small style={{ color: '#6366f1', display: 'block', marginTop: '4px' }}>
+                    {services.length} servicio{services.length !== 1 ? 's' : ''} habilitado{services.length !== 1 ? 's' : ''} para este prestador
+                  </small>
+                )}
                 {!formData.serviceId && (
                   <small style={{ color: '#ef4444', display: 'block', marginTop: '4px' }}>
                     Debes seleccionar un servicio para continuar

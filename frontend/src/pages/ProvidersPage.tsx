@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { providersApi, usersApi, repsApi, User } from '../services/api';
+import { providersApi, usersApi, repsApi, servicesApi, providerServicesApi, User, HealthService } from '../services/api';
 import './Pages.css';
 
 /**
@@ -165,6 +165,10 @@ export const ProvidersPage: React.FC = () => {
   const [repsSearching, setRepsSearching] = useState(false);
   const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string } | null>(null);
   const [repsError, setRepsError] = useState<string | null>(null);
+  const [allServices, setAllServices] = useState<HealthService[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [servicesSearch, setServicesSearch] = useState('');
+  const [loadingServices, setLoadingServices] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -258,6 +262,7 @@ export const ProvidersPage: React.FC = () => {
         admin_password: formData.admin_password,
         admin_first_name: formData.admin_first_name.trim(),
         admin_last_name: formData.admin_last_name.trim(),
+        serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
       } as any);
 
       const newProviderId = (createRes.data as any).provider.id;
@@ -307,6 +312,9 @@ export const ProvidersPage: React.FC = () => {
       if (formData.auditor_id) {
         await providersApi.assignAuditor(editingId, formData.auditor_id);
       }
+
+      // Guardar servicios habilitados
+      await providerServicesApi.setForProvider(editingId, selectedServiceIds);
 
       // Recargar lista
       const providersRes = await providersApi.list();
@@ -375,6 +383,8 @@ export const ProvidersPage: React.FC = () => {
       admin_password: '',
     });
     setCreateError(null);
+    setServicesSearch('');
+    loadServices(provider.id);
     setShowModal(true);
   };
 
@@ -418,6 +428,24 @@ export const ProvidersPage: React.FC = () => {
     }
   };
 
+  const loadServices = async (providerId?: string) => {
+    setLoadingServices(true);
+    try {
+      const res = await servicesApi.getAll({ status: 'active' });
+      setAllServices(res.data?.data || []);
+      if (providerId) {
+        const provRes = await providerServicesApi.getForProvider(providerId);
+        setSelectedServiceIds((provRes.data?.data || []).map((s) => s.id));
+      } else {
+        setSelectedServiceIds([]);
+      }
+    } catch {
+      console.error('Failed to load services');
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-container page-loading">
@@ -448,6 +476,8 @@ export const ProvidersPage: React.FC = () => {
               setRepsSearchCode('');
               setRepsFound(null);
               setRepsError(null);
+              setServicesSearch('');
+              loadServices();
               setShowModal(true);
             }}
           >
@@ -782,6 +812,79 @@ export const ProvidersPage: React.FC = () => {
                   </select>
                 </div>
               )}
+
+              {/* Servicios habilitados */}
+              <div style={{ borderTop: '1px solid #e0e0e0', marginTop: '24px', paddingTop: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '20px' }}>🏥</span>
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#333', fontSize: '14px' }}>Servicios Habilitados</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>Selecciona los servicios de salud habilitados para este prestador</div>
+                  </div>
+                </div>
+
+                {selectedServiceIds.length > 0 && (
+                  <div style={{ marginBottom: '10px', fontSize: '13px', color: '#4f46e5', fontWeight: 600 }}>
+                    {selectedServiceIds.length} servicio{selectedServiceIds.length !== 1 ? 's' : ''} seleccionado{selectedServiceIds.length !== 1 ? 's' : ''}
+                  </div>
+                )}
+
+                <input
+                  type="text"
+                  placeholder="Filtrar servicios..."
+                  value={servicesSearch}
+                  onChange={(e) => setServicesSearch(e.target.value)}
+                  disabled={creating || loadingServices}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', marginBottom: '10px', boxSizing: 'border-box' }}
+                />
+
+                {loadingServices ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#888', fontSize: '14px' }}>Cargando servicios...</div>
+                ) : (
+                  <div style={{ maxHeight: '260px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    {(() => {
+                      const filtered2 = allServices.filter(
+                        (s) => !servicesSearch || s.name.toLowerCase().includes(servicesSearch.toLowerCase()) || s.category.toLowerCase().includes(servicesSearch.toLowerCase())
+                      );
+                      const grouped = filtered2.reduce((acc, s) => {
+                        if (!acc[s.category]) acc[s.category] = [];
+                        acc[s.category].push(s);
+                        return acc;
+                      }, {} as Record<string, HealthService[]>);
+                      const categories = Object.keys(grouped).sort();
+                      if (categories.length === 0) return (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '13px' }}>Sin resultados</div>
+                      );
+                      return categories.map((cat) => (
+                        <div key={cat}>
+                          <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#f8f9ff', borderBottom: '1px solid #e8eaff', position: 'sticky', top: 0 }}>
+                            {cat}
+                          </div>
+                          {grouped[cat].map((service) => (
+                            <label
+                              key={service.id}
+                              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', color: '#1a1a2e', borderBottom: '1px solid #f3f4f6' }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedServiceIds.includes(service.id)}
+                                onChange={(e) => {
+                                  setSelectedServiceIds((prev) =>
+                                    e.target.checked ? [...prev, service.id] : prev.filter((id) => id !== service.id)
+                                  );
+                                }}
+                                disabled={creating}
+                                style={{ accentColor: '#6366f1', width: '15px', height: '15px', flexShrink: 0 }}
+                              />
+                              {service.name}
+                            </label>
+                          ))}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </div>
 
               {/* Admin section - only show on create, not on edit */}
               {!editingId && (
