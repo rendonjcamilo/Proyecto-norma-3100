@@ -24,7 +24,11 @@
 import { Pool } from "pg";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { v4 as uuidv4 } from "uuid";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ============================================================
 // Type Definitions
@@ -172,7 +176,7 @@ class Norma3100Importer {
             `INSERT INTO evaluation_criteria
            (code, number, name, description, complexity, standard_id, service_id, is_mandatory, status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-           ON CONFLICT (code, service_id) DO NOTHING`,
+           ON CONFLICT (code) DO NOTHING`,
             [
               criterion.code,
               criterion.number,
@@ -186,9 +190,9 @@ class Norma3100Importer {
             ]
           );
         } catch (error: any) {
-          // Log but continue
-          if (!error.message.includes("ON CONFLICT")) {
-            console.error(`  Error inserting criterion ${criterion.code}:`, error.message);
+          const msg = error.message ?? "";
+          if (!msg.includes("duplicate key") && !msg.includes("ON CONFLICT")) {
+            console.error(`  Error inserting criterion ${criterion.code}:`, msg);
           }
         }
       }
@@ -250,13 +254,14 @@ class Norma3100Importer {
 
           // Insert criteria
           for (const criterion of specStandard.criteria) {
+            if (!criterion.number) continue; // skip criteria without a number
             const criterionCode = `${specStandard.code}-${criterion.number}`;
             try {
               await this.pool.query(
                 `INSERT INTO evaluation_criteria
                (code, number, name, description, complexity, standard_id, service_id, is_mandatory, status)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-               ON CONFLICT (code, service_id) DO NOTHING`,
+               ON CONFLICT (code) DO NOTHING`,
                 [
                   criterionCode,
                   criterion.number,
@@ -271,11 +276,11 @@ class Norma3100Importer {
               );
               totalCriteria++;
             } catch (error: any) {
-              // Log but continue
-              if (!error.message.includes("ON CONFLICT")) {
+              const msg = error.message ?? "";
+              if (!msg.includes("duplicate key") && !msg.includes("ON CONFLICT")) {
                 console.error(
                   `  Error inserting criterion ${criterionCode}:`,
-                  error.message
+                  msg
                 );
               }
             }
@@ -301,11 +306,15 @@ class Norma3100Importer {
 
 async function main() {
   // Read the JSON model
-  const modelPath = path.join(__dirname, "..", "..", "docs", "norma3100-model.json");
+  // Supports both Docker (/app/scripts → /app/docs) and host (backend/scripts → docs)
+  const candidates = [
+    path.join(__dirname, "..", "docs", "norma3100-model.json"),
+    path.join(__dirname, "..", "..", "docs", "norma3100-model.json"),
+  ];
+  const modelPath = candidates.find((p) => fs.existsSync(p)) ?? candidates[0];
 
   if (!fs.existsSync(modelPath)) {
-    console.error(`Error: JSON model not found at ${modelPath}`);
-    console.error("Please run: npm run extract-norma3100");
+    console.error(`Error: JSON model not found. Tried:\n  ${candidates.join("\n  ")}`);
     process.exit(1);
   }
 

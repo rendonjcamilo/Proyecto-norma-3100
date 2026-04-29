@@ -36,10 +36,11 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
         const { serviceId, versionType, name } = req.body;
         const userId = (req as any).user?.id || (req as any).userId;
 
-        if (!serviceId || !versionType) {
+        if (!versionType) {
           return res.status(400).json({
-            error: 'serviceId y versionType son requeridos',
-            required: ['serviceId', 'versionType'],
+            error: 'versionType es requerido',
+            required: ['versionType'],
+            optional: ['serviceId (null = cuestionario maestro)'],
           });
         }
 
@@ -49,9 +50,9 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
           });
         }
 
-        // Create questionnaire
+        // serviceId=null crea un cuestionario maestro con todos los criterios transversales
         const questionnaire = await questionnaireService.createQuestionnaire(
-          serviceId,
+          serviceId || null,
           versionType,
           userId,
           name

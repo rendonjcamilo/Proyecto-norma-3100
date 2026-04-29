@@ -16,6 +16,9 @@ RUN npm install
 COPY backend/src ./src
 COPY backend/tsconfig.json ./
 COPY backend/.env.example ./.env.example
+COPY backend/db ./db
+COPY backend/scripts ./scripts
+COPY docs/norma3100-model.json ./docs/norma3100-model.json
 
 # Expose port
 EXPOSE 3001

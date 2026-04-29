@@ -75,7 +75,7 @@ export class QuestionnaireService {
    * Create a new questionnaire for a service
    */
   async createQuestionnaire(
-    serviceId: string,
+    serviceId: string | null,
     versionType: 'initial' | 'year4' | 'annual' | 'pre-novelty',
     createdBy: string,
     name?: string
@@ -85,24 +85,30 @@ export class QuestionnaireService {
     try {
       await client.query('BEGIN');
 
-      // Verify service exists
-      const serviceCheck = await client.query(
-        'SELECT id, name FROM services WHERE id = $1',
-        [serviceId]
-      );
+      let serviceName: string;
 
-      if (serviceCheck.rows.length === 0) {
-        throw new Error(`Service ${serviceId} not found`);
+      if (serviceId) {
+        // Verify service exists
+        const serviceCheck = await client.query(
+          'SELECT id, name FROM services WHERE id = $1',
+          [serviceId]
+        );
+        if (serviceCheck.rows.length === 0) {
+          throw new Error(`Service ${serviceId} not found`);
+        }
+        serviceName = serviceCheck.rows[0].name;
+      } else {
+        serviceName = 'Maestro';
       }
 
-      const serviceName = serviceCheck.rows[0].name;
-      const questionnaireTitle = name || `${serviceName} - ${versionType}`;
+      const questionnaireTitle = name || `Cuestionario ${serviceName} - ${versionType}`;
 
       // Check for duplicate questionnaire (same service + version, not archived)
       const dupCheck = await client.query(
         `SELECT id FROM questionnaires
-         WHERE service_id = $1 AND version_type = $2 AND status != 'archived'`,
-        [serviceId, versionType]
+         WHERE version_type = $1 AND status != 'archived'
+           AND (service_id = $2 OR (service_id IS NULL AND $2::uuid IS NULL))`,
+        [versionType, serviceId]
       );
 
       if (dupCheck.rows.length > 0) {
@@ -529,17 +535,34 @@ export class QuestionnaireService {
   /**
    * Private helper: Load template criteria for a service from database
    */
-  private async loadTemplateForService(client: PoolClient, serviceId: string): Promise<any[]> {
-    const query = `
-      SELECT DISTINCT ec.id
-      FROM evaluation_criteria ec
-      INNER JOIN evaluation_standards es ON ec.standard_id = es.id
-      WHERE (es.is_transversal = true OR ec.service_id = $1)
-        AND ec.status = 'active'
-      ORDER BY ec.code
-    `;
+  private async loadTemplateForService(client: PoolClient, serviceId: string | null): Promise<any[]> {
+    let query: string;
+    let params: any[];
 
-    const result = await client.query(query, [serviceId]);
+    if (serviceId) {
+      // Cuestionario de servicio: transversales + criterios específicos del servicio
+      query = `
+        SELECT DISTINCT ec.id
+        FROM evaluation_criteria ec
+        INNER JOIN evaluation_standards es ON ec.standard_id = es.id
+        WHERE (es.is_transversal = true OR ec.service_id = $1)
+          AND ec.status = 'active'
+        ORDER BY ec.id
+      `;
+      params = [serviceId];
+    } else {
+      // Cuestionario maestro: solo los 512 criterios transversales
+      query = `
+        SELECT ec.id
+        FROM evaluation_criteria ec
+        INNER JOIN evaluation_standards es ON ec.standard_id = es.id
+        WHERE es.is_transversal = true AND ec.status = 'active'
+        ORDER BY ec.id
+      `;
+      params = [];
+    }
+
+    const result = await client.query(query, params);
     return result.rows;
   }
 
