@@ -94,7 +94,7 @@ export function ProviderDashboard(): JSX.Element {
     return <div className="dashboard-error">No hay prestador seleccionado</div>;
   }
 
-  if (!metrics && loading) {
+  if (!metrics) {
     return <div className="dashboard-loading">Cargando métricas...</div>;
   }
 

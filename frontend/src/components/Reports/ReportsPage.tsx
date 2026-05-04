@@ -9,6 +9,13 @@ import { useAuth } from '../../context/AuthContext';
 import './ReportsPage.css';
 import '../../pages/Pages.css';
 
+const VERSION_LABELS: Record<string, string> = {
+  initial: 'Autoevaluación Inicial',
+  year4: 'Evaluación a los 4 Años',
+  annual: 'Evaluación Anual',
+  'pre-novelty': 'Pre-Novedad',
+};
+
 interface ReportsPageProps {
   providerId: string;
   providerName: string;
@@ -447,7 +454,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                     <option value="">-- Selecciona evaluación --</option>
                     {completedAssessments.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.title || a.assessment_version || 'Evaluación'} — {new Date(a.created_at).toLocaleDateString('es-CO')} (
+                        {a.title || VERSION_LABELS[a.assessment_version] || 'Evaluación'} — {new Date(a.created_at).toLocaleDateString('es-CO')} (
                         {a.compliance_percent || a.compliance_percentage || 0}%)
                       </option>
                     ))}
@@ -462,28 +469,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               </ul>
 
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className="btn-download"
-                  style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', flex: 1 }}
-                  onClick={() => handleDownloadAuditoria('pdf')}
-                  disabled={!!downloading}
-                >
-                  {downloading === 'auditoria-pdf' ? (
-                    <>
-                      <span className="btn-spinner" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="7 10 12 15 17 10" />
-                        <line x1="12" y1="15" x2="12" y2="3" />
-                      </svg>
-                      PDF
-                    </>
-                  )}
-                </button>
                 <button
                   className="btn-download"
                   style={{ background: '#6366f1', flex: 1 }}

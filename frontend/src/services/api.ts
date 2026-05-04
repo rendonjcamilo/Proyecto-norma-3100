@@ -388,7 +388,7 @@ export const assessmentsApi = {
   getById: (id: string) =>
     get<{ data: Assessment & { responses?: AssessmentResponse[]; metrics?: AssessmentMetrics } }>(`/api/assessments/${id}`),
 
-  create: (payload: { providerId: string; serviceId: string; questionnaireId: string; assessmentVersion: string }) =>
+  create: (payload: { providerId: string; serviceId: string; questionnaireId: string; assessmentVersion: string; title?: string }) =>
     post<{ data: Assessment }>('/api/assessments', payload),
 
   saveResponses: (assessmentId: string, responses: AssessmentResponse[]) =>

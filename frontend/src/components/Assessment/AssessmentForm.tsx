@@ -193,11 +193,13 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setExpandedStandards(newExpanded);
   };
 
-  const totalCriteria = questionnaiireData.standards.reduce(
-    (acc, s) => acc + s.criteria.filter((c) => !c.is_section_header).length,
-    0
+  const allEvaluable = useMemo(
+    () => questionnaiireData.standards.flatMap((s) => s.criteria.filter((c) => !c.is_section_header)),
+    [questionnaiireData]
   );
-  const answeredCriteria = responses.size;
+  const totalCriteria = allEvaluable.length;
+  const evaluableIds = useMemo(() => new Set(allEvaluable.map((c) => c.id)), [allEvaluable]);
+  const answeredCriteria = Array.from(responses.keys()).filter((id) => evaluableIds.has(id)).length;
 
   // Cálculo en tiempo real: solo C y NC cuentan, NA excluido
   const liveCompliance = useMemo(() => {

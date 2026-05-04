@@ -124,11 +124,11 @@ export class AssessmentService {
       // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, status, created_by, title)
-        VALUES ($1, $2, $3, $4, 'draft', $5, $6)
+          (provider_id, location_id, service_id, questionnaire_id, status, created_by, title, assessment_version)
+        VALUES ($1, $2, $3, $4, 'draft', $5, $6, $7)
         RETURNING
           id, provider_id, location_id, service_id, questionnaire_id, version,
-          status, created_by, compliance_pct, created_at, title
+          status, created_by, compliance_pct, created_at, title, assessment_version
       `;
 
       const aResult = await client.query(assessmentQuery, [
@@ -138,6 +138,7 @@ export class AssessmentService {
         questionnaireId,
         userId,
         title || null,
+        assessmentVersion,
       ]);
 
       const assessment = aResult.rows[0];
