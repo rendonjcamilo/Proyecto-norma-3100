@@ -624,6 +624,9 @@ export interface InvimaRegistro {
   tipo_registro: string | null;
   estado: string;
   nombre_producto: string | null;
+  descripcion: string | null;
+  marca: string | null;
+  serie: string | null;
   categoria: string | null;
   principios_activos: string | null;
   presentaciones_autorizadas: string | null;

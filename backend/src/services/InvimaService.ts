@@ -22,6 +22,9 @@ export interface InvimaRegistro {
   tipo_registro: string | null;
   estado: string;
   nombre_producto: string | null;
+  descripcion: string | null;
+  marca: string | null;
+  serie: string | null;
   categoria: string | null;
   principios_activos: string | null;
   presentaciones_autorizadas: string | null;
@@ -107,17 +110,21 @@ const DATASETS_POR_TIPO: Record<string, Array<{ id: string; campo: string }>> = 
     { id: 'qj5z-zabx', campo: 'registrosanitario' }, // Intenta registrosanitario completo (INVIMA 2011M-XXX)
   ],
   dispositivo_medico: [
-    { id: 'y4qt-w6tk', campo: 'expediente' }, // Dispositivos Médicos y Otros
+    { id: 'y4qt-w6tk', campo: 'registro_sanitario' }, // Dispositivos Médicos — campo real validado
+    { id: 'y4qt-w6tk', campo: 'expediente' },
   ],
   cosmetico: [], // Sin dataset dedicado en datos.gov.co — registrar manualmente
   fitoterapeutico: [
-    { id: 'k3he-53cu', campo: 'expediente' }, // Productos Fitoterapéuticos
+    { id: 'k3he-53cu', campo: 'registro_sanitario' }, // Fitoterapéuticos — campo real validado
+    { id: 'k3he-53cu', campo: 'expediente' },
   ],
   suplemento_dietario: [
-    { id: 'uqkt-7tia', campo: 'expediente' }, // Suplementos Dietarios
+    { id: 'uqkt-7tia', campo: 'registro_sanitario' }, // Suplementos — campo real validado
+    { id: 'uqkt-7tia', campo: 'expediente' },
   ],
   reactivo_diagnostico: [
-    { id: 'y4qt-w6tk', campo: 'expediente' }, // Incluidos en dataset de Dispositivos Médicos
+    { id: 'y4qt-w6tk', campo: 'registro_sanitario' }, // Incluidos en dataset de Dispositivos Médicos
+    { id: 'y4qt-w6tk', campo: 'expediente' },
   ],
   aditivo: [
     { id: 'nrmr-kbqq', campo: 'expediente' }, // Aditivos
@@ -275,12 +282,20 @@ export class InvimaService {
       variations.push(withoutRevision);
     }
 
-    // Intento 1: $where con equality operator (más compatible)
+    // Estrategias de búsqueda en orden de especificidad
     const attempts = [
       {
         name: 'where_equality',
         params: (num: string) => new URLSearchParams({
           $where: `${campo} = '${num}'`,
+          $limit: '5',
+        }),
+      },
+      // LIKE con prefijo: encuentra "INVIMA 2011M-0000632-R1" buscando "INVIMA 2011M-0000632"
+      {
+        name: 'where_like_prefix',
+        params: (num: string) => new URLSearchParams({
+          $where: `${campo} like '${num}%'`,
           $limit: '5',
         }),
       },
@@ -369,31 +384,37 @@ export class InvimaService {
   // ─── Parser de número de registro ───
 
   private parseNumeroRegistro(numero: string): { tipo: string; formato: string } {
-    // Patrones de registros INVIMA — los más específicos primero (prefijos más largos)
+    // Patrones validados contra datos reales de datos.gov.co (mayo 2026)
     // Con o sin prefijo "INVIMA "
     if (/^(?:INVIMA\s+)?\d{4}DM-\d+/i.test(numero)) {
       return { tipo: 'dispositivo_medico', formato: 'INVIMA_DM' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}RIV[-\s]/i.test(numero) || /^(?:INVIMA\s+)?RIV/i.test(numero)) {
+    // RIV{año}-{num} — formato real en dataset y4qt-w6tk
+    if (/^(?:INVIMA\s+)?RIV\d{4}-\d+/i.test(numero) || /^RIV\d/i.test(numero)) {
       return { tipo: 'reactivo_diagnostico', formato: 'INVIMA_RIV' };
     }
+    // INVIMA {año}RD-{num} — formato real en dataset y4qt-w6tk
     if (/^(?:INVIMA\s+)?\d{4}RD-\d+/i.test(numero)) {
       return { tipo: 'reactivo_diagnostico', formato: 'INVIMA_RD' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}SD-\d+/i.test(numero)) {
+    // SD{año}-{num} — formato real en dataset uqkt-7tia (SD va al inicio)
+    if (/^SD\d{4}-\d+/i.test(numero)) {
       return { tipo: 'suplemento_dietario', formato: 'INVIMA_SD' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}F-\d+/i.test(numero)) {
-      return { tipo: 'fitoterapeutico', formato: 'INVIMA_F' };
+    // N{año}-{num} — formato real en dataset k3he-53cu (fitoterapéuticos)
+    if (/^N\d{4}-\d+/i.test(numero) || /^N[-\s]*\d{3,}/i.test(numero)) {
+      return { tipo: 'fitoterapeutico', formato: 'INVIMA_N_FITO' };
     }
-    if (/^(?:INVIMA\s+)?\d{4}M-\d+/i.test(numero)) {
+    // INVIMA {año}M-{num} — medicamentos
+    if (/^(?:INVIMA\s+)?\d{4}\s*M-\d+/i.test(numero)) {
       return { tipo: 'medicamento', formato: 'INVIMA_M' };
     }
     if (/^(?:INVIMA\s+)?\d{4}C-\d+/i.test(numero)) {
       return { tipo: 'cosmetico', formato: 'INVIMA_C' };
     }
-    if (/^(?:INVIMA\s+)?N-\d+/i.test(numero)) {
-      return { tipo: 'medicamento', formato: 'INVIMA_N' };
+    // INVIMA M-{num} (sin año) — medicamentos antiguos
+    if (/^(?:INVIMA\s+)?M-\d+/i.test(numero)) {
+      return { tipo: 'medicamento', formato: 'INVIMA_M_NOYEAR' };
     }
     if (/^MSA-\d+/i.test(numero)) {
       return { tipo: 'medicamento', formato: 'MSA' };
@@ -411,11 +432,17 @@ export class InvimaService {
 
   private mapDatosGovToRegistro(record: Record<string, string>): Partial<InvimaRegistro> {
     return {
-      numero_registro: this.pick(record, 'numero_registro', 'expediente', 'registrosanitario') || '',
+      // registro_sanitario (con guión bajo) es el campo en dm/fito/suplementos; registrosanitario (sin) en medicamentos
+      numero_registro: this.pick(record, 'registro_sanitario', 'registrosanitario', 'numero_registro', 'expediente') || '',
       // 'prodcuto' es un typo confirmado en el dataset de dispositivos médicos (y4qt-w6tk)
-      nombre_producto: this.pick(record, 'prodcuto', 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre', 'marca') || null,
+      nombre_producto: this.pick(record, 'prodcuto', 'producto', 'nombre_producto', 'nombre_generico', 'denominacion_comun', 'nombre') || null,
+      // Descripción detallada del producto (común en dispositivos médicos)
+      descripcion: this.pick(record, 'descripcion', 'descripcion_producto', 'description', 'indicaciones', 'uso_indicado', 'forma_farmaceutica') || null,
+      // Marca comercial separada del nombre genérico
+      marca: this.pick(record, 'marca', 'nombre_comercial', 'marca_comercial', 'trade_name') || null,
+      // Serie o modelo del dispositivo médico
+      serie: this.pick(record, 'modelo', 'serie', 'referencia', 'numero_modelo', 'model', 'referencia_producto') || null,
       categoria: this.inferCategoria(record),
-      // tipo_registro removed — column doesn't exist in schema
       // 'estado_registro' (con guión bajo) es el campo correcto en dispositivos médicos
       estado: this.mapEstado(this.pick(record, 'estado_registro', 'estadoregistro', 'estado') || ''),
       titular_registro: this.pick(record, 'titular', 'interesado', 'nombre_empresa', 'razon_social', 'nombrerol', 'titular_registro') || null,
@@ -436,8 +463,10 @@ export class InvimaService {
 
   private pick(record: Record<string, string>, ...keys: string[]): string | null {
     for (const k of keys) {
-      if (record[k]?.trim()) {
-        return record[k].trim();
+      const val = record[k]?.trim();
+      // Filtrar string literal "null" que retorna el dataset de dispositivos médicos
+      if (val && val.toLowerCase() !== 'null') {
+        return val;
       }
     }
     return null;
@@ -488,14 +517,18 @@ export class InvimaService {
   async upsertRegistro(data: Partial<InvimaRegistro> & { numero_registro: string }): Promise<InvimaRegistro> {
     const result = await this.pool.query(
       `INSERT INTO invima_registros (
-        numero_registro, nombre_producto, estado, categoria,
+        numero_registro, nombre_producto, descripcion, marca, serie,
+        estado, categoria,
         principios_activos, clasificacion_riesgo, titular_registro,
         titular_fabricante, titular_importador, pais_origen,
         fecha_emision, fecha_vencimiento, presentaciones_autorizadas,
         fuente_datos, datos_completos
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (numero_registro) DO UPDATE SET
         nombre_producto           = COALESCE(EXCLUDED.nombre_producto, invima_registros.nombre_producto),
+        descripcion               = COALESCE(EXCLUDED.descripcion, invima_registros.descripcion),
+        marca                     = COALESCE(EXCLUDED.marca, invima_registros.marca),
+        serie                     = COALESCE(EXCLUDED.serie, invima_registros.serie),
         estado                    = COALESCE(EXCLUDED.estado, invima_registros.estado),
         categoria                 = COALESCE(EXCLUDED.categoria, invima_registros.categoria),
         principios_activos        = COALESCE(EXCLUDED.principios_activos, invima_registros.principios_activos),
@@ -514,6 +547,9 @@ export class InvimaService {
       [
         data.numero_registro,
         data.nombre_producto || null,
+        data.descripcion || null,
+        data.marca || null,
+        data.serie || null,
         data.estado || 'desconocido',
         data.categoria || null,
         data.principios_activos || null,

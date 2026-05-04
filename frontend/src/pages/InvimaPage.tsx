@@ -55,15 +55,20 @@ function RegistroCard({ reg, onBack }: { reg: InvimaRegistro; onBack: () => void
       </div>
 
       <h2 className="inv-card-nombre">{reg.nombre_producto ?? 'Sin nombre'}</h2>
+      {reg.descripcion && (
+        <p className="inv-card-descripcion">{reg.descripcion}</p>
+      )}
 
       <div className="inv-fields-grid">
+        <Field label="Marca" value={reg.marca} />
+        <Field label="Serie / Modelo" value={reg.serie} />
         <Field label="Categoría" value={reg.categoria} />
         <Field label="Tipo de registro" value={reg.tipo_registro} />
         <Field label="Clasificación de riesgo" value={reg.clasificacion_riesgo} />
         <Field label="País de origen" value={reg.pais_origen} />
         <Field label="Fecha de emisión" value={reg.fecha_emision} />
         <Field label="Fecha de vencimiento" value={reg.fecha_vencimiento} />
-        <Field label="Titular / Marca" value={reg.titular_registro} />
+        <Field label="Titular del registro" value={reg.titular_registro} />
         <Field label="Fabricante" value={reg.titular_fabricante} />
         <Field label="Importador" value={reg.titular_importador} />
         <Field label="Principios activos" value={reg.principios_activos} />
@@ -110,8 +115,13 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId: _providerId 
     setSearched(true);
 
     try {
-      // Si parece número de registro (contiene letras + números con guiones) → lookup directo
-      const isRegistroNumber = /^[A-Z0-9]{2,}-?\d/i.test(q);
+      // Detectar número de registro INVIMA:
+      // - "INVIMA 2011M-..." (con prefijo y espacio)
+      // - "2011M-...", "RIV2019-...", "SD2009-...", "N2005-..." (sin prefijo)
+      // - "M-012628" (sin año)
+      const isRegistroNumber =
+        /^INVIMA\s+\d/i.test(q) ||          // Con prefijo "INVIMA YYYY..."
+        /^[A-Z0-9]{2,}-?\d/i.test(q);       // Sin prefijo: 2011M-, RIV2019-, SD2009-, etc.
 
       if (isRegistroNumber) {
         const res = await invimaApi.lookup(q);
