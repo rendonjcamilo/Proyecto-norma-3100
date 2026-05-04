@@ -243,7 +243,7 @@ export const AuditorNotificationSender: React.FC = () => {
             )}
 
             {/* Direct Email Input */}
-            {recipientMode === 'direct' && channel === 'email' && (
+            {recipientMode === 'direct' && (
               <div className="ans-form-group">
                 <label htmlFor="directEmail">Correo electrónico</label>
                 <input

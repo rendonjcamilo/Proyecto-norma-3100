@@ -459,8 +459,6 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                 <li>3 condiciones de habilitación</li>
                 <li>Resultados por estándar (TSTH · TSINF · TSDOT · TSMD · TSPP · TSHCR · TSINT)</li>
                 <li>Hallazgos organizados por estándar</li>
-                <li>Concepto de habilitación</li>
-                <li>Espacio para firmas</li>
               </ul>
 
               <div style={{ display: 'flex', gap: '8px' }}>

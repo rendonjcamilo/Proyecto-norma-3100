@@ -376,12 +376,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
             });
           }
 
-          // Description is required for NC
-          if (response.status === 'NC' && !response.description) {
-            return res.status(400).json({
-              error: 'Description is required for NC (No Cumple) responses',
-            });
-          }
+          // Descripción requerida para NC se valida solo al someter, no al guardar
         }
 
         const updatedAssessment = await assessmentService.recordResponses(id, responses, userId);

@@ -490,11 +490,22 @@ export class ReportService {
     const estandaresResult = await this.pool.query<{
       id: string; code: string; name: string;
     }>(
-      `SELECT DISTINCT ON (es.code) es.id, es.code, es.name
+      `SELECT es.id, es.code, es.name
        FROM evaluation_standards es
-       INNER JOIN evaluation_criteria ec ON ec.standard_id = es.id
        WHERE es.is_transversal = TRUE
-       ORDER BY es.code`,
+         AND EXISTS (
+           SELECT 1 FROM evaluation_criteria ec WHERE ec.standard_id = es.id
+         )
+       ORDER BY CASE es.code
+         WHEN 'TSTH'  THEN 1
+         WHEN 'TSINF' THEN 2
+         WHEN 'TSDOT' THEN 3
+         WHEN 'TSMD'  THEN 4
+         WHEN 'TSPP'  THEN 5
+         WHEN 'TSHCR' THEN 6
+         WHEN 'TSINT' THEN 7
+         ELSE 8
+       END`,
     ).catch(() => ({ rows: [] }));
 
     const estandares = [];
