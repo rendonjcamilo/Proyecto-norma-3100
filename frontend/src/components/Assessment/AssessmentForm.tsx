@@ -41,6 +41,7 @@ interface Criterion {
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
   ncHint?: string;
+  is_section_header?: boolean;
 }
 
 interface Standard {
@@ -192,7 +193,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setExpandedStandards(newExpanded);
   };
 
-  const totalCriteria = questionnaiireData.standards.reduce((acc, s) => acc + s.criteria.length, 0);
+  const totalCriteria = questionnaiireData.standards.reduce(
+    (acc, s) => acc + s.criteria.filter((c) => !c.is_section_header).length,
+    0
+  );
   const answeredCriteria = responses.size;
 
   // Cálculo en tiempo real: solo C y NC cuentan, NA excluido
@@ -367,9 +371,9 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   onResponseChange,
   readOnly,
 }) => {
-  const answeredInGroup = standard.criteria.filter((c) => responses.has(c.id)).length;
-  const completionPercent =
-    standard.criteria.length > 0 ? (answeredInGroup / standard.criteria.length) * 100 : 0;
+  const evaluable = standard.criteria.filter((c) => !c.is_section_header);
+  const answeredInGroup = evaluable.filter((c) => responses.has(c.id)).length;
+  const completionPercent = evaluable.length > 0 ? (answeredInGroup / evaluable.length) * 100 : 0;
 
   return (
     <div className={`standard-group ${standard.isTransversal ? 'transversal' : 'service-specific'}`}>
@@ -383,7 +387,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
         </div>
         <div className="standard-progress">
           <span className="progress-text">
-            {answeredInGroup}/{standard.criteria.length}
+            {answeredInGroup}/{evaluable.length}
           </span>
           <div className="progress-bar-mini">
             <div

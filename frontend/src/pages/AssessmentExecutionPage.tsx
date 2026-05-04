@@ -28,6 +28,7 @@ interface Criterion {
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
   ncHint?: string;
+  is_section_header?: boolean;
 }
 
 interface Standard {
@@ -96,6 +97,7 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
       evidenceRequirement: c.evidence_requirement || '',
       complexity: c.complexity,
       ncHint: c.nc_hint || undefined,
+      is_section_header: (c as any).is_section_header === true,
     });
   }
 

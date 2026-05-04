@@ -18,6 +18,7 @@ interface Criterion {
   evidenceRequirement: string;
   complexity: 'simple' | 'medium' | 'complex';
   ncHint?: string;
+  is_section_header?: boolean;
 }
 
 interface CriterionResponse {
@@ -95,8 +96,8 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   const isDescriptionValid = localResponse.status !== 'NC' || (localResponse.description && localResponse.description.length >= 10);
   const hasError = localResponse.status === 'NC' && !isDescriptionValid;
 
-  // Criterios que terminan en ":" son encabezados de lista — no son evaluables por sí solos
-  const isHeader = criterion.name.trimEnd().endsWith(':');
+  // Título de sección: marcado explícitamente en BD o texto que termina en ":"
+  const isHeader = criterion.is_section_header === true || criterion.name.trimEnd().endsWith(':');
 
   if (isHeader) {
     return (
