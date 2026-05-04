@@ -779,6 +779,7 @@ export interface RepsVerificacion {
   reps_nivel_atencion: string;
   estado_habilitacion: string;
   fecha_habilitacion?: string;
+  fecha_vencimiento?: string;
   servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
   capacidad_instalada?: Record<string, number>;
   diferencias_encontradas: Array<{ campo: string; valor_reps: string; valor_declarado: string }>;
@@ -787,6 +788,31 @@ export interface RepsVerificacion {
   novedades?: Array<{ tipo: string; fecha: string; descripcion: string }>;
   observaciones?: string;
   created_at: string;
+}
+
+export interface ProviderVencimiento {
+  provider_id: string;
+  legal_name: string;
+  rut: string;
+  phone: string | null;
+  codigo_habilitacion: string | null;
+  fecha_vencimiento: string;
+  dias_restantes: number;
+  estado_habilitacion: string;
+}
+
+// Resultado de consulta directa a datos.gov.co (sin BD interna — prospección comercial)
+export interface RepsProspecto {
+  codigo_habilitacion: string;
+  nombre_prestador: string;
+  nit: string;
+  municipio: string;
+  departamento: string;
+  clase_prestador: string;
+  telefono_raw: string | null;
+  celular: string | null;
+  email: string | null;
+  direccion: string | null;
 }
 
 export interface RepsResumen {
@@ -813,6 +839,32 @@ export const repsApi = {
 
   getResumen: (providerId: string) =>
     get<{ data: RepsResumen }>(`/api/providers/${providerId}/reps/resumen`),
+
+  getProximosAVencer: (dias: number = 30) =>
+    get<{ data: ProviderVencimiento[]; total: number; dias_consultados: number }>(
+      `/api/reps/proximos-a-vencer?dias=${dias}`
+    ),
+
+  getMercadoPotencial: (opts: {
+    departamento?: string;
+    municipio?: string;
+    clase?: string;
+    soloConCelular?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    if (opts.departamento) params.set('departamento', opts.departamento);
+    if (opts.municipio) params.set('municipio', opts.municipio);
+    if (opts.clase) params.set('clase', opts.clase);
+    if (opts.soloConCelular) params.set('soloConCelular', 'true');
+    return get<{
+      data: RepsProspecto[];
+      total: number;
+      departamento_filtrado: string | null;
+      municipio_filtrado: string | null;
+      clase_filtrada: string | null;
+      campo_vencimiento: string | null;
+    }>(`/api/reps/mercado-potencial?${params.toString()}`);
+  },
 };
 
 // ─────────────────────────────────────────────

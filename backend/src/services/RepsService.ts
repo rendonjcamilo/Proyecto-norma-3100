@@ -29,12 +29,15 @@ export interface RepsRegistroData {
   nit: string;
   telefono?: string;
   nombre_sede?: string;
+  email?: string;
+  direccion?: string;
   municipio: string;
   departamento: string;
   tipo_prestador: string;
   nivel_atencion: string;
   estado_habilitacion: string;
   fecha_habilitacion?: string;
+  fecha_vencimiento?: string;
   servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
   capacidad_instalada?: Record<string, number>;
   sanciones?: Array<{ tipo: string; fecha: string; descripcion: string }>;
@@ -55,6 +58,7 @@ export interface RepsVerificacion {
   reps_nivel_atencion: string;
   estado_habilitacion: string;
   fecha_habilitacion?: string;
+  fecha_vencimiento?: string;
   servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
   capacidad_instalada?: Record<string, number>;
   diferencias_encontradas: Array<{ campo: string; valor_reps: string; valor_declarado: string }>;
@@ -78,6 +82,31 @@ export interface DiferenciaReps {
   campo: string;
   valor_reps: string;
   valor_declarado: string;
+}
+
+export interface ProviderProximoAVencer {
+  provider_id: string;
+  legal_name: string;
+  rut: string;
+  phone: string | null;
+  codigo_habilitacion: string | null;
+  fecha_vencimiento: string;
+  dias_restantes: number;
+  estado_habilitacion: string;
+}
+
+// Resultado de búsqueda directa en REPS (sin BD interna — prospección comercial)
+export interface RepsProspecto {
+  codigo_habilitacion: string;
+  nombre_prestador: string;
+  nit: string;
+  municipio: string;
+  departamento: string;
+  clase_prestador: string;
+  telefono_raw: string | null;
+  celular: string | null;
+  email: string | null;
+  direccion: string | null;
 }
 
 // ─────────────────────────────────────────────
@@ -252,6 +281,19 @@ export class RepsService {
     const estadoRaw = this.pick(record, 'estado', 'estado_habilitacion') || 'unknown';
     const estado = ESTADO_HABILITACION_MAP[estadoRaw.toLowerCase()] || 'sin_verificar';
 
+    // Fecha de vencimiento: múltiples nombres posibles en el dataset de datos.gov.co
+    const fechaVencimientoRaw = this.pick(
+      record,
+      'fechavigenciaresolucion',
+      'fecha_vencimiento',
+      'fecha_vigencia',
+      'vigenciaresolucion',
+      'vigencia_hasta',
+      'fechaexpiracion',
+      'fecha_expiracion',
+      'vigencia'
+    );
+
     return {
       codigo_habilitacion: this.pick(record, 'codigohabilitacionsede', 'codigoprestador') || '',
       nombre_prestador: this.pick(record, 'nombreprestador', 'nombresede') || '',
@@ -266,6 +308,7 @@ export class RepsService {
       nivel_atencion: this.pick(record, 'nivel_atencion', 'nivel') || '',
       estado_habilitacion: estado,
       fecha_habilitacion: this.pick(record, 'fecha_habilitacion', 'fecha_otorgamiento') || undefined,
+      fecha_vencimiento: fechaVencimientoRaw || undefined,
       servicios_habilitados: servicios,
       capacidad_instalada: Object.keys(capacidad).length > 0 ? capacidad : undefined,
       sanciones: sanciones.length > 0 ? sanciones : undefined,
@@ -297,8 +340,9 @@ export class RepsService {
         reps_codigo_habilitacion, reps_nombre_prestador, reps_nit,
         reps_municipio, reps_departamento, reps_tipo_prestador,
         reps_nivel_atencion, estado_habilitacion, fecha_habilitacion,
-        servicios_habilitados, capacidad_instalada, sanciones, novedades
-      ) VALUES ($1, $2, CURRENT_DATE, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        fecha_vencimiento,
+        servicios_habilitados, capacidad_instalada, sanciones, novedades_recientes
+      ) VALUES ($1, $2, CURRENT_DATE, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
       [
         providerId,
@@ -312,6 +356,7 @@ export class RepsService {
         datos.nivel_atencion,
         datos.estado_habilitacion,
         datos.fecha_habilitacion || null,
+        datos.fecha_vencimiento || null,
         JSON.stringify(datos.servicios_habilitados || []),
         datos.capacidad_instalada ? JSON.stringify(datos.capacidad_instalada) : JSON.stringify({}),
         datos.sanciones ? JSON.stringify(datos.sanciones) : JSON.stringify([]),
@@ -346,6 +391,177 @@ export class RepsService {
     );
 
     return result.rows.map((row) => this.mapRowToVerificacion(row));
+  }
+
+  // ─── PROSPECTOS REPS: Consulta directa a datos.gov.co ───
+  // No usa BD interna — retorna prestadores del REPS nacional para prospección comercial.
+  // Filtra por departamento, municipio y/o clase de prestador.
+
+  async buscarProspectosReps(opts: {
+    departamento?: string;
+    municipio?: string;
+    clasePrestador?: string;
+    soloConCelular?: boolean;
+    limit?: number;
+  }): Promise<{ data: RepsProspecto[]; total: number }> {
+    const { departamento, municipio, clasePrestador, soloConCelular, limit = 100 } = opts;
+
+    const conditions: string[] = [];
+
+    if (departamento) {
+      const dep = this.stripAccents(departamento).replace(/'/g, "''");
+      conditions.push(`${this.sodaNoAccent('departamentoprestadordesc')} = '${dep}'`);
+    }
+
+    if (municipio) {
+      const mun = this.stripAccents(municipio).replace(/'/g, "''");
+      conditions.push(`${this.sodaNoAccent('municipioprestadordesc')} = '${mun}'`);
+    }
+
+    if (clasePrestador) {
+      const clase = clasePrestador.replace(/'/g, "''");
+      conditions.push(`upper(claseprestador) = upper('${clase}')`);
+    }
+
+    if (soloConCelular) {
+      conditions.push(`(telefonoprestador LIKE '3%' OR t_lefonosede LIKE '3%')`);
+    }
+
+    const params = new URLSearchParams({
+      $select: [
+        'codigohabilitacionsede',
+        'nombreprestador',
+        'numeroidentificacion',
+        'telefonoprestador',
+        't_lefonosede',
+        'municipioprestadordesc',
+        'departamentoprestadordesc',
+        'email_prestador',
+        'email_sede',
+        'claseprestador',
+        'direccionprestador',
+      ].join(','),
+      $limit: String(Math.min(limit, 200)),
+      $order: 'municipioprestadordesc ASC, nombreprestador ASC',
+    });
+
+    if (conditions.length > 0) {
+      params.set('$where', conditions.join(' AND '));
+    }
+
+    const url = `${DATOS_GOV_REPS_ENDPOINT}?${params.toString()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/json', 'User-Agent': 'Norma3100-ComplianceSystem/1.0' },
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`REPS API error: ${response.status}`);
+      }
+
+      const results = (await response.json()) as Record<string, string>[];
+      if (!Array.isArray(results)) return { data: [], total: 0 };
+
+      const data: RepsProspecto[] = results.map((r) => {
+        const telefonoRaw = this.pick(r, 'telefonoprestador', 't_lefonosede') || null;
+        return {
+          codigo_habilitacion: this.pick(r, 'codigohabilitacionsede') || '',
+          nombre_prestador: this.pick(r, 'nombreprestador') || '',
+          nit: this.pick(r, 'numeroidentificacion') || '',
+          municipio: this.pick(r, 'municipioprestadordesc') || '',
+          departamento: this.pick(r, 'departamentoprestadordesc') || '',
+          clase_prestador: this.pick(r, 'claseprestador') || '',
+          telefono_raw: telefonoRaw,
+          celular: telefonoRaw ? this.extractMobile(telefonoRaw) : null,
+          email: this.pick(r, 'email_prestador', 'email_sede') || null,
+          direccion: this.pick(r, 'direccionprestador') || null,
+        };
+      });
+
+      logger.info({
+        msg: 'REPS prospectos consultados',
+        departamento,
+        municipio,
+        clasePrestador,
+        total: data.length,
+      });
+
+      return { data, total: data.length };
+    } catch (err) {
+      clearTimeout(timeout);
+      throw err;
+    }
+  }
+
+  // Alias mantenido para compatibilidad con la ruta existente
+  async buscarMercadoPotencial(
+    _diasHastaVencer: number = 30,
+    departamento?: string
+  ): Promise<{ data: RepsProspecto[]; campo_vencimiento_encontrado: string | null }> {
+    const resultado = await this.buscarProspectosReps({ departamento, limit: 100 });
+    return { data: resultado.data, campo_vencimiento_encontrado: null };
+  }
+
+  // Normaliza texto eliminando tildes y pasando a mayúsculas
+  private stripAccents(text: string): string {
+    return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  }
+
+  // Genera expresión SODA que normaliza tildes en un campo del dataset
+  private sodaNoAccent(field: string): string {
+    return `replace(replace(replace(replace(replace(upper(${field}),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U')`;
+  }
+
+  // Extrae el primer número móvil colombiano (10 dígitos, empieza en 3) del campo de teléfono
+  private extractMobile(raw: string): string | null {
+    const partes = raw.split(/[/\-,;|\s]+/);
+    for (const parte of partes) {
+      const digits = parte.replace(/\D/g, '');
+      if (digits.length === 10 && digits.startsWith('3')) return digits;
+      if (digits.length === 12 && digits.startsWith('573')) return digits.slice(2);
+    }
+    return null;
+  }
+
+  // ─── PRESTADORES PRÓXIMOS A VENCER (desde BD interna) ───
+
+  async getProximosAVencer(diasHastaVencer: number = 30): Promise<ProviderProximoAVencer[]> {
+    // Toma la verificación más reciente de cada prestador y filtra
+    // los que tienen fecha_vencimiento dentro del rango [hoy, hoy + N días]
+    const result = await this.pool.query(
+      `SELECT DISTINCT ON (p.id)
+        p.id            AS provider_id,
+        p.legal_name,
+        p.rut,
+        p.phone,
+        p.codigo_habilitacion,
+        rv.fecha_vencimiento,
+        rv.estado_habilitacion,
+        (rv.fecha_vencimiento - CURRENT_DATE)::int AS dias_restantes
+      FROM providers p
+      JOIN reps_verificaciones rv ON rv.provider_id = p.id
+      WHERE rv.fecha_vencimiento IS NOT NULL
+        AND rv.fecha_vencimiento >= CURRENT_DATE
+        AND rv.fecha_vencimiento <= CURRENT_DATE + ($1 || ' days')::INTERVAL
+      ORDER BY p.id, rv.fecha_consulta DESC, rv.fecha_vencimiento ASC`,
+      [diasHastaVencer]
+    );
+
+    return result.rows.map((row) => ({
+      provider_id: String(row.provider_id),
+      legal_name: String(row.legal_name),
+      rut: String(row.rut),
+      phone: row.phone ? String(row.phone) : null,
+      codigo_habilitacion: row.codigo_habilitacion ? String(row.codigo_habilitacion) : null,
+      fecha_vencimiento: String(row.fecha_vencimiento),
+      dias_restantes: Number(row.dias_restantes),
+      estado_habilitacion: String(row.estado_habilitacion),
+    }));
   }
 
   // ─── OBTENER RESUMEN ───
@@ -435,6 +651,7 @@ export class RepsService {
       reps_nivel_atencion: String(row.reps_nivel_atencion),
       estado_habilitacion: String(row.estado_habilitacion),
       fecha_habilitacion: row.fecha_habilitacion ? String(row.fecha_habilitacion) : undefined,
+      fecha_vencimiento: row.fecha_vencimiento ? String(row.fecha_vencimiento) : undefined,
       servicios_habilitados: (row.servicios_habilitados as Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>) || [],
       capacidad_instalada: row.capacidad_instalada as Record<string, number> | undefined,
       diferencias_encontradas: (row.diferencias_encontradas as Array<{ campo: string; valor_reps: string; valor_declarado: string }>) || [],

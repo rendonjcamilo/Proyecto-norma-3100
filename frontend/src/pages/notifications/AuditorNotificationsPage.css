@@ -1,0 +1,65 @@
+/* ─────────────────────────────────────────────────────────────────
+   AuditorNotificationsPage.css — Prefijo: anp-
+───────────────────────────────────────────────────────────────── */
+
+.anp-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────── */
+.anp-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.anp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  bottom: -1px;
+}
+
+.anp-tab:hover { background: #e2e8f0; color: #0f172a; }
+
+.anp-tab--active {
+  background: #fff;
+  border-color: #e2e8f0;
+  border-bottom-color: #fff;
+  color: #0f172a;
+}
+
+.anp-tab--whatsapp.anp-tab--active { color: #16a34a; }
+
+.anp-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ── Contenido ────────────────────────────────────────────────── */
+.anp-content {
+  flex: 1;
+  background: #f1f5f9;
+}

@@ -139,6 +139,90 @@ export function createRepsRouter(pool: Pool): Router {
     }
   );
 
+  // ─── MERCADO POTENCIAL: consulta directa a datos.gov.co ───
+
+  /**
+   * GET /api/reps/mercado-potencial?departamento=CUNDINAMARCA&municipio=BOGOTÁ&clase=...&soloConCelular=true
+   * Consulta datos.gov.co en tiempo real — prospectos comerciales del REPS nacional.
+   * No requiere que el prestador esté en la BD interna.
+   * Roles: auditor, super_admin
+   */
+  router.get(
+    '/reps/mercado-potencial',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const departamento = req.query.departamento ? String(req.query.departamento).trim() : undefined;
+        const municipio = req.query.municipio ? String(req.query.municipio).trim() : undefined;
+        const clasePrestador = req.query.clase ? String(req.query.clase).trim() : undefined;
+        const soloConCelular = req.query.soloConCelular === 'true';
+        const limit = Math.min(Math.max(parseInt(String(req.query.limit || '100'), 10) || 100, 1), 200);
+
+        if (!departamento && !municipio) {
+          return res.status(400).json({ error: 'Selecciona al menos departamento o municipio para buscar' });
+        }
+
+        const resultado = await repsService.buscarProspectosReps({
+          departamento,
+          municipio,
+          clasePrestador,
+          soloConCelular,
+          limit,
+        });
+
+        logger.info({
+          msg: 'REPS prospectos consultados',
+          departamento,
+          municipio,
+          clasePrestador,
+          soloConCelular,
+          total: resultado.total,
+        });
+
+        res.json({
+          data: resultado.data,
+          total: resultado.total,
+          departamento_filtrado: departamento || null,
+          municipio_filtrado: municipio || null,
+          clase_filtrada: clasePrestador || null,
+          campo_vencimiento: null,
+        });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error consultando prospectos REPS', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
+  // ─── ALERTA DE VENCIMIENTO desde BD interna ───
+
+  /**
+   * GET /api/reps/proximos-a-vencer?dias=30
+   * Prestadores en BD interna con fecha_vencimiento REPS dentro de los próximos N días
+   * Roles: auditor, super_admin
+   */
+  router.get(
+    '/reps/proximos-a-vencer',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const dias = Math.min(Math.max(parseInt(String(req.query.dias || '30'), 10) || 30, 1), 365);
+        const proximos = await repsService.getProximosAVencer(dias);
+
+        logger.info({ msg: 'REPS proximos a vencer (BD) consultados', dias, total: proximos.length });
+
+        res.json({ data: proximos, total: proximos.length, dias_consultados: dias });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error obteniendo proximos a vencer', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
   // ─── RESUMEN ───
 
   /**
