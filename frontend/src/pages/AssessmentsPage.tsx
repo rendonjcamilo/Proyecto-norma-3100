@@ -521,7 +521,11 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
               }
 
               if (!formData.serviceId) {
-                setModalError('Por favor selecciona un servicio de salud');
+                if (servicesFiltered && services.length === 0) {
+                  setModalError('Este prestador no tiene servicios asignados. Asígnalos antes de crear una evaluación.');
+                } else {
+                  setModalError('Por favor selecciona un servicio de salud');
+                }
                 return;
               }
 

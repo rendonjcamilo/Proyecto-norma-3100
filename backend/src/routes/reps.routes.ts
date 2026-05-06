@@ -158,6 +158,9 @@ export function createRepsRouter(pool: Pool): Router {
         const clasePrestador = req.query.clase ? String(req.query.clase).trim() : undefined;
         const soloConCelular = req.query.soloConCelular === 'true';
         const limit = Math.min(Math.max(parseInt(String(req.query.limit || '100'), 10) || 100, 1), 200);
+        const diasHastaVencer = req.query.diasHastaVencer
+          ? Math.min(Math.max(parseInt(String(req.query.diasHastaVencer), 10) || 0, 0), 365)
+          : undefined;
 
         if (!departamento && !municipio) {
           return res.status(400).json({ error: 'Selecciona al menos departamento o municipio para buscar' });
@@ -168,6 +171,7 @@ export function createRepsRouter(pool: Pool): Router {
           municipio,
           clasePrestador,
           soloConCelular,
+          diasHastaVencer,
           limit,
         });
 

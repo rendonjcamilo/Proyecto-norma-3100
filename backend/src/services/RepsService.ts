@@ -107,6 +107,8 @@ export interface RepsProspecto {
   celular: string | null;
   email: string | null;
   direccion: string | null;
+  fecha_vencimiento: string | null;
+  dias_hasta_vencer: number | null;
 }
 
 // ─────────────────────────────────────────────
@@ -402,9 +404,10 @@ export class RepsService {
     municipio?: string;
     clasePrestador?: string;
     soloConCelular?: boolean;
+    diasHastaVencer?: number;
     limit?: number;
   }): Promise<{ data: RepsProspecto[]; total: number }> {
-    const { departamento, municipio, clasePrestador, soloConCelular, limit = 100 } = opts;
+    const { departamento, municipio, clasePrestador, soloConCelular, diasHastaVencer, limit = 100 } = opts;
 
     const conditions: string[] = [];
 
@@ -428,19 +431,6 @@ export class RepsService {
     }
 
     const params = new URLSearchParams({
-      $select: [
-        'codigohabilitacionsede',
-        'nombreprestador',
-        'numeroidentificacion',
-        'telefonoprestador',
-        't_lefonosede',
-        'municipioprestadordesc',
-        'departamentoprestadordesc',
-        'email_prestador',
-        'email_sede',
-        'claseprestador',
-        'direccionprestador',
-      ].join(','),
       $limit: String(Math.min(limit, 200)),
       $order: 'municipioprestadordesc ASC, nombreprestador ASC',
     });
@@ -467,7 +457,9 @@ export class RepsService {
       const results = (await response.json()) as Record<string, string>[];
       if (!Array.isArray(results)) return { data: [], total: 0 };
 
-      const data: RepsProspecto[] = results.map((r) => {
+      // Nota: el dataset c36g-9fc2 de datos.gov.co NO incluye fecha de vencimiento
+      // de habilitación. El campo fecha_vencimiento siempre vendrá null desde esta fuente.
+      const data: RepsProspecto[] = results.slice(0, limit).map((r) => {
         const telefonoRaw = this.pick(r, 'telefonoprestador', 't_lefonosede') || null;
         return {
           codigo_habilitacion: this.pick(r, 'codigohabilitacionsede') || '',
@@ -480,6 +472,8 @@ export class RepsService {
           celular: telefonoRaw ? this.extractMobile(telefonoRaw) : null,
           email: this.pick(r, 'email_prestador', 'email_sede') || null,
           direccion: this.pick(r, 'direccionprestador') || null,
+          fecha_vencimiento: null,
+          dias_hasta_vencer: null,
         };
       });
 
@@ -488,6 +482,7 @@ export class RepsService {
         departamento,
         municipio,
         clasePrestador,
+        diasHastaVencer,
         total: data.length,
       });
 

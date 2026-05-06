@@ -28,7 +28,7 @@ const PLANTILLA_DEFAULT = `Estimado(a) {{nombre_prestador}},
 
 Mi nombre es [Tu nombre] y me especializo en auditoría de habilitación bajo la Resolución 3100 de 2019.
 
-He revisado su registro en el REPS nacional y me gustaría ofrecerle nuestros servicios:
+He revisado su registro en el REPS y su habilitación vence el {{fecha_vencimiento}} (en {{dias_hasta_vencer}} días). Me gustaría ofrecerle nuestros servicios antes de ese plazo:
 
 ✅ Autoevaluación de los 512 criterios de la Norma 3100
 ✅ Preparación ante visitas de entes de control
@@ -53,11 +53,22 @@ function chipParaClase(clase: string): ClaseChip {
   return { label: clase.slice(0, 10) + (clase.length > 10 ? '…' : ''), color: 'gris' };
 }
 
+function formatFechaVenc(fecha: string | null): string {
+  if (!fecha) return 'N/D';
+  try {
+    return new Date(fecha).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+  } catch {
+    return fecha;
+  }
+}
+
 function buildMensaje(plantilla: string, p: RepsProspecto): string {
   return plantilla
     .replace(/{{nombre_prestador}}/g, p.nombre_prestador)
     .replace(/{{codigo_habilitacion}}/g, p.codigo_habilitacion || 'N/D')
-    .replace(/{{municipio}}/g, p.municipio);
+    .replace(/{{municipio}}/g, p.municipio)
+    .replace(/{{fecha_vencimiento}}/g, formatFechaVenc(p.fecha_vencimiento))
+    .replace(/{{dias_hasta_vencer}}/g, p.dias_hasta_vencer !== null ? String(p.dias_hasta_vencer) : 'N/D');
 }
 
 function toWaPhone(celular: string): string {
@@ -77,6 +88,8 @@ export const WhatsAppPanel: React.FC = () => {
   const [municipio, setMunicipio] = useState('');
   const [clase, setClase] = useState('');
   const [soloConCelular, setSoloConCelular] = useState(false);
+  const [filtrarPorVencimiento, setFiltrarPorVencimiento] = useState(true);
+  const [diasHastaVencer, setDiasHastaVencer] = useState(30);
 
   const [selected, setSelected] = useState<RepsProspecto | null>(null);
   const [plantilla, setPlantilla] = useState(PLANTILLA_DEFAULT);
@@ -95,6 +108,7 @@ export const WhatsAppPanel: React.FC = () => {
         municipio: municipio.trim().toUpperCase() || undefined,
         clase: clase || undefined,
         soloConCelular,
+        diasHastaVencer: filtrarPorVencimiento ? diasHastaVencer : undefined,
       });
       setProspectos(res.data || []);
       setTotalEncontrados(res.total ?? res.data.length);
@@ -104,7 +118,7 @@ export const WhatsAppPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [departamento, municipio, clase, soloConCelular, canSearch]);
+  }, [departamento, municipio, clase, soloConCelular, filtrarPorVencimiento, diasHastaVencer, canSearch]);
 
   const handleSelect = (p: RepsProspecto) => {
     setSelected(p);
@@ -180,6 +194,24 @@ export const WhatsAppPanel: React.FC = () => {
           </label>
         </div>
 
+        <div className="wap-filter-vencimiento">
+          <div className="wap-venc-info">
+            <span className="wap-venc-info-icon">ℹ️</span>
+            <span>
+              Para filtrar por fecha de vencimiento, consulta el{' '}
+              <a
+                href="https://prestadores.minsalud.gov.co/habilitacion/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="wap-venc-link"
+              >
+                portal oficial REPS
+              </a>
+              {' '}(datos.gov.co no publica ese campo)
+            </span>
+          </div>
+        </div>
+
         <button
           className="wap-search-btn"
           onClick={cargar}
@@ -252,7 +284,17 @@ export const WhatsAppPanel: React.FC = () => {
                   >
                     <div className="wap-item-top">
                       <span className="wap-item-name">{p.nombre_prestador}</span>
-                      <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
+                      <div className="wap-item-top-badges">
+                        {p.dias_hasta_vencer !== null && (
+                          <span className={`wap-venc-badge ${
+                            p.dias_hasta_vencer <= 15 ? 'wap-venc-badge--rojo' :
+                            p.dias_hasta_vencer <= 30 ? 'wap-venc-badge--naranja' : 'wap-venc-badge--amarillo'
+                          }`}>
+                            ⏰ {p.dias_hasta_vencer}d
+                          </span>
+                        )}
+                        <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
+                      </div>
                     </div>
                     <div className="wap-item-meta">
                       <span>NIT {p.nit}</span>
@@ -301,6 +343,15 @@ export const WhatsAppPanel: React.FC = () => {
                   {selected.direccion && (
                     <div className="wap-composer-dir">{selected.direccion}</div>
                   )}
+                  {selected.fecha_vencimiento && (
+                    <div className={`wap-composer-venc ${
+                      (selected.dias_hasta_vencer ?? 999) <= 15 ? 'wap-composer-venc--rojo' :
+                      (selected.dias_hasta_vencer ?? 999) <= 30 ? 'wap-composer-venc--naranja' : 'wap-composer-venc--amarillo'
+                    }`}>
+                      ⏰ Habilitación vence: <strong>{formatFechaVenc(selected.fecha_vencimiento)}</strong>
+                      {selected.dias_hasta_vencer !== null && ` — en ${selected.dias_hasta_vencer} días`}
+                    </div>
+                  )}
                 </div>
                 {(() => { const chip = chipParaClase(selected.clase_prestador); return (
                   <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
@@ -348,7 +399,7 @@ export const WhatsAppPanel: React.FC = () => {
                   rows={11}
                 />
                 <small className="wap-hint">
-                  Variables disponibles: <code>{'{{nombre_prestador}}'}</code> <code>{'{{codigo_habilitacion}}'}</code> <code>{'{{municipio}}'}</code>
+                  Variables: <code>{'{{nombre_prestador}}'}</code> <code>{'{{codigo_habilitacion}}'}</code> <code>{'{{municipio}}'}</code> <code>{'{{fecha_vencimiento}}'}</code> <code>{'{{dias_hasta_vencer}}'}</code>
                 </small>
               </div>
 

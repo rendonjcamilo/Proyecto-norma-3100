@@ -816,6 +816,8 @@ export interface RepsProspecto {
   celular: string | null;
   email: string | null;
   direccion: string | null;
+  fecha_vencimiento: string | null;
+  dias_hasta_vencer: number | null;
 }
 
 export interface RepsResumen {
@@ -853,12 +855,14 @@ export const repsApi = {
     municipio?: string;
     clase?: string;
     soloConCelular?: boolean;
+    diasHastaVencer?: number;
   }) => {
     const params = new URLSearchParams();
     if (opts.departamento) params.set('departamento', opts.departamento);
     if (opts.municipio) params.set('municipio', opts.municipio);
     if (opts.clase) params.set('clase', opts.clase);
     if (opts.soloConCelular) params.set('soloConCelular', 'true');
+    if (opts.diasHastaVencer) params.set('diasHastaVencer', String(opts.diasHastaVencer));
     return get<{
       data: RepsProspecto[];
       total: number;
