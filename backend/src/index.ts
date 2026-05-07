@@ -117,13 +117,45 @@ app.get('/api/docs.json', (_req: Request, res: Response) => {
 // Interactive Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
 
-// Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'healthy',
+// Health check endpoint — liveness + readiness (DB + Redis)
+app.get('/health', async (_req: Request, res: Response) => {
+  const checks: Record<string, { status: string; latencyMs?: number; error?: string }> = {};
+
+  // Verificación de BD: query ligera con timeout implícito del pool
+  const dbStart = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    checks.database = { status: 'healthy', latencyMs: Date.now() - dbStart };
+  } catch (err) {
+    checks.database = { status: 'unhealthy', error: (err as Error).message };
+  }
+
+  // Verificación de Redis (si REDIS_URL está configurada)
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    const redisStart = Date.now();
+    try {
+      const { createClient } = await import('redis');
+      const client = createClient({ url: redisUrl });
+      await client.connect();
+      await client.ping();
+      await client.disconnect();
+      checks.redis = { status: 'healthy', latencyMs: Date.now() - redisStart };
+    } catch (err) {
+      checks.redis = { status: 'unhealthy', error: (err as Error).message };
+    }
+  }
+
+  const allHealthy = Object.values(checks).every(c => c.status === 'healthy');
+  const httpStatus = allHealthy ? 200 : 503;
+
+  res.status(httpStatus).json({
+    status: allHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
+    uptime: Math.floor(process.uptime()),
+    version: process.env.npm_package_version || '1.0.0',
     environment: NODE_ENV,
+    checks,
   });
 });
 
