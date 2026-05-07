@@ -820,6 +820,15 @@ export interface RepsProspecto {
   dias_hasta_vencer: number | null;
 }
 
+// Resultado de enriquecimiento de fecha de vencimiento (scraping MINSALUD + caché)
+export interface RepsEnrichResult {
+  nit: string;
+  fecha_vencimiento: string | null;
+  fuente: 'minsalud_scrape' | 'manual' | 'cache';
+  ok: boolean;
+  error?: string;
+}
+
 export interface RepsResumen {
   estado_habilitacion: string;
   ultima_verificacion: string | null;
@@ -872,6 +881,20 @@ export const repsApi = {
       campo_vencimiento: string | null;
     }>(`/api/reps/mercado-potencial?${params.toString()}`);
   },
+
+  /** Enriquece hasta 20 NITs con fecha_vencimiento vía scraping del portal MINSALUD */
+  enrichLote: (nits: string[]) =>
+    post<{ data: RepsEnrichResult[]; total: number; exitosos: number }>(
+      '/api/reps/enriquecer-lote',
+      { nits }
+    ),
+
+  /** Ingreso manual de fecha_vencimiento para un NIT cuando el scraping falla */
+  setManual: (nit: string, fecha_vencimiento: string, nombre_prestador?: string) =>
+    post<{ ok: boolean; nit: string; fecha_vencimiento: string }>(
+      '/api/reps/enriquecer-manual',
+      { nit, fecha_vencimiento, nombre_prestador }
+    ),
 };
 
 // ─────────────────────────────────────────────

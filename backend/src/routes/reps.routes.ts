@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { RepsService } from '../services/RepsService.js';
+import { RepsEnrichmentService } from '../services/RepsEnrichmentService.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { logger } from '../utils/logger.js';
@@ -13,6 +14,7 @@ import { logger } from '../utils/logger.js';
 export function createRepsRouter(pool: Pool): Router {
   const router = Router();
   const repsService = new RepsService(pool);
+  const enrichmentService = new RepsEnrichmentService(pool);
 
   // ─── CONSULTA: Buscar en datos.gov.co SODA API ───
 
@@ -126,7 +128,7 @@ export function createRepsRouter(pool: Pool): Router {
 
         const verificacion = await repsService.registrarVerificacion(
           providerId,
-          userId,
+          userId ?? '',
           datosReps as Parameters<typeof repsService.registrarVerificacion>[2]
         );
 
@@ -175,6 +177,24 @@ export function createRepsRouter(pool: Pool): Router {
           limit,
         });
 
+        // Merge automático con caché de fechas de vencimiento
+        if (resultado.data.length > 0) {
+          const nits = resultado.data.map((p) => p.nit).filter(Boolean);
+          const enrichedMap = await enrichmentService.getBatchCached(nits);
+
+          const today = Date.now();
+          resultado.data = resultado.data.map((p) => {
+            const cached = enrichedMap.get(p.nit);
+            if (cached?.fecha_vencimiento) {
+              const dias = Math.floor(
+                (new Date(cached.fecha_vencimiento).getTime() - today) / 86_400_000
+              );
+              return { ...p, fecha_vencimiento: cached.fecha_vencimiento, dias_hasta_vencer: dias };
+            }
+            return p;
+          });
+        }
+
         logger.info({
           msg: 'REPS prospectos consultados',
           departamento,
@@ -190,7 +210,7 @@ export function createRepsRouter(pool: Pool): Router {
           departamento_filtrado: departamento || null,
           municipio_filtrado: municipio || null,
           clase_filtrada: clasePrestador || null,
-          campo_vencimiento: null,
+          campo_vencimiento: 'reps_enriched_cache',
         });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -248,6 +268,95 @@ export function createRepsRouter(pool: Pool): Router {
         const msg = error instanceof Error ? error.message : String(error);
         logger.error({ msg: 'Error getting REPS resumen', error: msg });
         res.status(500).json({ error: msg });
+      }
+    }
+  );
+
+  // ─── ENRIQUECIMIENTO: Scraping MINSALUD por lote de NITs ───
+
+  /**
+   * POST /api/reps/enriquecer-lote
+   * Obtiene fecha_vencimiento para un lote de NITs vía scraping del portal MINSALUD.
+   * Máximo 20 NITs por llamada. Resultados se cachean 30 días en reps_enriched.
+   * Roles: auditor, super_admin
+   */
+  router.post(
+    '/reps/enriquecer-lote',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { nits } = req.body as { nits?: unknown };
+
+        if (!Array.isArray(nits) || nits.length === 0) {
+          return res.status(400).json({ error: 'Se requiere un array "nits" no vacío' });
+        }
+
+        const cleanNits = (nits as unknown[])
+          .filter((n) => typeof n === 'string')
+          .map((n) => String(n).trim())
+          .filter(Boolean)
+          .slice(0, 20);
+
+        if (cleanNits.length === 0) {
+          return res.status(400).json({ error: 'NITs inválidos' });
+        }
+
+        logger.info({ msg: 'REPS enriquecer-lote iniciado', total: cleanNits.length });
+
+        const results = await enrichmentService.enrichLote(cleanNits);
+
+        const exitosos = results.filter((r) => r.ok && r.fecha_vencimiento).length;
+        logger.info({
+          msg: 'REPS enriquecer-lote completado',
+          total: results.length,
+          exitosos,
+          fallidos: results.length - exitosos,
+        });
+
+        res.json({ data: results, total: results.length, exitosos });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error en enriquecer-lote REPS', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
+  /**
+   * POST /api/reps/enriquecer-manual
+   * Ingreso manual de fecha_vencimiento para un NIT específico.
+   * Útil cuando el scraping automático falla — el auditor consulta el portal manualmente.
+   * Roles: auditor, super_admin
+   */
+  router.post(
+    '/reps/enriquecer-manual',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { nit, fecha_vencimiento, nombre_prestador } = req.body as {
+          nit?: string;
+          fecha_vencimiento?: string;
+          nombre_prestador?: string;
+        };
+
+        if (!nit || typeof nit !== 'string' || !nit.trim()) {
+          return res.status(400).json({ error: 'NIT es requerido' });
+        }
+
+        if (!fecha_vencimiento || typeof fecha_vencimiento !== 'string') {
+          return res.status(400).json({ error: 'fecha_vencimiento es requerida (formato YYYY-MM-DD)' });
+        }
+
+        await enrichmentService.setManual(nit.trim(), fecha_vencimiento, nombre_prestador);
+
+        logger.info({ msg: 'REPS fecha manual ingresada', nit, fecha_vencimiento });
+        res.json({ ok: true, nit: nit.trim(), fecha_vencimiento });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error en enriquecer-manual REPS', error: msg });
+        res.status(400).json({ error: msg });
       }
     }
   );
