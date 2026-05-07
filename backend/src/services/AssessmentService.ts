@@ -682,6 +682,7 @@ export class AssessmentService {
         a.status, a.assigned_date, a.created_by,
         a.submitted_at, a.compliance_pct, a.semaforo_color,
         a.hallazgos_generated, a.created_at, a.updated_at,
+        a.title,
         p.legal_name AS provider_name
       FROM assessments a
       LEFT JOIN questionnaires q ON a.questionnaire_id = q.id

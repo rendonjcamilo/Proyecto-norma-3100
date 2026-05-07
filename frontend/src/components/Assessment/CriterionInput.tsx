@@ -104,7 +104,6 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
       <div className={`criterion-input criterion-section-header${subLevel > 0 ? ` sub-level-${subLevel}` : ''}`}>
         <div className="criterion-header">
           <div className="criterion-details">
-            <span className="criterion-code-badge">{criterion.code}</span>
             <h5 className="criterion-name">{criterion.name}</h5>
             {criterion.description && criterion.description !== criterion.name && (
               <p className="criterion-description">{criterion.description}</p>
@@ -122,7 +121,6 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     <div className={`criterion-input${subLevel > 0 ? ` sub-level-${subLevel}` : ''} ${hasError ? 'error' : ''} ${readOnly ? 'read-only' : ''}`}>
       <div className="criterion-header">
         <div className="criterion-details">
-          <span className="criterion-code-badge">{criterion.code}</span>
           <h5 className="criterion-name">{criterion.name}</h5>
           {criterion.description && criterion.description !== criterion.name && (
             <p className="criterion-description">{criterion.description}</p>

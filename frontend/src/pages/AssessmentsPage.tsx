@@ -62,6 +62,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     providerId: providerId || ''
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [loadingProviderServices, setLoadingProviderServices] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedAssessments, setSelectedAssessments] = useState<Set<string>>(new Set());
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -94,19 +95,30 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             try {
               const auditResponse = await providersApi.getAuditorProviders(user.id);
               if (auditResponse.providers && auditResponse.providers.length > 0) {
-                // Guardar providers asignados para mostrar sus nombres
+                // Guardar providers asignados para el dropdown del modal
                 setAuditorsProviders(auditResponse.providers);
-                // Cargar evaluaciones de cada provider asignado
-                const allAssessments: Assessment[] = [];
-                for (const provider of auditResponse.providers) {
+
+                if (providerId) {
+                  // Prestador específico seleccionado en el top bar — solo ese
                   try {
-                    const assessRes = await assessmentsApi.listByProvider(provider.id);
-                    allAssessments.push(...((assessRes.data || []) as Assessment[]));
+                    const assessRes = await assessmentsApi.listByProvider(providerId);
+                    loadedAssessments = (assessRes.data || []) as Assessment[];
                   } catch (err) {
-                    console.warn(`No se pudieron cargar evaluaciones para provider ${provider.id}:`, err);
+                    console.warn(`No se pudieron cargar evaluaciones para provider ${providerId}:`, err);
                   }
+                } else {
+                  // Sin prestador seleccionado — cargar todos los asignados
+                  const allAssessments: Assessment[] = [];
+                  for (const provider of auditResponse.providers) {
+                    try {
+                      const assessRes = await assessmentsApi.listByProvider(provider.id);
+                      allAssessments.push(...((assessRes.data || []) as Assessment[]));
+                    } catch (err) {
+                      console.warn(`No se pudieron cargar evaluaciones para provider ${provider.id}:`, err);
+                    }
+                  }
+                  loadedAssessments = allAssessments;
                 }
-                loadedAssessments = allAssessments;
               }
             } catch (err) {
               console.warn('No se pudieron cargar providers del auditor:', err);
@@ -137,7 +149,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           let loadedServices: HealthService[] = [];
           if (providerId && user?.role !== 'auditor') {
             const provSvcRes = await providerServicesApi.getForProvider(providerId);
-            loadedServices = provSvcRes.data?.data || [];
+            loadedServices = provSvcRes.data || [];
           }
           if (loadedServices.length > 0) {
             setServicesFiltered(true);
@@ -167,6 +179,39 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     };
     load();
   }, [providerId, user?.id, user?.role, location.key]);
+
+  const handleProviderChange = async (newProviderId: string) => {
+    setFormData((prev) => ({ ...prev, providerId: newProviderId, serviceId: '' }));
+    if (!newProviderId) {
+      setServices([]);
+      setServicesFiltered(false);
+      return;
+    }
+    setLoadingProviderServices(true);
+    try {
+      const provSvcRes = await providerServicesApi.getForProvider(newProviderId);
+      const provServices = provSvcRes.data || [];
+      if (provServices.length > 0) {
+        setServices(provServices);
+        setServicesFiltered(true);
+        if (provServices.length === 1) {
+          setFormData((prev) => ({ ...prev, providerId: newProviderId, serviceId: provServices[0].id }));
+        }
+      } else {
+        setServicesFiltered(false);
+        const svcData = await servicesApi.getAll();
+        setServices(svcData.data || []);
+      }
+    } catch {
+      setServicesFiltered(false);
+      try {
+        const svcData = await servicesApi.getAll();
+        setServices(svcData.data || []);
+      } catch { /* sin servicios */ }
+    } finally {
+      setLoadingProviderServices(false);
+    }
+  };
 
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
@@ -254,7 +299,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </button>
           )}
           {can('assessments', 'create') && (
-            <button className="aud-hero-btn" onClick={() => { setShowCreateModal(true); }}>
+            <button className="aud-hero-btn" onClick={() => {
+              setFormData((prev) => ({ ...prev, providerId: providerId || prev.providerId, serviceId: '' }));
+              setShowCreateModal(true);
+            }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -354,7 +402,12 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         </div>
 
                         {/* Title */}
-                        <div className="prov-card-name assm-title">{a.title || getServiceName(a.service_id)}</div>
+                        <div className="prov-card-name assm-title">{getServiceName(a.service_id)}</div>
+                        {a.title && (
+                          <div style={{ fontSize: '12px', color: '#6b778c', marginTop: '-4px', marginBottom: '4px', fontStyle: 'italic' }}>
+                            {a.title}
+                          </div>
+                        )}
 
                         {/* Compliance bar */}
                         <div className="assm-compliance">
@@ -624,7 +677,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   </label>
                   <select
                     value={formData.providerId}
-                    onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
+                    onChange={(e) => handleProviderChange(e.target.value)}
                     required
                     style={{
                       width: '100%',
@@ -647,38 +700,45 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                   Servicio de Salud <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <select
-                  value={formData.serviceId}
-                  onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    border: formData.serviceId ? '1px solid #ddd' : '2px solid #ef4444',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    backgroundColor: formData.serviceId ? 'white' : '#fee2e2',
-                  }}
-                >
-                  <option value="">-- Selecciona un servicio de salud --</option>
-                  {[...new Set(services.map((s) => s.category))].sort().map((category) => {
-                    const categoryServices = services.filter((s) => s.category === category);
-                    return (
-                      <optgroup key={category} label={`${category} (${categoryServices.length})`}>
-                        {categoryServices.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
-                {servicesFiltered && (
+                {loadingProviderServices ? (
+                  <div style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', color: '#6b778c', background: '#f4f5f7' }}>
+                    Cargando servicios del prestador...
+                  </div>
+                ) : (
+                  <select
+                    value={formData.serviceId}
+                    onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
+                    required
+                    disabled={user?.role === 'auditor' && !formData.providerId}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: formData.serviceId ? '1px solid #ddd' : '2px solid #ef4444',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      backgroundColor: formData.serviceId ? 'white' : '#fee2e2',
+                    }}
+                  >
+                    <option value="">-- Selecciona un servicio de salud --</option>
+                    {[...new Set(services.map((s) => s.category))].sort().map((category) => {
+                      const categoryServices = services.filter((s) => s.category === category);
+                      return (
+                        <optgroup key={category} label={`${category} (${categoryServices.length})`}>
+                          {categoryServices.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                )}
+                {servicesFiltered && !loadingProviderServices && (
                   <small style={{ color: '#6366f1', display: 'block', marginTop: '4px' }}>
-                    {services.length} servicio{services.length !== 1 ? 's' : ''} habilitado{services.length !== 1 ? 's' : ''} para este prestador
+                    ✓ {services.length} servicio{services.length !== 1 ? 's' : ''} habilitado{services.length !== 1 ? 's' : ''} para este prestador
                   </small>
                 )}
-                {!formData.serviceId && (
+                {!formData.serviceId && !loadingProviderServices && (
                   <small style={{ color: '#ef4444', display: 'block', marginTop: '4px' }}>
                     Debes seleccionar un servicio para continuar
                   </small>

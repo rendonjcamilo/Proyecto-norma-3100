@@ -1044,6 +1044,23 @@ export class ReportService {
               ],
             })
           ),
+          // Fila de TOTALES — % calculado según Res. 3100: C / (C + NC), NA no pondera
+          (() => {
+            const totalC = data.estandares.reduce((s, e) => s + e.cumple, 0);
+            const totalNC = data.estandares.reduce((s, e) => s + e.noCumple, 0);
+            const pct = data.resumenCondiciones.condicion3PorcentajeCapacidadTecnologica;
+            const semaforoColor = pct >= 80 ? '007000' : pct >= 50 ? 'E06000' : 'CC0000';
+            const semaforoLabel = pct >= 80 ? 'VERDE' : pct >= 50 ? 'NARANJA' : 'ROJO';
+            return new TableRow({
+              children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TOTAL GENERAL', font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalNC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${pct}%`, font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: semaforoLabel, font: 'Arial', size: 24, bold: true, color: semaforoColor })] })] }),
+              ],
+            });
+          })(),
         ],
       }),
 

@@ -69,16 +69,6 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(400).json({ error: 'Missing required provider fields' });
         }
 
-        // Validate required admin fields
-        if (!admin_email || !admin_password || !admin_first_name || !admin_last_name) {
-          return res.status(400).json({ error: 'Admin data (email, password, first_name, last_name) is required' });
-        }
-
-        // Validate email format
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin_email)) {
-          return res.status(400).json({ error: 'Invalid admin email format' });
-        }
-
         // Check for duplicate RUT
         const existing = await providerModel.getProviderByRUT(rut);
         if (existing) {
@@ -90,21 +80,30 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(400).json({ error: 'Invalid RUT format' });
         }
 
-        // Validate password policy
-        const passwordValidation = validatePasswordPolicy(admin_password);
-        if (!passwordValidation.valid) {
-          return res.status(400).json({
-            error: `Invalid password: ${passwordValidation.errors.join('; ')}`,
-          });
-        }
+        // Validate admin fields only if provided
+        if (admin_email) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin_email)) {
+            return res.status(400).json({ error: 'Invalid admin email format' });
+          }
 
-        // Check if admin email already exists
-        const existingUser = await pool.query(
-          'SELECT id FROM users WHERE email = $1',
-          [admin_email.toLowerCase()]
-        );
-        if (existingUser.rows.length > 0) {
-          return res.status(409).json({ error: 'Email already registered' });
+          if (!admin_password || !admin_first_name || !admin_last_name) {
+            return res.status(400).json({ error: 'Admin password, first_name, and last_name are required when email is provided' });
+          }
+
+          const passwordValidation = validatePasswordPolicy(admin_password);
+          if (!passwordValidation.valid) {
+            return res.status(400).json({
+              error: `Invalid password: ${passwordValidation.errors.join('; ')}`,
+            });
+          }
+
+          const existingUser = await pool.query(
+            'SELECT id FROM users WHERE email = $1',
+            [admin_email.toLowerCase()]
+          );
+          if (existingUser.rows.length > 0) {
+            return res.status(409).json({ error: 'Email already registered' });
+          }
         }
 
         const user = req.user;
@@ -131,39 +130,41 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
           });
 
-          // 2. Create admin user for the provider
-          const adminUserId = uuidv4();
-          const passwordHash = await hashPassword(admin_password);
-          const now = new Date();
+          // 2. Create admin user for the provider (optional)
+          let adminUserId: string | null = null;
+          if (admin_email) {
+            adminUserId = uuidv4();
+            const passwordHash = await hashPassword(admin_password);
+            const now = new Date();
 
-          // Get role_id for PROVIDER_ADMIN
-          const roleResult = await client.query(
-            'SELECT id FROM roles WHERE name = $1',
-            ['PROVIDER_ADMIN']
-          );
-          if (roleResult.rows.length === 0) {
-            throw new Error('PROVIDER_ADMIN role not found in database');
+            const roleResult = await client.query(
+              'SELECT id FROM roles WHERE name = $1',
+              ['PROVIDER_ADMIN']
+            );
+            if (roleResult.rows.length === 0) {
+              throw new Error('PROVIDER_ADMIN role not found in database');
+            }
+            const roleId = roleResult.rows[0].id;
+
+            await client.query(
+              `INSERT INTO users (
+                id, email, password_hash, role_id, provider_id, first_name, last_name,
+                status, created_at, updated_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+              [
+                adminUserId,
+                admin_email.toLowerCase(),
+                passwordHash,
+                roleId,
+                provider.id,
+                admin_first_name,
+                admin_last_name,
+                'active',
+                now,
+                now,
+              ]
+            );
           }
-          const roleId = roleResult.rows[0].id;
-
-          await client.query(
-            `INSERT INTO users (
-              id, email, password_hash, role_id, provider_id, first_name, last_name,
-              status, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-            [
-              adminUserId,
-              admin_email.toLowerCase(),
-              passwordHash,
-              roleId,
-              provider.id,
-              admin_first_name,
-              admin_last_name,
-              'active',
-              now,
-              now,
-            ]
-          );
 
           // 3. Auto-assign auditor to the provider they just created
           await client.query(
@@ -198,27 +199,27 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           });
 
           logger.info({
-            msg: 'Provider created with admin user',
+            msg: 'Provider created',
             provider_id: provider.id,
             rut: provider.rut,
             admin_id: adminUserId,
-            admin_email,
+            admin_email: admin_email || null,
             userId: user?.user_id,
             role: user?.role,
           });
 
-          res.status(201).json({
-            data: {
-              provider,
-              admin: {
-                id: adminUserId,
-                email: admin_email,
-                first_name: admin_first_name,
-                last_name: admin_last_name,
-                role: 'provider_admin',
-              },
-            },
-          });
+          const responseData: Record<string, unknown> = { provider };
+          if (adminUserId && admin_email) {
+            responseData.admin = {
+              id: adminUserId,
+              email: admin_email,
+              first_name: admin_first_name,
+              last_name: admin_last_name,
+              role: 'provider_admin',
+            };
+          }
+
+          res.status(201).json({ data: responseData });
         } catch (transactionErr) {
           await client.query('ROLLBACK');
           throw transactionErr;

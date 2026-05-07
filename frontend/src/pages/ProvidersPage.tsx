@@ -53,19 +53,6 @@ const STATUS_COLORS: Record<string, string> = {
   suspended: '#de350b',
 };
 
-/**
- * Helper para validar fortaleza de contraseña
- */
-const checkPasswordStrength = (password: string) => {
-  const checks = {
-    hasMinLength: password.length >= 12,
-    hasUppercase: /[A-Z]/.test(password),
-    hasLowercase: /[a-z]/.test(password),
-    hasSpecial: /[!@#$%^&*()_\-+=\[\]{};:'",.<>?/\\|`~]/.test(password),
-  };
-  const passedCount = Object.values(checks).filter(Boolean).length;
-  return { checks, strength: passedCount };
-};
 
 interface FormData {
   rut: string;
@@ -79,10 +66,6 @@ interface FormData {
   codigo_habilitacion: string;
   tipo_prestador: string;
   auditor_id: string;
-  admin_first_name: string;
-  admin_last_name: string;
-  admin_email: string;
-  admin_password: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -97,10 +80,6 @@ const INITIAL_FORM: FormData = {
   codigo_habilitacion: '',
   tipo_prestador: '',
   auditor_id: '',
-  admin_first_name: '',
-  admin_last_name: '',
-  admin_email: '',
-  admin_password: '',
 };
 
 interface Department {
@@ -163,12 +142,13 @@ export const ProvidersPage: React.FC = () => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [repsSearchCode, setRepsSearchCode] = useState('');
   const [repsSearching, setRepsSearching] = useState(false);
-  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string } | null>(null);
+  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; servicios_count: number; servicios_matched: number } | null>(null);
   const [repsError, setRepsError] = useState<string | null>(null);
   const [allServices, setAllServices] = useState<HealthService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [servicesSearch, setServicesSearch] = useState('');
   const [loadingServices, setLoadingServices] = useState(false);
+  const [repsServiciosCodigos, setRepsServiciosCodigos] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const load = async () => {
@@ -224,23 +204,7 @@ export const ProvidersPage: React.FC = () => {
       return;
     }
 
-    // Validar campos obligatorios del administrador
-    if (!formData.admin_first_name.trim()) {
-      setCreateError('Nombre del administrador es obligatorio');
-      return;
-    }
-    if (!formData.admin_last_name.trim()) {
-      setCreateError('Apellido del administrador es obligatorio');
-      return;
-    }
-    if (!formData.admin_email.trim()) {
-      setCreateError('Email del administrador es obligatorio');
-      return;
-    }
-    if (!formData.admin_password.trim()) {
-      setCreateError('Contraseña del administrador es obligatoria');
-      return;
-    }
+
 
     setCreating(true);
     setCreateError(null);
@@ -258,10 +222,6 @@ export const ProvidersPage: React.FC = () => {
         nombre_sede: formData.nombre_sede.trim() || undefined,
         codigo_habilitacion: formData.codigo_habilitacion.trim() || undefined,
         legal_entity_type: formData.tipo_prestador.trim() || undefined,
-        admin_email: formData.admin_email.trim(),
-        admin_password: formData.admin_password,
-        admin_first_name: formData.admin_first_name.trim(),
-        admin_last_name: formData.admin_last_name.trim(),
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
       } as any);
 
@@ -281,7 +241,7 @@ export const ProvidersPage: React.FC = () => {
       setFormData(INITIAL_FORM);
 
       // Mensaje de éxito
-      setSuccessMessage('Prestador creado y administrador configurado');
+      setSuccessMessage('Prestador creado exitosamente');
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear prestador';
@@ -377,10 +337,6 @@ export const ProvidersPage: React.FC = () => {
       codigo_habilitacion: (provider as any).codigo_habilitacion || '',
       tipo_prestador: (provider as any).legal_entity_type || '',
       auditor_id: '',
-      admin_first_name: '',
-      admin_last_name: '',
-      admin_email: '',
-      admin_password: '',
     });
     setCreateError(null);
     setServicesSearch('');
@@ -403,7 +359,13 @@ export const ProvidersPage: React.FC = () => {
       if (res.data?.found && res.data.data) {
         const d = res.data.data;
         const mobileNumber = extractMobileNumber(d.telefono);
-        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '' });
+        // Cruzar servicios REPS con servicios del sistema por código oficial
+        const repsCodigos = new Set((d.servicios_habilitados || []).map((s) => s.codigo));
+        const matchedIds = allServices.filter((s) => repsCodigos.has(s.code)).map((s) => s.id);
+        setRepsServiciosCodigos(repsCodigos);
+        if (matchedIds.length > 0) setSelectedServiceIds(matchedIds);
+
+        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '', servicios_count: d.servicios_habilitados?.length || 0, servicios_matched: matchedIds.length });
         // Autocompletar campos del formulario directamente desde REPS
         setFormData((prev) => ({
           ...prev,
@@ -431,11 +393,11 @@ export const ProvidersPage: React.FC = () => {
   const loadServices = async (providerId?: string) => {
     setLoadingServices(true);
     try {
-      const res = await servicesApi.getAll({ status: 'active' });
-      setAllServices(res.data?.data || []);
+      const res = await servicesApi.getAll({ status: 'available' });
+      setAllServices(res.data || []);
       if (providerId) {
         const provRes = await providerServicesApi.getForProvider(providerId);
-        setSelectedServiceIds((provRes.data?.data || []).map((s) => s.id));
+        setSelectedServiceIds((provRes.data || []).map((s) => s.id));
       } else {
         setSelectedServiceIds([]);
       }
@@ -476,6 +438,7 @@ export const ProvidersPage: React.FC = () => {
               setRepsSearchCode('');
               setRepsFound(null);
               setRepsError(null);
+              setRepsServiciosCodigos(new Set());
               setServicesSearch('');
               loadServices();
               setShowModal(true);
@@ -650,6 +613,19 @@ export const ProvidersPage: React.FC = () => {
                         <span><strong>Código de prestador:</strong> {repsFound.codigo_prestador || '—'}</span>
                         <span><strong>Sede:</strong> {repsFound.sede || '—'}</span>
                       </div>
+                      {repsFound.servicios_count > 0 && (
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px' }}>
+                          <strong>Servicios habilitados REPS:</strong> {repsFound.servicios_count} reportados en REPS
+                          {repsFound.servicios_matched > 0
+                            ? ` — ${repsFound.servicios_matched} preseleccionados abajo`
+                            : ' — ninguno coincide con servicios registrados en el sistema'}
+                        </div>
+                      )}
+                      {repsFound.servicios_count === 0 && (
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px', color: '#6b7280' }}>
+                          Sin servicios habilitados reportados en REPS
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -826,6 +802,11 @@ export const ProvidersPage: React.FC = () => {
                 {selectedServiceIds.length > 0 && (
                   <div style={{ marginBottom: '10px', fontSize: '13px', color: '#4f46e5', fontWeight: 600 }}>
                     {selectedServiceIds.length} servicio{selectedServiceIds.length !== 1 ? 's' : ''} seleccionado{selectedServiceIds.length !== 1 ? 's' : ''}
+                    {repsServiciosCodigos.size > 0 && (
+                      <span style={{ marginLeft: '8px', fontSize: '11px', background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px', borderRadius: '10px', fontWeight: 600 }}>
+                        {selectedServiceIds.filter((id) => repsServiciosCodigos.has(allServices.find((s) => s.id === id)?.code || '')).length} desde REPS
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -860,25 +841,31 @@ export const ProvidersPage: React.FC = () => {
                           <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#f8f9ff', borderBottom: '1px solid #e8eaff', position: 'sticky', top: 0 }}>
                             {cat}
                           </div>
-                          {grouped[cat].map((service) => (
-                            <label
-                              key={service.id}
-                              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', color: '#1a1a2e', borderBottom: '1px solid #f3f4f6' }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedServiceIds.includes(service.id)}
-                                onChange={(e) => {
-                                  setSelectedServiceIds((prev) =>
-                                    e.target.checked ? [...prev, service.id] : prev.filter((id) => id !== service.id)
-                                  );
-                                }}
-                                disabled={creating}
-                                style={{ accentColor: '#6366f1', width: '15px', height: '15px', flexShrink: 0 }}
-                              />
-                              {service.name}
-                            </label>
-                          ))}
+                          {grouped[cat].map((service) => {
+                            const isFromReps = repsServiciosCodigos.has(service.code);
+                            return (
+                              <label
+                                key={service.id}
+                                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', color: '#1a1a2e', borderBottom: '1px solid #f3f4f6', background: isFromReps ? '#eff6ff' : undefined }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedServiceIds.includes(service.id)}
+                                  onChange={(e) => {
+                                    setSelectedServiceIds((prev) =>
+                                      e.target.checked ? [...prev, service.id] : prev.filter((id) => id !== service.id)
+                                    );
+                                  }}
+                                  disabled={creating}
+                                  style={{ accentColor: '#6366f1', width: '15px', height: '15px', flexShrink: 0 }}
+                                />
+                                <span style={{ flex: 1 }}>{service.name}</span>
+                                {isFromReps && (
+                                  <span style={{ fontSize: '10px', background: '#1d4ed8', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: 700, flexShrink: 0 }}>REPS</span>
+                                )}
+                              </label>
+                            );
+                          })}
                         </div>
                       ));
                     })()}
@@ -886,126 +873,6 @@ export const ProvidersPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Admin section - only show on create, not on edit */}
-              {!editingId && (
-                <>
-                  <div style={{
-                    borderTop: '1px solid #e0e0e0',
-                    margin: '24px 0',
-                    paddingTop: '20px',
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      marginBottom: '16px',
-                      color: '#333',
-                      fontWeight: '600',
-                    }}>
-                      <span style={{ fontSize: '20px' }}>👤</span>
-                      <span>Administrador del Prestador</span>
-                    </div>
-                  </div>
-
-                  <div className="dashboard-form-group">
-                    <label htmlFor="admin_first_name">Nombre *</label>
-                    <input
-                      id="admin_first_name"
-                      type="text"
-                      placeholder="Ej: Juan"
-                      value={formData.admin_first_name}
-                      onChange={(e) => setFormData({ ...formData, admin_first_name: e.target.value })}
-                      disabled={creating}
-                    />
-                  </div>
-
-                  <div className="dashboard-form-group">
-                    <label htmlFor="admin_last_name">Apellido *</label>
-                    <input
-                      id="admin_last_name"
-                      type="text"
-                      placeholder="Ej: Pérez"
-                      value={formData.admin_last_name}
-                      onChange={(e) => setFormData({ ...formData, admin_last_name: e.target.value })}
-                      disabled={creating}
-                    />
-                  </div>
-
-                  <div className="dashboard-form-group">
-                    <label htmlFor="admin_email">Email *</label>
-                    <input
-                      id="admin_email"
-                      type="email"
-                      placeholder="Ej: admin@hospital.com"
-                      value={formData.admin_email}
-                      onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
-                      disabled={creating}
-                    />
-                  </div>
-
-                  <div className="dashboard-form-group">
-                    <label htmlFor="admin_password">Contraseña *</label>
-                    <input
-                      id="admin_password"
-                      type="password"
-                      placeholder="Mínimo 12 caracteres"
-                      value={formData.admin_password}
-                      onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
-                      disabled={creating}
-                    />
-                    {formData.admin_password && (
-                      <div style={{ marginTop: '12px' }}>
-                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px', fontWeight: '500' }}>
-                          Requisitos de contraseña:
-                        </div>
-                        {(() => {
-                          const { checks } = checkPasswordStrength(formData.admin_password);
-                          return (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '13px',
-                                color: checks.hasMinLength ? '#00875a' : '#999',
-                              }}>
-                                <span>{checks.hasMinLength ? '✓' : '○'}</span> Mínimo 12 caracteres
-                              </div>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '13px',
-                                color: checks.hasUppercase ? '#00875a' : '#999',
-                              }}>
-                                <span>{checks.hasUppercase ? '✓' : '○'}</span> Una mayúscula
-                              </div>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '13px',
-                                color: checks.hasLowercase ? '#00875a' : '#999',
-                              }}>
-                                <span>{checks.hasLowercase ? '✓' : '○'}</span> Una minúscula
-                              </div>
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '13px',
-                                color: checks.hasSpecial ? '#00875a' : '#999',
-                              }}>
-                                <span>{checks.hasSpecial ? '✓' : '○'}</span> Un carácter especial
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
             </div>
 
             <div className="modal-footer">
