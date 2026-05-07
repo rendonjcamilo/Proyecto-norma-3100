@@ -351,6 +351,61 @@ router.post('/logout', authMiddleware, (req: Request, res: Response): void => {
 });
 
 /**
+ * POST /auth/dev-login
+ * Desarrollo únicamente: genera un JWT firmado real para un usuario mock sin credenciales.
+ * Deshabilitado completamente en producción.
+ * Body: { email, role }
+ */
+router.post('/dev-login', async (req: Request, res: Response): Promise<void> => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not Found' });
+    return;
+  }
+
+  const { email, role } = req.body;
+  const validRoles = ['super_admin', 'auditor', 'provider_admin'];
+
+  if (!email || !role || !validRoles.includes(role)) {
+    res.status(400).json({ error: 'Bad Request', message: 'email y role válido son requeridos' });
+    return;
+  }
+
+  const devUserIds: Record<string, string> = {
+    super_admin: '550e8400-e29b-41d4-a716-446655440000',
+    auditor:     '7a3dba1a-0fb1-4c22-ab6c-67695a6f5813',
+    provider_admin: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  };
+  const devProviderIds: Record<string, string> = {
+    super_admin:    '',
+    auditor:        '7a3dba1a-0fb1-4c22-ab6c-67695a6f5813',
+    provider_admin: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  };
+
+  const user_id = devUserIds[role];
+  const provider_id = devProviderIds[role];
+
+  const accessToken = generateAccessToken(user_id, role, provider_id);
+  const refreshToken = generateRefreshToken(user_id);
+
+  logger.warn({ email, role }, 'Dev login usado — solo disponible fuera de producción');
+
+  res.status(200).json({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_in: 3600,
+    token_type: 'Bearer',
+    user: {
+      id: user_id,
+      email,
+      role,
+      first_name: 'Dev',
+      last_name: role,
+      provider_id,
+    },
+  });
+});
+
+/**
  * POST /auth/forgot-password
  * Solicita recuperación de contraseña por email
  * Body: { email }

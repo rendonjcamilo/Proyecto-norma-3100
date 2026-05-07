@@ -21,44 +21,6 @@ declare global {
  * In development mode, allows requests without token
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  // In development, try to validate JWT first, fall back to mock if token is 'mock-token'
-  if (process.env.NODE_ENV === 'development') {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.substring(7); // Remove 'Bearer ' prefix
-
-    // If token is the frontend mock token, parse the role from the request
-    // or use the token's claims if valid JWT
-    if (token && token !== 'mock-token') {
-      try {
-        const result = validateToken(token);
-        if (result.valid) {
-          req.user = {
-            user_id: result.claims!.user_id,
-            role: result.claims!.role || 'unknown',
-            provider_id: result.claims!.provider_id || '',
-            jti: result.claims!.jti,
-          };
-          logger.debug({ user_id: req.user.user_id, path: req.path }, 'Development mode: JWT validated');
-          next();
-          return;
-        }
-      } catch (err) {
-        logger.debug({ path: req.path }, 'Development mode: JWT validation failed, using fallback');
-      }
-    }
-
-    // Fallback for mock-token or invalid JWT: use hardcoded super_admin
-    req.user = {
-      user_id: '550e8400-e29b-41d4-a716-446655440000',
-      role: 'super_admin',
-      provider_id: '550e8400-e29b-41d4-a716-446655440001',
-      jti: 'dev-jti',
-    };
-    logger.debug({ path: req.path }, 'Development mode: using hardcoded super_admin');
-    next();
-    return;
-  }
-
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
