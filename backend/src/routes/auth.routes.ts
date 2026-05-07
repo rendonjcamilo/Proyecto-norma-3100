@@ -211,17 +211,16 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 /**
  * POST /auth/refresh
  * Rota el refresh token y emite un nuevo access token con el rol correcto del usuario.
- * Lee el refresh token desde la cookie HttpOnly; también acepta body como fallback
- * para clientes que aún no usan cookies (transición).
+ * Lee el refresh token exclusivamente desde la cookie HttpOnly.
  */
 router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
   try {
-    // Leer desde cookie (preferido) o body (fallback de transición)
+    // Leer exclusivamente desde cookie HttpOnly
     const cookieHeader = req.headers.cookie || '';
     const cookieMatch = cookieHeader.match(/(?:^|;\s*)refresh_token=([^;]+)/);
-    let refresh_token: string | undefined = req.body.refresh_token;
+    let refresh_token: string | undefined;
     if (cookieMatch) {
-      try { refresh_token = decodeURIComponent(cookieMatch[1]); } catch { /* cookie malformada — usar body */ }
+      try { refresh_token = decodeURIComponent(cookieMatch[1]); } catch { /* cookie malformada */ }
     }
 
     if (!refresh_token) {
