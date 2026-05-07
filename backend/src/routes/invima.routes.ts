@@ -29,7 +29,7 @@ export function createInvimaRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const { numeroRegistro } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!numeroRegistro || numeroRegistro.trim().length < 3) {
           return res.status(400).json({ error: 'Número de registro debe tener al menos 3 caracteres' });
@@ -338,7 +338,7 @@ export function createInvimaRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
         const { accionTomada } = req.body;
 
         if (!accionTomada) {

@@ -13,11 +13,17 @@ import { EventStore } from '../modules/events/EventStore.js';
 import { validatePasswordPolicy, hashPassword } from '../services/password.service.js';
 import { logger } from '../utils/logger.js';
 
-// Helper: In development mode with mock auth, use null userId for events to avoid FK violations
+// UUIDs de usuarios dev hardcodeados en /auth/dev-login — no existen en la BD, evitar FK violations
+const DEV_USER_IDS = new Set([
+  '550e8400-e29b-41d4-a716-446655440000',
+  '7a3dba1a-0fb1-4c22-ab6c-67695a6f5813',
+  'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+]);
+
 const getEventUserId = (userId: string | null): string | null => {
-  const isDev = process.env.NODE_ENV === 'development';
-  const isMockUser = userId === '550e8400-e29b-41d4-a716-446655440000';
-  return isDev && isMockUser ? null : userId || null;
+  if (!userId) return null;
+  if (process.env.NODE_ENV === 'development' && DEV_USER_IDS.has(userId)) return null;
+  return userId;
 };
 
 export function createProviderRouter(pool: Pool, eventStore: EventStore): Router {
@@ -101,7 +107,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(409).json({ error: 'Email already registered' });
         }
 
-        const user = (req as any).user;
+        const user = req.user;
         const client = await pool.connect();
 
         try {
@@ -236,7 +242,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const user = (req as any).user;
+        const user = req.user;
         const role = user?.role;
 
         const filters = {
@@ -298,7 +304,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         }
 
         // Check RBAC: provider_admin can only see own, auditor sees assigned
-        const user = (req as any).user;
+        const user = req.user;
 
         if (user.role === 'provider_admin') {
           if (user.provider_id !== provider.id) {
@@ -352,7 +358,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         }
 
         // Check RBAC
-        const user = (req as any).user;
+        const user = req.user;
         if (user.role === 'provider_admin' && user.provider_id !== provider.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -422,7 +428,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         }
 
         // Check RBAC
-        const user = (req as any).user;
+        const user = req.user;
         if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -477,7 +483,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(404).json({ error: 'Provider not found' });
         }
 
-        const updated = await providerModel.updateProviderStatus(req.params.id, status, (req as any).user?.user_id);
+        const updated = await providerModel.updateProviderStatus(req.params.id, status, req.user?.user_id);
 
         // Emit event
         await eventStore.append({
@@ -488,7 +494,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             old_status: provider.status,
             new_status: status,
           },
-          userId: (req as any).user?.user_id,
+          userId: req.user?.user_id,
         });
 
         logger.info({
@@ -529,7 +535,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         }
 
         // Check RBAC
-        const user = (req as any).user;
+        const user = req.user;
         if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -570,25 +576,38 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
   /**
    * GET /api/providers/:id/locations
-   * List locations for provider
+   * Lista sedes del prestador — provider_admin solo puede ver las de su propio prestador.
    */
   router.get(
     '/providers/:id/locations',
     authMiddleware,
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        // RBAC scope: provider_admin solo ve sedes de su propio prestador
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId],
+          );
+          if (
+            userResult.rows.length === 0 ||
+            userResult.rows[0].provider_id !== req.params.id
+          ) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
         const provider = await providerModel.getProviderById(req.params.id);
         if (!provider) {
           return res.status(404).json({ error: 'Provider not found' });
         }
 
         const locations = await providerModel.getLocations(req.params.id);
-
-        res.json({
-          provider_id: req.params.id,
-          count: locations.length,
-          locations,
-        });
+        res.json({ provider_id: req.params.id, count: locations.length, locations });
       } catch (err) {
         logger.error({ msg: 'Error fetching locations', error: err instanceof Error ? err.message : String(err) });
         res.status(500).json({ error: 'Failed to fetch locations' });
@@ -617,7 +636,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         }
 
         // Check RBAC
-        const user = (req as any).user;
+        const user = req.user;
         if (user.role === 'provider_admin' && provider.created_by !== user.user_id) {
           return res.status(403).json({ error: 'Access denied' });
         }
@@ -662,7 +681,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(400).json({ error: 'auditorId is required' });
         }
 
-        const user = (req as any).user;
+        const user = req.user;
 
         // Verify provider exists
         const provider = await providerModel.getProviderById(req.params.providerId);
@@ -715,7 +734,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
     rbacMiddleware(['auditor']),
     async (req: Request, res: Response) => {
       try {
-        const user = (req as any).user;
+        const user = req.user;
 
         // Verify provider exists
         const provider = await providerModel.getProviderById(req.params.providerId);
@@ -755,11 +774,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
   /**
    * GET /api/providers/:providerId/auditors
-   * List auditors assigned to a provider
+   * Lista auditores asignados al prestador — solo auditor y super_admin.
    */
   router.get(
     '/providers/:providerId/auditors',
     authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         // Verify provider exists

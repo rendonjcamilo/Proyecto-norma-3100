@@ -12,7 +12,7 @@ import { logger } from '../utils/logger.js';
 export function rbacMiddleware(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
 
       if (!user) {
         res.status(401).json({
@@ -25,7 +25,7 @@ export function rbacMiddleware(allowedRoles: string[]) {
       if (!allowedRoles.includes(user.role)) {
         logger.warn({
           msg: 'Access denied - insufficient role',
-          user_id: user.id,
+          user_id: user.user_id,
           required_roles: allowedRoles,
           user_role: user.role,
         });
@@ -64,7 +64,7 @@ export function rbacMiddleware(allowedRoles: string[]) {
 export function providerAccessMiddleware(pool: Pool, providerIdKeys: string[] = ['provider_id', 'providerId']) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
       const userRole = user?.role;
       const userId = user?.user_id;
 

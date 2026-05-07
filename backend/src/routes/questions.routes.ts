@@ -34,7 +34,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
     async (req: Request, res: Response) => {
       try {
         const { serviceId, versionType, name } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!versionType) {
           return res.status(400).json({
@@ -172,7 +172,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
       try {
         const { id } = req.params;
         const { name, status } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!name && !status) {
           return res.status(400).json({
@@ -226,7 +226,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         await questionnaireService.deleteQuestionnaire(id);
 
@@ -273,7 +273,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
       try {
         const { id } = req.params;
         const { criterionId } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!criterionId) {
           return res.status(400).json({
@@ -324,7 +324,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
     async (req: Request, res: Response) => {
       try {
         const { id, criterionId } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         await questionnaireService.removeCriterionFromQuestionnaire(id, criterionId);
 
@@ -427,7 +427,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
       try {
         const { id } = req.params;
         const { newVersionType } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!newVersionType) {
           return res.status(400).json({
@@ -488,7 +488,7 @@ export function createQuestionsRouter(pool: Pool, eventStore: EventStore): Route
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         const published = await questionnaireService.publishQuestionnaire(id, userId);
 

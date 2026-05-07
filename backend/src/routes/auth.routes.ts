@@ -10,7 +10,7 @@ import {
 import { validatePasswordPolicy, comparePassword, hashPassword } from '../services/password.service.js';
 import { UserService } from '../services/user.service.js';
 import { PasswordRecoveryService } from '../services/password-recovery.service.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, revokeToken } from '../middleware/auth.middleware.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -174,13 +174,20 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const accessToken = generateAccessToken(user.id, apiRole, user.provider_id);
     const refreshToken = generateRefreshToken(user.id);
 
-    // TODO: Create session in Redis
-
     logger.info({ user_id: user.id, email }, 'User logged in successfully');
+
+    // Refresh token en cookie HttpOnly — no expuesto a JavaScript del cliente
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 días en ms
+      path: '/auth',
+    });
 
     res.status(200).json({
       access_token: accessToken,
-      refresh_token: refreshToken,
       expires_in: 3600,
       token_type: 'Bearer',
       user: {
@@ -203,97 +210,106 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
 /**
  * POST /auth/refresh
- * Refresh access token using refresh token
- * Body: { refresh_token }
- * Response: { access_token, refresh_token, expires_in }
+ * Rota el refresh token y emite un nuevo access token con el rol correcto del usuario.
+ * Lee el refresh token desde la cookie HttpOnly; también acepta body como fallback
+ * para clientes que aún no usan cookies (transición).
  */
-router.post('/refresh', (req: Request, res: Response): void => {
+router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refresh_token } = req.body;
+    // Leer desde cookie (preferido) o body (fallback de transición)
+    const cookieHeader = req.headers.cookie || '';
+    const cookieMatch = cookieHeader.match(/(?:^|;\s*)refresh_token=([^;]+)/);
+    let refresh_token: string | undefined = req.body.refresh_token;
+    if (cookieMatch) {
+      try { refresh_token = decodeURIComponent(cookieMatch[1]); } catch { /* cookie malformada — usar body */ }
+    }
 
     if (!refresh_token) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'Refresh token is required',
-      });
+      res.status(400).json({ error: 'Bad Request', message: 'Refresh token es requerido' });
       return;
     }
 
-    // Validate refresh token
+    if (isTokenExpired(refresh_token)) {
+      res.status(401).json({ error: 'Unauthorized', message: 'El refresh token ha expirado' });
+      return;
+    }
+
     const result = validateToken(refresh_token);
     if (!result.valid) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid or expired refresh token',
-      });
+      res.status(401).json({ error: 'Unauthorized', message: 'Refresh token inválido' });
       return;
     }
 
     const claims = result.claims;
-    if (!claims || ('type' in claims && claims.type !== 'refresh')) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid token type',
-      });
-      return;
-    }
-
-    // Check if token is expired
-    if (isTokenExpired(refresh_token)) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Refresh token has expired',
-      });
+    if (!claims || !('type' in claims) || claims.type !== 'refresh') {
+      res.status(401).json({ error: 'Unauthorized', message: 'Tipo de token inválido' });
       return;
     }
 
     const user_id = claims.user_id;
+    const oldJti = claims.jti;
+    const oldExp = new Date(claims.exp * 1000);
 
-    // TODO: In production, mark old refresh token as used in database
-    // For now, we're implementing the basic rotation mechanism
-    // Old token JTI should be added to Redis revocation set by the session service
+    // Obtener rol real del usuario desde la BD
+    const userResult = await dbPool.query(
+      `SELECT r.name AS role_name, u.provider_id
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = $1 AND u.status = 'active'`,
+      [user_id],
+    );
 
-    // Decode to get role and provider_id (refresh token doesn't have these)
-    // In a real scenario, we'd fetch from database
-    // For now, we'll need to reconstruct from a session or add to refresh token
-    const role = 'provider_admin'; // Placeholder - will be fetched from DB in real implementation
-    const provider_id = ''; // Placeholder - will be fetched from DB in real implementation
+    if (userResult.rows.length === 0) {
+      res.status(401).json({ error: 'Unauthorized', message: 'Usuario no encontrado o inactivo' });
+      return;
+    }
 
-    // Generate new tokens
-    const newAccessToken = generateAccessToken(user_id, role, provider_id);
+    const { role_name, provider_id } = userResult.rows[0];
+    const roleMap: Record<string, string> = { ADMIN: 'super_admin', AUDITOR: 'auditor', PROVIDER_ADMIN: 'provider_admin' };
+    const role = roleMap[role_name] || role_name.toLowerCase();
+
+    // Revocar el refresh token anterior para rotación real
+    await revokeToken(oldJti, user_id, oldExp);
+
+    const newAccessToken = generateAccessToken(user_id, role, provider_id || '');
     const newRefreshToken = generateRefreshToken(user_id);
 
-    logger.info({ user_id }, 'Tokens refreshed');
+    logger.info({ user_id, role }, 'Tokens refreshed');
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('refresh_token', newRefreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 14 * 24 * 60 * 60 * 1000,
+      path: '/auth',
+    });
 
     res.status(200).json({
       access_token: newAccessToken,
-      refresh_token: newRefreshToken,
       expires_in: 3600,
       token_type: 'Bearer',
     });
   } catch (err) {
     logger.error({ error: err instanceof Error ? err.message : err }, 'Refresh token error');
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to refresh token',
-    });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Error al renovar el token' });
   }
 });
 
 /**
  * GET /auth/verify
- * Verify the provided access token (debug endpoint)
- * Headers: Authorization: Bearer <token>
- * Response: { valid, claims } or { valid, error }
+ * Endpoint de diagnóstico — deshabilitado en producción.
  */
 router.get('/verify', authMiddleware, (req: Request, res: Response): void => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not Found' });
+    return;
+  }
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'Missing Authorization header',
-      });
+      res.status(400).json({ error: 'Bad Request', message: 'Missing Authorization header' });
       return;
     }
 
@@ -301,52 +317,37 @@ router.get('/verify', authMiddleware, (req: Request, res: Response): void => {
     const decoded = decodeToken(token);
 
     if (!decoded) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'Unable to decode token',
-      });
+      res.status(400).json({ error: 'Bad Request', message: 'Unable to decode token' });
       return;
     }
 
-    res.status(200).json({
-      valid: true,
-      claims: decoded,
-      user: req.user,
-    });
+    res.status(200).json({ valid: true, claims: decoded, user: req.user });
   } catch (err) {
     logger.error({ error: err instanceof Error ? err.message : err }, 'Verify token error');
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to verify token',
-    });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to verify token' });
   }
 });
 
 /**
  * POST /auth/logout
- * Logout user and revoke tokens
- * Headers: Authorization: Bearer <token>
+ * Invalida el access token actual y limpia la cookie de refresh token.
  */
-router.post('/logout', authMiddleware, (req: Request, res: Response): void => {
+router.post('/logout', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const user_id = req.user?.user_id;
+    const user = req.user!;
 
-    // TODO: In production:
-    // 1. Add token JTI to Redis revocation set
-    // 2. Clear session from Redis
-    // 3. Log audit event
+    // Revocar el access token actual
+    const expiresAt = new Date((Date.now() / 1000 + 3600) * 1000); // TTL máximo del access token
+    await revokeToken(user.jti, user.user_id, expiresAt);
 
-    logger.info({ user_id }, 'User logged out');
+    // Limpiar cookie de refresh token
+    res.clearCookie('refresh_token', { path: '/auth' });
 
-    res.status(200).json({
-      message: 'Logged out successfully',
-    });
+    logger.info({ user_id: user.user_id }, 'User logged out');
+    res.status(200).json({ message: 'Sesión cerrada exitosamente' });
   } catch (err) {
     logger.error({ error: err instanceof Error ? err.message : err }, 'Logout error');
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to logout',
-    });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Error al cerrar sesión' });
   }
 });
 
@@ -389,9 +390,16 @@ router.post('/dev-login', async (req: Request, res: Response): Promise<void> => 
 
   logger.warn({ email, role }, 'Dev login usado — solo disponible fuera de producción');
 
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: false, // development only
+    sameSite: 'strict',
+    maxAge: 14 * 24 * 60 * 60 * 1000,
+    path: '/auth',
+  });
+
   res.status(200).json({
     access_token: accessToken,
-    refresh_token: refreshToken,
     expires_in: 3600,
     token_type: 'Bearer',
     user: {

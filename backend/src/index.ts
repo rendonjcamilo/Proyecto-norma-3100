@@ -8,7 +8,7 @@ import { Pool } from 'pg';
 import { logger } from './utils/logger.js';
 import authRoutes, { setUserService } from './routes/auth.routes.js';
 import { apiLimiter, authLimiter, webhookLimiter } from './middleware/rate-limit.middleware.js';
-import { authMiddleware } from './middleware/auth.middleware.js';
+import { authMiddleware, setAuthPool } from './middleware/auth.middleware.js';
 import { sanitizeInputs } from './middleware/sanitize.middleware.js';
 import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentsRouter } from './routes/assessments.routes.js';
@@ -59,7 +59,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: NODE_ENV === 'production' ? ["'self'"] : ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
@@ -127,8 +127,9 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// Initialize auth service with database pool
+// Initialize services with database pool
 setUserService(pool);
+setAuthPool(pool);
 
 // Auth Routes (strict rate limiting for brute-force protection)
 app.use('/auth', authLimiter, authRoutes);

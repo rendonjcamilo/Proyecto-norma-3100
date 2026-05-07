@@ -434,8 +434,8 @@ export function createMultiChannelRouter(pool: Pool): Router {
   router.post('/auditor/send', async (req: Request, res: Response) => {
     try {
       const { providerId, templateName, channel, variables } = req.body;
-      const userId = (req as any).user?.user_id;
-      const role = (req as any).user?.role;
+      const userId = req.user?.user_id;
+      const role = req.user?.role;
 
       if (!providerId || !templateName || !channel) {
         return res.status(400).json({

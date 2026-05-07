@@ -32,13 +32,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   router.post(
     '/assessments',
     authMiddleware,
-    rbacMiddleware(['auditor', 'super_admin']),
+    rbacMiddleware(['auditor', 'super_admin', 'provider_admin']),
     providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
         const { providerId, locationId, serviceId, assessmentVersion, title } = req.body;
-        const userId = (req as any).user?.user_id;
-        const userRole = (req as any).user?.role;
+        const userId = req.user?.user_id;
+        const userRole = req.user?.role;
 
         // Validation
         if (!serviceId || !assessmentVersion) {
@@ -111,8 +111,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId, serviceId, status, startDate, endDate, limit, offset } = req.query;
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.user_id;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         let filterProviderId = providerId as string | undefined;
@@ -198,8 +198,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.user_id;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
         const assessment = await assessmentService.getAssessment(id);
 
@@ -258,8 +258,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.user_id;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         if (userRole === 'provider_admin') {
@@ -325,9 +325,9 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
       try {
         const { id } = req.params;
         const { responses } = req.body;
-        const userId = (req as any).user?.user_id;
-        const userRole = (req as any).user?.role;
-        const userProviderId = (req as any).user?.provider_id;
+        const userId = req.user?.user_id;
+        const userRole = req.user?.role;
+        const userProviderId = req.user?.provider_id;
 
         if (!responses || !Array.isArray(responses)) {
           return res.status(400).json({ error: 'responses array is required' });
@@ -410,17 +410,17 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
    * Auto-generates hallazgos from NC criteria
    * Emits audit events
    * Cannot be modified after submission
-   * RBAC: auditor (assigned), super_admin
+   * RBAC: provider_admin (propio prestador — Res. 3100 art. 5), auditor (asignado), super_admin
    */
   router.post(
     '/assessments/:id/submit',
     authMiddleware,
-    rbacMiddleware(['auditor', 'super_admin']),
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userId = (req as any).user?.user_id;
-        const userRole = (req as any).user?.role;
+        const userId = req.user?.user_id;
+        const userRole = req.user?.role;
 
         // Verify assessment exists
         const assessment = await assessmentService.getAssessment(id);
@@ -485,6 +485,29 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        // RBAC scope: provider_admin solo puede ver métricas de su propio prestador
+        if (userRole === 'provider_admin') {
+          const assessmentResult = await pool.query(
+            'SELECT provider_id FROM assessments WHERE id = $1',
+            [id],
+          );
+          if (assessmentResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Assessment not found' });
+          }
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId],
+          );
+          if (
+            userResult.rows.length === 0 ||
+            userResult.rows[0].provider_id !== assessmentResult.rows[0].provider_id
+          ) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
 
         const metrics = await assessmentService.getMetrics(id);
 
@@ -492,9 +515,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           return res.status(404).json({ error: 'Assessment metrics not found' });
         }
 
-        res.json({
-          data: metrics,
-        });
+        res.json({ data: metrics });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         logger.error({ msg: 'Error fetching metrics', error: msg });
@@ -516,8 +537,8 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.user_id;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
         // RBAC: provider_admin can only see own provider
         if (userRole === 'provider_admin') {
@@ -727,7 +748,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userRole = (req as any).user?.role;
+        const userRole = req.user?.role;
 
         const result = await pool.query(
           'SELECT id, status FROM assessments WHERE id = $1',
@@ -744,7 +765,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
 
         await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
 
-        logger.info({ msg: 'Assessment deleted', assessment_id: id, deleted_by: (req as any).user?.id });
+        logger.info({ msg: 'Assessment deleted', assessment_id: id, deleted_by: req.user?.user_id });
         res.json({ message: 'Evaluación eliminada correctamente' });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

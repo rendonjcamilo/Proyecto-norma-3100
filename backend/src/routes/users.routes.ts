@@ -16,7 +16,7 @@ export function createUsersRouter(pool: Pool): Router {
    */
   router.get('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
 
       // Allow super_admin and auditor to list users
       if (user?.role !== 'super_admin' && user?.role !== 'auditor') {
@@ -49,7 +49,7 @@ export function createUsersRouter(pool: Pool): Router {
    */
   router.post('/', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
 
       // Allow super_admin and auditor to create users
       if (user?.role !== 'super_admin' && user?.role !== 'auditor') {
@@ -178,7 +178,7 @@ export function createUsersRouter(pool: Pool): Router {
    */
   router.put('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
       const { id } = req.params;
       const { first_name, last_name, role, provider_id } = req.body;
 
@@ -231,7 +231,7 @@ export function createUsersRouter(pool: Pool): Router {
    */
   router.delete('/:id', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
       const { id } = req.params;
 
       // Only super_admin can delete users
@@ -272,7 +272,7 @@ export function createUsersRouter(pool: Pool): Router {
    */
   router.get('/export-excel', authMiddleware, async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = (req as any).user;
+      const user = req.user;
 
       // Only super_admin can export
       if (user?.role !== 'super_admin') {

@@ -165,7 +165,7 @@ export function createNorma3100Router(): Router {
           providerId,
           locationId,
         } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!serviceCode) {
           return res.status(400).json({
@@ -185,7 +185,7 @@ export function createNorma3100Router(): Router {
           id: uuidv4(),
           providerId:
             providerId ||
-            (req as any).user?.providerId ||
+            req.user?.providerId ||
             'mock-provider-1',
           locationId: locationId || null,
           serviceCode,
@@ -303,7 +303,7 @@ export function createNorma3100Router(): Router {
       try {
         const { id } = req.params;
         const { observations } = req.body;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
 
         const assessment = {
           id,

@@ -110,7 +110,7 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
       try {
         const { serviceId } = req.params;
         const { status } = req.body;
-        const userId = (req as any).userId;
+        const userId = req.user?.user_id;
 
         if (!status || !['available', 'discontinued', 'suspended'].includes(status)) {
           return res.status(400).json({ error: 'Invalid status' });
@@ -163,8 +163,8 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
       try {
         const { providerId } = req.params;
         const { services } = req.body;
-        const userId = (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = req.user?.user_id;
+        const userRole = req.userRole;
 
         // Validate role access
         if (userRole === 'provider_admin') {
@@ -240,8 +240,8 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
       try {
         const { providerId } = req.params;
         const { locationId, category, status } = req.query;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).userId;
+        const userRole = req.userRole;
+        const userId = req.user?.user_id;
 
         // Role-based access control
         if (userRole === 'provider_admin') {
@@ -286,8 +286,8 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
     async (req: Request, res: Response) => {
       try {
         const { providerId, locationId } = req.params;
-        const userRole = (req as any).userRole;
-        const userId = (req as any).userId;
+        const userRole = req.userRole;
+        const userId = req.user?.user_id;
 
         // Role-based access control
         if (userRole === 'provider_admin') {
@@ -328,8 +328,8 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
       try {
         const { providerId, serviceId } = req.params;
         const { locationId } = req.query;
-        const userId = (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = req.user?.user_id;
+        const userRole = req.userRole;
 
         // Validate role access
         if (userRole === 'provider_admin') {
@@ -389,8 +389,8 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
       try {
         const { providerId } = req.params;
         const { serviceIds, locationId } = req.body;
-        const userId = (req as any).userId;
-        const userRole = (req as any).userRole;
+        const userId = req.user?.user_id;
+        const userRole = req.userRole;
 
         // Validate role access
         if (userRole === 'provider_admin') {

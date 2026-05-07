@@ -117,7 +117,7 @@ export function createRepsRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userId = req.user?.user_id;
         const { datosReps } = req.body as { datosReps: unknown };
 
         if (!datosReps) {

@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // necesario para recibir la cookie HttpOnly de refresh token
         body: JSON.stringify({ email, password }),
       });
 
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await fetch('/auth/dev-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, role }),
       });
 
@@ -86,6 +88,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Notificar al backend para revocar el token y limpiar la cookie HttpOnly
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      fetch('/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      }).catch(() => { /* silencioso — el cliente siempre cierra sesión localmente */ });
+    }
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     setUser(null);

@@ -53,7 +53,7 @@ export interface Assessment {
   serviceId: string;
   questionnaireId: string;
   assessmentVersion: 'initial' | 'year4' | 'annual' | 'pre-novelty';
-  status: 'in_progress' | 'submitted' | 'locked';
+  status: 'draft' | 'in_progress' | 'submitted' | 'locked';
   startedDate: Date;
   startedBy: string;
   submittedDate?: Date;

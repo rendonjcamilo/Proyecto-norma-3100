@@ -11,9 +11,9 @@ import { logger } from '../utils/logger.js';
 // Passthrough middleware for development (no rate limiting)
 const noOpLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
 
-// Standard API rate limiter: 1000 requests / 15 minutes per IP (increased for development)
+// Standard API rate limiter: 1000 requests / 15 minutes per IP
 const createApiLimiter = () => {
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return noOpLimiter;
   }
 
@@ -42,7 +42,8 @@ const createApiLimiter = () => {
 export const apiLimiter = createApiLimiter();
 
 // Strict rate limiter for authentication endpoints: 5 attempts / 15 min
-export const authLimiter = rateLimit({
+// Se deshabilita con DISABLE_RATE_LIMIT=true (igual que apiLimiter)
+export const authLimiter = process.env.DISABLE_RATE_LIMIT === 'true' ? noOpLimiter : rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   standardHeaders: 'draft-7',

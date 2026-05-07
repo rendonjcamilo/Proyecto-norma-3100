@@ -52,7 +52,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           status: 'open',
           source: source as 'audit' | 'assessment' | 'external_report' | 'internal',
           found_date: found_date ? new Date(found_date) : new Date(),
-          created_by: (req as any).user?.id,
+          created_by: req.user?.user_id,
         });
 
         // Emit event
@@ -61,7 +61,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateType: 'finding',
           eventType: 'finding.created',
           payload: finding as any,
-          userId: (req as any).user?.id,
+          userId: req.user?.user_id,
         });
 
         logger.info({
@@ -91,8 +91,8 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
         let { provider_id } = req.query;
 
         // RBAC: provider_admin can only see own provider
@@ -166,8 +166,8 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const userRole = (req as any).user?.role;
-        const userId = (req as any).user?.id || (req as any).userId;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
         const finding = await findingModel.getFindingById(req.params.id);
 
         if (!finding) {
@@ -236,7 +236,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
 
         const updated = await findingModel.updateFinding(req.params.id, {
           ...req.body,
-          updated_by: (req as any).user?.id,
+          updated_by: req.user?.user_id,
         });
 
         // Emit event
@@ -245,7 +245,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateType: 'finding',
           eventType: 'finding.updated',
           payload: updated as any,
-          userId: (req as any).user?.id,
+          userId: req.user?.user_id,
         });
 
         res.json(updated);
@@ -305,7 +305,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           due_date: due_date ? new Date(due_date) : calculatedDueDate,
           status: 'open',
           priority: priority || 'medium',
-          created_by: (req as any).user?.id,
+          created_by: req.user?.user_id,
         });
 
         // Emit event
@@ -314,7 +314,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateType: 'corrective_action',
           eventType: 'action.created',
           payload: action as any,
-          userId: (req as any).user?.id,
+          userId: req.user?.user_id,
         });
 
         logger.info({
@@ -336,26 +336,73 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
 
   /**
    * GET /api/actions
-   * List corrective actions
+   * Lista acciones correctivas con scope de provider según el rol del usuario.
    */
   router.get(
     '/actions',
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const filters = {
-          finding_id: req.query.finding_id as string,
-          status: req.query.status as string,
-          assigned_to: req.query.assigned_to as string,
-          search: req.query.search as string,
-        };
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
-        const actions = await findingModel.getCorrectiveActions(filters);
+        // RBAC: provider_admin solo ve acciones de su prestador
+        let providerIdFilter: string | undefined = req.query.provider_id as string | undefined;
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId],
+          );
+          if (userResult.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+          providerIdFilter = userResult.rows[0].provider_id;
+        }
 
-        res.json({
-          count: actions.length,
-          actions,
-        });
+        // RBAC: auditor solo ve acciones de prestadores asignados
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT provider_id FROM auditor_providers WHERE auditor_id = $1',
+            [userId],
+          );
+          const assignedIds = assignedResult.rows.map((r: { provider_id: string }) => r.provider_id);
+          if (providerIdFilter && !assignedIds.includes(providerIdFilter)) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // Filtrar acciones con scope de provider + filtros adicionales de query
+        const findingId = req.query.finding_id as string | undefined;
+        const statusFilter = req.query.status as string | undefined;
+        const assignedTo = req.query.assigned_to as string | undefined;
+        const search = req.query.search as string | undefined;
+
+        let actions;
+        if (providerIdFilter) {
+          // JOIN con findings para aplicar el scope de provider Y los filtros de query
+          let q = `SELECT ca.* FROM corrective_actions ca
+                   JOIN findings f ON ca.finding_id = f.id
+                   WHERE f.provider_id = $1`;
+          const params: unknown[] = [providerIdFilter];
+
+          if (findingId)  { q += ` AND ca.finding_id = $${params.push(findingId)}`; }
+          if (statusFilter) { q += ` AND ca.status = $${params.push(statusFilter)}`; }
+          if (assignedTo) { q += ` AND ca.assigned_to = $${params.push(assignedTo)}`; }
+          if (search)     { q += ` AND (ca.title ILIKE $${params.push(`%${search}%`)} OR ca.description ILIKE $${params.length})`; }
+
+          q += ' ORDER BY ca.created_at DESC';
+          const result = await pool.query(q, params);
+          actions = result.rows;
+        } else {
+          actions = await findingModel.getCorrectiveActions({
+            finding_id: findingId,
+            status: statusFilter,
+            assigned_to: assignedTo,
+            search,
+          });
+        }
+
+        res.json({ count: actions.length, actions });
       } catch (err) {
         logger.error({
           msg: 'Error fetching actions',
@@ -423,7 +470,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
         const updated = await findingModel.updateCorrectiveActionStatus(
           req.params.id,
           status,
-          (req as any).user?.id,
+          req.user?.user_id,
           reason
         );
 
@@ -436,7 +483,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
             old_status: action.status,
             new_status: status,
           },
-          userId: (req as any).user?.id,
+          userId: req.user?.user_id,
         });
 
         logger.info({
@@ -480,7 +527,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
 
         const comment = await findingModel.addComment({
           action_id: req.params.id,
-          user_id: (req as any).user?.id,
+          user_id: req.user?.user_id,
           content,
           mentions: mentions || [],
         });
@@ -491,7 +538,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           aggregateType: 'action_comment',
           eventType: 'comment.added',
           payload: comment as any,
-          userId: (req as any).user?.id,
+          userId: req.user?.user_id,
         });
 
         logger.info({
