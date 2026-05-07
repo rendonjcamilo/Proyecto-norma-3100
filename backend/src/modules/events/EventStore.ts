@@ -2,6 +2,10 @@ import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { logger } from '../../utils/logger.js';
+import { getEncryptionService } from '../../services/EncryptionService.js';
+
+// Cifrado de payloads habilitado con ENCRYPT_EVENT_PAYLOADS=true
+const ENCRYPT_PAYLOADS = process.env.ENCRYPT_EVENT_PAYLOADS === 'true';
 
 export interface Event {
   id?: string;
@@ -53,7 +57,8 @@ export class EventStore {
 
       const previousEventHash = previousEventResult.rows[0]?.event_hash;
 
-      // Calculate event hash
+      // El hash se calcula SIEMPRE sobre el payload plano (antes de cifrar)
+      // Garantiza que verifyIntegrity funcione con o sin cifrado habilitado
       const eventHash = this.calculateHash({
         id: eventId,
         aggregateId: event.aggregateId,
@@ -63,6 +68,11 @@ export class EventStore {
         timestamp,
         previousEventHash,
       });
+
+      // Cifrar payload si está habilitado — el sobre JSONB coexiste con registros no cifrados
+      const storedPayload = ENCRYPT_PAYLOADS
+        ? getEncryptionService().encryptJson(event.payload)
+        : event.payload;
 
       // Insert event (append-only)
       const result = await client.query(
@@ -75,7 +85,7 @@ export class EventStore {
           event.aggregateId,
           event.aggregateType,
           event.eventType,
-          JSON.stringify(event.payload),
+          JSON.stringify(storedPayload),
           JSON.stringify(event.metadata || {}),
           event.userId || null,
           previousEventHash || null,
@@ -98,7 +108,7 @@ export class EventStore {
         aggregateId: storedEvent.aggregate_id,
         aggregateType: storedEvent.aggregate_type,
         eventType: storedEvent.event_type,
-        payload: typeof storedEvent.payload === 'string' ? JSON.parse(storedEvent.payload) : storedEvent.payload,
+        payload: this.decryptPayload(storedEvent.payload),
         metadata: typeof storedEvent.metadata === 'string' ? JSON.parse(storedEvent.metadata) : storedEvent.metadata,
         userId: storedEvent.user_id,
         eventHash: storedEvent.event_hash,
@@ -126,7 +136,7 @@ export class EventStore {
       aggregateId: row.aggregate_id as string,
       aggregateType: row.aggregate_type as string,
       eventType: row.event_type as string,
-      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
+      payload: this.decryptPayload(row.payload),
       metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
       userId: row.user_id as string | undefined,
       eventHash: row.event_hash as string,
@@ -152,7 +162,7 @@ export class EventStore {
       aggregateId: row.aggregate_id as string,
       aggregateType: row.aggregate_type as string,
       eventType: row.event_type as string,
-      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
+      payload: this.decryptPayload(row.payload),
       metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
       userId: row.user_id as string | undefined,
       eventHash: row.event_hash as string,
@@ -177,7 +187,7 @@ export class EventStore {
       aggregateId: row.aggregate_id as string,
       aggregateType: row.aggregate_type as string,
       eventType: row.event_type as string,
-      payload: typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload,
+      payload: this.decryptPayload(row.payload),
       metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata,
       userId: row.user_id as string | undefined,
       eventHash: row.event_hash as string,
@@ -205,7 +215,7 @@ export class EventStore {
         errors.push(`Event ${event.id} hash chain broken`);
       }
 
-      // Verify event hash is correct
+      // El hash siempre se verifica contra el payload plano (ya descifrado por getEventsByAggregateId)
       const calculatedHash = this.calculateHash({
         id: event.id,
         aggregateId: event.aggregateId,
@@ -227,6 +237,21 @@ export class EventStore {
       isValid: errors.length === 0,
       errors,
     };
+  }
+
+  /**
+   * Descifra el payload si está en formato de sobre cifrado.
+   * Retorna el payload plano sin importar si estaba cifrado o no.
+   */
+  private decryptPayload(raw: unknown): Record<string, unknown> {
+    const obj = typeof raw === 'string'
+      ? JSON.parse(raw) as Record<string, unknown>
+      : raw as Record<string, unknown>;
+
+    if (getEncryptionService().isEncryptedEnvelope(obj)) {
+      return getEncryptionService().decryptJson(obj);
+    }
+    return obj;
   }
 
   /**
