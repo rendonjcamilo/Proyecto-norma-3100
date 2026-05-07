@@ -91,7 +91,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const userRole = (req as any).userRole;
+        const userRole = (req as any).user?.role;
         const userId = (req as any).user?.id || (req as any).userId;
         let { provider_id } = req.query;
 
@@ -166,7 +166,7 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        const userRole = (req as any).userRole;
+        const userRole = (req as any).user?.role;
         const userId = (req as any).user?.id || (req as any).userId;
         const finding = await findingModel.getFindingById(req.params.id);
 

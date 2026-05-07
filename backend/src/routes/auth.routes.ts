@@ -410,8 +410,9 @@ router.post('/forgot-password', async (req: Request, res: Response): Promise<voi
       }
     }
 
-    // En desarrollo: siempre loguear el enlace para facilitar pruebas
-    logger.info({ email, resetLink, expiresAt }, '🔑 Password reset link generated (dev)');
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info({ email, expiresAt }, '🔑 Password reset link generated (dev)');
+    }
 
     res.status(200).json(genericResponse);
   } catch (err) {

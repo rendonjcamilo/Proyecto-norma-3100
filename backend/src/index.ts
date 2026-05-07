@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { logger } from './utils/logger.js';
 import authRoutes, { setUserService } from './routes/auth.routes.js';
 import { apiLimiter, authLimiter, webhookLimiter } from './middleware/rate-limit.middleware.js';
+import { authMiddleware } from './middleware/auth.middleware.js';
 import { sanitizeInputs } from './middleware/sanitize.middleware.js';
 import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentsRouter } from './routes/assessments.routes.js';
@@ -150,7 +151,7 @@ app.use('/api', apiLimiter, createServiceRouter(pool, eventStore));
 app.use('/api/questions', apiLimiter, createQuestionsRouter(pool, eventStore));
 
 // Phase 4 Sprint 2: Multi-Channel Notifications
-app.use('/api/multichannel', apiLimiter, createMultiChannelRouter(pool));
+app.use('/api/multichannel', apiLimiter, authMiddleware, createMultiChannelRouter(pool));
 // Webhooks use their own (higher) limiter since providers may burst
 app.use('/api/webhooks', webhookLimiter, createWebhooksRouter(pool));
 
