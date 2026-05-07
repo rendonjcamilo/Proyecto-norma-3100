@@ -13,14 +13,14 @@
 Health compliance management system for Colombian health providers. ~55 functional requirements spanning provider management, self-assessment, findings tracking, audit trails, and REPS/INVIMA integration. Target: 16-week MVP with core modules operational.
 
 ### Active Milestone
-**Phase 3: Core Compliance Workflows** (Weeks 5-8)
-- Task 1-2: Foundation (COMPLETE ✓)
-- Task 3: Service Catalog (COMPLETE ✓)
-- Task 4: Questionnaire Builder (COMPLETE ✓) - 11 endpoints, 7 transversales, versioning
-- Task 5: Assessment Execution (COMPLETE ✓) - Risk scoring, findings generation
-- Task 6: Findings & Corrective Actions Backend (COMPLETE ✓) - CRUD, workflows, event sourcing
-- Task 7: Action Tracking UI (COMPLETE ✓) - 6 components, auditor dashboard, progress tracking
-- Task 8-11: In progress
+**Phase 6: Security Hardening & Deployment** (Weeks 15-16) — IN PROGRESS
+
+### Completed Phases
+- **Phase 1:** Setup & Core Infrastructure ✅
+- **Phase 2:** Auth & User Management ✅
+- **Phase 3:** Core Compliance Workflows ✅ — 512 criterios, 7 estándares, hallazgos, acciones correctivas
+- **Phase 4:** Regulatory Data & Integration ✅ — REPS (SODA API), INVIMA registry, notificaciones Resend
+- **Phase 5:** Audit & Reporting ✅ — Reportes Word/PDF, dashboards por rol, exportación, métricas en tiempo real
 
 ### Team & Stakeholders
 - **Adriana Perdomo** — Auditor/compliance SME
@@ -63,12 +63,12 @@ Health compliance management system for Colombian health providers. ~55 function
 
 ## Phase Planning Progress
 
-- [x] Phase 1: Setup & Infrastructure → READY TO PLAN
-- [ ] Phase 2: Auth & User Management
-- [ ] Phase 3: Core Compliance Workflows
-- [ ] Phase 4: Regulatory Data & Integration
-- [ ] Phase 5: Audit & Reporting
-- [ ] Phase 6: Security & Deployment
+- [x] Phase 1: Setup & Infrastructure ✅ COMPLETE
+- [x] Phase 2: Auth & User Management ✅ COMPLETE
+- [x] Phase 3: Core Compliance Workflows ✅ COMPLETE
+- [x] Phase 4: Regulatory Data & Integration ✅ COMPLETE
+- [x] Phase 5: Audit & Reporting ✅ COMPLETE
+- [ ] Phase 6: Security & Deployment — IN PROGRESS (~70%)
 
 ---
 
