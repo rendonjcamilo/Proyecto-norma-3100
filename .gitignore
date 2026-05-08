@@ -21,6 +21,11 @@ frontend/src/**/*.d.ts
 frontend/src/**/*.js.map
 frontend/src/**/*.d.ts.map
 
+# Compiled JS artifacts in backend/src (tsx compiles on the fly — .js files are stale)
+backend/src/**/*.js
+backend/src/**/*.js.map
+backend/src/**/*.d.ts
+
 # Development
 .DS_Store
 .vscode/

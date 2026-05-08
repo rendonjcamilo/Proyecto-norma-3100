@@ -761,7 +761,13 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
 
         const assessment = result.rows[0];
 
-        // Auditor puede eliminar evaluaciones en cualquier estado
+        // Solo super_admin puede eliminar evaluaciones ya sometidas (trazabilidad Norma 3100)
+        if (userRole === 'auditor' && assessment.status !== 'draft') {
+          return res.status(403).json({
+            error: 'Access denied',
+            message: 'Solo un super_admin puede eliminar evaluaciones en estado ' + assessment.status,
+          });
+        }
 
         await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
 
