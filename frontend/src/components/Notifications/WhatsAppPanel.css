@@ -794,6 +794,34 @@
   background: #4338ca;
 }
 
+.wap-enrich-btn--loading {
+  background: #5b21b6;
+  cursor: default;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: auto;
+}
+
+.wap-enrich-btn--loading:hover {
+  background: #7c3aed;
+}
+
+.wap-enrich-btn-cancel {
+  margin-left: 0.3rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.18);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background 0.15s;
+}
+
+.wap-enrich-btn--loading:hover .wap-enrich-btn-cancel {
+  background: rgba(255,255,255,0.3);
+}
+
 .wap-enrich-progress {
   display: flex;
   align-items: center;

@@ -24,6 +24,7 @@ import {
   VerticalAlign,
   ImageRun,
   Header,
+  Footer,
   ShadingType,
   HorizontalPositionRelativeFrom,
   VerticalPositionRelativeFrom,
@@ -855,20 +856,41 @@ export class ReportService {
       : '';
 
     // Leer imágenes de assets
-    const letterheadPath = path.join(ASSETS_DIR, 'letterhead.jpeg');
+    // header.jpg (1868×2418 px) contiene el membrete completo A&H:
+    //   - Logo arriba → se recorta para el Header de Word (se repite en cada página)
+    //   - Onda teal + contacto abajo → se recorta para el Footer de Word (se repite en cada página)
+    const headerJpgPath = path.join(ASSETS_DIR, 'header.jpg');
     const signaturePath = path.join(ASSETS_DIR, 'signature.jpeg');
-    // Reducir opacidad del membrete al 35% para que no tape el texto del informe
-    let letterheadBuf: Buffer | null = null;
-    if (fs.existsSync(letterheadPath)) {
-      const rawJpeg = fs.readFileSync(letterheadPath);
-      const meta = await sharp(rawJpeg).metadata();
-      const w = meta.width!;
-      const h = meta.height!;
-      // Máscara de un solo canal rellena con 89 (35% de 255) → reduce alpha a 35%
-      const alphaMask = Buffer.alloc(w * h, 89);
-      letterheadBuf = await sharp(rawJpeg)
-        .ensureAlpha()
-        .composite([{ input: alphaMask, raw: { width: w, height: h, channels: 1 }, blend: 'dest-in' }])
+
+    // PAGE_W / PAGE_H en píxeles a 96 DPI para carta (Letter 8.5×11")
+    const PAGE_W = 816;
+    const ORIG_W  = 1868;
+    const ORIG_H  = 2418;
+    const scale   = PAGE_W / ORIG_W;  // ≈ 0.437
+
+    let headerImgBuf: Buffer | null = null;
+    let footerImgBuf: Buffer | null = null;
+    let headerImgH = 0;
+    let footerImgH = 0;
+
+    if (fs.existsSync(headerJpgPath)) {
+      const raw = fs.readFileSync(headerJpgPath);
+      // Recorte del logo: primeras 265 px de la imagen original
+      const headerCropH = 265;
+      headerImgH = Math.round(headerCropH * scale); // ≈ 116 px
+      headerImgBuf = await sharp(raw)
+        .extract({ left: 0, top: 0, width: ORIG_W, height: headerCropH })
+        .resize(PAGE_W, headerImgH, { fit: 'fill' })
+        .png()
+        .toBuffer();
+
+      // Recorte de la onda + datos de contacto: desde y=1870 hasta el final
+      const footerStartY = 1870;
+      const footerCropH  = ORIG_H - footerStartY; // 548 px
+      footerImgH = Math.round(footerCropH * scale); // ≈ 239 px
+      footerImgBuf = await sharp(raw)
+        .extract({ left: 0, top: footerStartY, width: ORIG_W, height: footerCropH })
+        .resize(PAGE_W, footerImgH, { fit: 'fill' })
         .png()
         .toBuffer();
     }
@@ -913,42 +935,18 @@ export class ReportService {
         ],
       });
 
-    // ── HEADER: vacío (el membrete se mueve al body para que behindDocument funcione) ──
-    const headerChildren: any[] = [];
-
-    // ── FONDO DE PÁGINA: membrete colocado en el body como primer hijo ───────────────
-    // Word no aplica behindDocument correctamente para imágenes flotantes en headers
-    // cuando cubren el área del body. Colocarlo en el body sí respeta el z-order.
-    const bgParagraph: any[] = [];
-    if (letterheadBuf) {
-      bgParagraph.push(
-        new Paragraph({
-          children: [
-            new ImageRun({
-              data: letterheadBuf,
-              type: 'png',
-              transformation: { width: 815, height: 1055 },
-              floating: {
-                horizontalPosition: {
-                  relative: HorizontalPositionRelativeFrom.PAGE,
-                  offset: 0,
-                },
-                verticalPosition: {
-                  relative: VerticalPositionRelativeFrom.PAGE,
-                  offset: 0,
-                },
-                behindDocument: true,
-                wrap: { type: TextWrappingType.NONE },
-              },
-            } as any),
-          ],
-        })
-      );
-    }
+    // Helper para párrafo de imagen a sangría negativa (cubre toda la página incluyendo márgenes)
+    const imgParagraph = (data: Buffer, w: number, h: number) =>
+      new Paragraph({
+        indent: { left: -1701 },
+        spacing: { before: 0, after: 0 },
+        children: [
+          new ImageRun({ data, type: 'png', transformation: { width: w, height: h } } as any),
+        ],
+      });
 
     // ── CONTENIDO PRINCIPAL ──────────────────────────────────────────
     const children: any[] = [
-      ...bgParagraph,
 
       // Título principal
       new Paragraph({
@@ -1125,11 +1123,25 @@ export class ReportService {
         {
           properties: {
             page: {
-              margin: { top: 1417, right: 1701, bottom: 1417, left: 1701 },
+              // top: espacio para el logo del header (≈1.2")
+              // bottom: espacio para la onda del footer (≈2.5")
+              // header/footer a 0 → imágenes pegadas al borde de la página
+              margin: { top: 1728, right: 1701, bottom: 3600, left: 1701, header: 0, footer: 0 },
             },
           },
           headers: {
-            default: new Header({ children: headerChildren }),
+            default: new Header({
+              children: headerImgBuf
+                ? [imgParagraph(headerImgBuf, PAGE_W, headerImgH)]
+                : [],
+            }),
+          },
+          footers: {
+            default: new Footer({
+              children: footerImgBuf
+                ? [imgParagraph(footerImgBuf, PAGE_W, footerImgH)]
+                : [],
+            }),
           },
           children,
         },

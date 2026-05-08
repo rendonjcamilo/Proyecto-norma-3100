@@ -6,6 +6,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { repsApi, RepsProspecto, RepsEnrichResult } from '../../services/api';
+import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../data/municipiosColombia';
 import './WhatsAppPanel.css';
 
 const DEPARTAMENTOS_COLOMBIA = [
@@ -285,7 +286,7 @@ export const WhatsAppPanel: React.FC = () => {
       <div className="wap-filters">
         <div className="wap-filter-group">
           <label>Departamento *</label>
-          <select value={departamento} onChange={(e) => setDepartamento(e.target.value)}>
+          <select value={departamento} onChange={(e) => { setDepartamento(e.target.value); setMunicipio(''); }}>
             <option value="">— Selecciona departamento —</option>
             {DEPARTAMENTOS_COLOMBIA.map((d) => (
               <option key={d} value={d}>{d}</option>
@@ -295,13 +296,16 @@ export const WhatsAppPanel: React.FC = () => {
 
         <div className="wap-filter-group wap-filter-group--municipio">
           <label>Municipio (opcional)</label>
-          <input
-            type="text"
+          <select
             value={municipio}
             onChange={(e) => setMunicipio(e.target.value)}
-            placeholder="Ej: MEDELLÍN"
-            className="wap-municipio-input"
-          />
+            disabled={!departamento}
+          >
+            <option value="">— Todos los municipios —</option>
+            {(MUNICIPIOS_POR_DEPARTAMENTO[departamento] ?? []).map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
         </div>
 
         <div className="wap-filter-group">
@@ -381,33 +385,26 @@ export const WhatsAppPanel: React.FC = () => {
               días
             </label>
 
-            {enrichStatus !== 'running' && (
-              <button
-                className="wap-enrich-btn"
-                onClick={handleEnriquecer}
-                title="Consulta el portal MINSALUD para obtener la fecha de vencimiento de cada prestador"
-              >
-                {enrichStatus === 'done' && enrichedCount > 0
-                  ? '🔄 Actualizar fechas'
-                  : '📥 Cargar fechas de vencimiento'}
-              </button>
-            )}
-
-            {enrichStatus === 'running' && (
-              <div className="wap-enrich-progress">
-                <div className="wap-spinner-sm" />
-                <span>
-                  {enrichProgress.done}/{enrichProgress.total} consultados
-                  {enrichProgress.exitosos > 0 && ` · ${enrichProgress.exitosos} con fecha`}
-                </span>
-                <button
-                  className="wap-enrich-cancel"
-                  onClick={() => { enrichAbort.current = true; }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            )}
+            <button
+              className={`wap-enrich-btn${enrichStatus === 'running' ? ' wap-enrich-btn--loading' : ''}`}
+              onClick={enrichStatus === 'running' ? () => { enrichAbort.current = true; } : handleEnriquecer}
+              title={enrichStatus === 'running' ? 'Cancelar consulta' : 'Consulta el portal MINSALUD para obtener la fecha de vencimiento de cada prestador'}
+            >
+              {enrichStatus === 'running' ? (
+                <>
+                  <div className="wap-spinner-sm" />
+                  <span>
+                    {enrichProgress.done}/{enrichProgress.total}
+                    {enrichProgress.exitosos > 0 && ` · ${enrichProgress.exitosos} con fecha`}
+                  </span>
+                  <span className="wap-enrich-btn-cancel">Cancelar</span>
+                </>
+              ) : enrichStatus === 'done' && enrichedCount > 0 ? (
+                '🔄 Actualizar fechas'
+              ) : (
+                '📥 Cargar fechas de vencimiento'
+              )}
+            </button>
           </div>
         </div>
       )}

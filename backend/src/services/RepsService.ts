@@ -422,8 +422,7 @@ export class RepsService {
     }
 
     if (clasePrestador) {
-      const clase = clasePrestador.replace(/'/g, "''");
-      conditions.push(`upper(claseprestador) = upper('${clase}')`);
+      conditions.push(this.clasePrestadorToSodaWhere(clasePrestador));
     }
 
     if (soloConCelular) {
@@ -440,6 +439,8 @@ export class RepsService {
     }
 
     const url = `${DATOS_GOV_REPS_ENDPOINT}?${params.toString()}`;
+    logger.debug({ msg: 'REPS SODA query', url, where: conditions.join(' AND ') });
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
@@ -456,6 +457,11 @@ export class RepsService {
 
       const results = (await response.json()) as Record<string, string>[];
       if (!Array.isArray(results)) return { data: [], total: 0 };
+
+      // Log del primer valor de claseprestador para verificar formato real del dataset
+      if (results.length > 0 && results[0].claseprestador) {
+        logger.debug({ msg: 'REPS claseprestador muestra', valor: results[0].claseprestador });
+      }
 
       // Nota: el dataset c36g-9fc2 de datos.gov.co NO incluye fecha de vencimiento
       // de habilitación. El campo fecha_vencimiento siempre vendrá null desde esta fuente.
@@ -500,6 +506,21 @@ export class RepsService {
   ): Promise<{ data: RepsProspecto[]; campo_vencimiento_encontrado: string | null }> {
     const resultado = await this.buscarProspectosReps({ departamento, limit: 100 });
     return { data: resultado.data, campo_vencimiento_encontrado: null };
+  }
+
+  // Convierte el label del dropdown a una condición SODA robusta.
+  // Usa upper() + LIKE con prefijo para tolerar variantes con/sin acento y capitalización
+  // distinta en el dataset de datos.gov.co.
+  private clasePrestadorToSodaWhere(clase: string): string {
+    const n = this.stripAccents(clase);
+    if (n.includes('INSTITUCI'))     return `upper(claseprestador) like 'INSTITUCI%'`;
+    if (n.includes('EMPRESA SOCIAL')) return `upper(claseprestador) like 'EMPRESA SOCIAL%'`;
+    if (n.includes('TRANSPORTE'))    return `upper(claseprestador) like 'TRANSPORTE%'`;
+    if (n.includes('PROFESIONAL'))   return `upper(claseprestador) like 'PROFESIONAL%'`;
+    if (n.includes('OBJETO SOCIAL')) return `upper(claseprestador) like 'OBJETO SOCIAL%'`;
+    // Fallback para valores no mapeados: exact match normalizado
+    const safe = n.replace(/'/g, "''");
+    return `${this.sodaNoAccent('claseprestador')} = '${safe}'`;
   }
 
   // Normaliza texto eliminando tildes y pasando a mayúsculas
