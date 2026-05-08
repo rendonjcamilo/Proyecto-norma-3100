@@ -9,12 +9,19 @@ export interface User {
   provider_id?: string;
 }
 
+export class PasswordChangeRequired extends Error {
+  constructor(public tempToken: string, public userEmail: string) {
+    super('PASSWORD_CHANGE_REQUIRED');
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithMock: (email: string, role: User['role']) => Promise<void>;
+  loginWithToken: (accessToken: string, userData: User) => void;
   logout: () => void;
 }
 
@@ -55,12 +62,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await response.json();
+
+      if (data.requiresPasswordChange) {
+        throw new PasswordChangeRequired(data.temp_token, data.user.email);
+      }
+
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       setUser(data.user);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loginWithToken = (accessToken: string, userData: User) => {
+    localStorage.setItem('auth_token', accessToken);
+    localStorage.setItem('auth_user', JSON.stringify(userData));
+    setUser(userData);
   };
 
   const loginWithMock = async (email: string, role: User['role']) => {
@@ -109,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!user,
       login,
       loginWithMock,
+      loginWithToken,
       logout,
     }}>
       {children}

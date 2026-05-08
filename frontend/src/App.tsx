@@ -19,6 +19,7 @@ import { InvimaPage } from "./pages/InvimaPage";
 import { RepsPage } from "./pages/RepsPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { ChangePasswordPage } from "./pages/ChangePasswordPage";
 import { NotificationCenter } from "./components/Notifications";
 import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
 import { MultiChannelPreferences } from "./components/Notifications/MultiChannelPreferences";
@@ -190,6 +191,7 @@ function AppContent(): JSX.Element {
       <Routes>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="*" element={<LoginPage />} />
       </Routes>
     );

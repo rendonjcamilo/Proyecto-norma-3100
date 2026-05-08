@@ -12,6 +12,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   status: 'active' | 'inactive' | 'suspended' | 'deleted';
+  must_change_password: boolean;
   password_history: string[];
   failed_login_attempts: number;
   locked_until: Date | null;
@@ -132,7 +133,7 @@ export class UserService {
     try {
       const result = await this.pool.query(
         `SELECT u.id, u.email, u.password_hash, u.provider_id, u.first_name, u.last_name, u.status,
-                u.created_at, u.updated_at, r.name AS role
+                u.must_change_password, u.created_at, u.updated_at, r.name AS role
          FROM users u
          LEFT JOIN roles r ON u.role_id = r.id
          WHERE LOWER(u.email) = LOWER($1)`,
@@ -153,6 +154,7 @@ export class UserService {
         first_name: row.first_name,
         last_name: row.last_name,
         status: row.status,
+        must_change_password: row.must_change_password ?? false,
         password_history: [],
         failed_login_attempts: 0,
         locked_until: null,

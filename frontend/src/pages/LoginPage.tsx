@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, PasswordChangeRequired } from '../context/AuthContext';
 import './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
@@ -24,6 +24,12 @@ export const LoginPage: React.FC = () => {
       await login(email, password);
       navigate('/');
     } catch (err) {
+      if (err instanceof PasswordChangeRequired) {
+        sessionStorage.setItem('change_password_token', err.tempToken);
+        sessionStorage.setItem('change_password_email', err.userEmail);
+        navigate('/change-password');
+        return;
+      }
       setError('Error de autenticación. Verifica tu correo y contraseña.');
     }
   };

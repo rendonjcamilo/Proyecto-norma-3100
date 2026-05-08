@@ -14,6 +14,7 @@ interface TokenClaims {
   user_id: string;
   role?: string;
   provider_id?: string;
+  purpose?: string;
   iat: number;
   exp: number;
   jti: string;
@@ -148,6 +149,30 @@ export function decodeToken(token: string): TokenClaims | RefreshTokenClaims | n
 export function getTokenJti(token: string): string | null {
   const decoded = decodeToken(token);
   return decoded?.jti || null;
+}
+
+/**
+ * Generate a temporary token valid only for password change (15 min)
+ */
+export function generateTempToken(user_id: string): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET not configured or too short (min 32 chars)');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const jti = uuidv4();
+
+  const claims: TokenClaims = {
+    sub: user_id,
+    user_id,
+    purpose: 'password_change',
+    iat: now,
+    exp: now + 900, // 15 minutos
+    jti,
+  };
+
+  return jwt.sign(claims, secret, { algorithm: ALGORITHM });
 }
 
 /**

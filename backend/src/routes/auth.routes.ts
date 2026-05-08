@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import {
   generateAccessToken,
   generateRefreshToken,
+  generateTempToken,
   validateToken,
   decodeToken,
   isTokenExpired,
@@ -169,6 +170,18 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       'PROVIDER_ADMIN': 'provider_admin',
     };
     const apiRole = roleMap[user.role] || user.role.toLowerCase();
+
+    // Si el usuario debe cambiar su contraseña, emitir token temporal (15 min, solo para /auth/change-password)
+    if (user.must_change_password) {
+      const tempToken = generateTempToken(user.id);
+      logger.info({ user_id: user.id, email }, 'Login requires password change');
+      res.status(200).json({
+        requiresPasswordChange: true,
+        temp_token: tempToken,
+        user: { id: user.id, email: user.email, role: apiRole },
+      });
+      return;
+    }
 
     // Generate tokens using converted role (lowercase snake_case)
     const accessToken = generateAccessToken(user.id, apiRole, user.provider_id);
@@ -538,6 +551,99 @@ router.post('/reset-password', async (req: Request, res: Response): Promise<void
   } catch (err) {
     logger.error({ error: err instanceof Error ? err.message : err }, 'reset-password error');
     res.status(500).json({ error: 'Internal Server Error', message: 'Error al restablecer la contraseña' });
+  }
+});
+
+/**
+ * POST /auth/change-password
+ * Cambia la contraseña usando el token temporal emitido en el primer login.
+ * Body: { temp_token, new_password, confirm_password }
+ */
+router.post('/change-password', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { temp_token, new_password, confirm_password } = req.body;
+
+    if (!temp_token || !new_password || !confirm_password) {
+      res.status(400).json({ error: 'Bad Request', message: 'temp_token, new_password y confirm_password son requeridos' });
+      return;
+    }
+
+    if (new_password !== confirm_password) {
+      res.status(400).json({ error: 'Bad Request', message: 'Las contraseñas no coinciden' });
+      return;
+    }
+
+    // Validar token temporal
+    const validation = validateToken(temp_token);
+    if (!validation.valid || !validation.claims) {
+      res.status(401).json({ error: 'Unauthorized', message: 'Token inválido o expirado' });
+      return;
+    }
+
+    if ((validation.claims as any).purpose !== 'password_change') {
+      res.status(401).json({ error: 'Unauthorized', message: 'Token no válido para este endpoint' });
+      return;
+    }
+
+    const userId = validation.claims.user_id;
+
+    // Validar política de contraseña
+    const passwordValidation = validatePasswordPolicy(new_password);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'La contraseña no cumple los requisitos de seguridad',
+        details: passwordValidation.errors,
+      });
+      return;
+    }
+
+    // Hash y actualizar contraseña, desactivar flag
+    const newHash = await hashPassword(new_password);
+    await dbPool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = FALSE, updated_at = NOW() WHERE id = $2`,
+      [newHash, userId]
+    );
+
+    // Obtener datos del usuario para emitir tokens completos
+    const userResult = await dbPool.query(
+      `SELECT u.id, u.email, u.provider_id, u.first_name, u.last_name, r.name AS role
+       FROM users u LEFT JOIN roles r ON u.role_id = r.id WHERE u.id = $1`,
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      res.status(404).json({ error: 'Not Found', message: 'Usuario no encontrado' });
+      return;
+    }
+
+    const user = userResult.rows[0];
+    const roleMap: { [key: string]: string } = { ADMIN: 'super_admin', AUDITOR: 'auditor', PROVIDER_ADMIN: 'provider_admin' };
+    const apiRole = roleMap[user.role] || (user.role || 'provider_admin').toLowerCase();
+
+    const accessToken = generateAccessToken(user.id, apiRole, user.provider_id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      maxAge: 14 * 24 * 60 * 60 * 1000,
+      path: '/auth',
+    });
+
+    logger.info({ user_id: userId }, 'Password changed on first login');
+
+    res.status(200).json({
+      access_token: accessToken,
+      expires_in: 3600,
+      token_type: 'Bearer',
+      user: { id: user.id, email: user.email, role: apiRole, first_name: user.first_name, last_name: user.last_name, provider_id: user.provider_id },
+    });
+  } catch (err) {
+    logger.error({ error: err instanceof Error ? err.message : err }, 'change-password error');
+    res.status(500).json({ error: 'Internal Server Error', message: 'Error al cambiar la contraseña' });
   }
 });
 

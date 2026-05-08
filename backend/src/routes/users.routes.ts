@@ -144,6 +144,12 @@ export function createUsersRouter(pool: Pool): Router {
         }
       }
 
+      // Marcar que debe cambiar contraseña en el primer login
+      await pool.query(
+        'UPDATE users SET must_change_password = TRUE WHERE id = $1',
+        [newUser.id]
+      );
+
       logger.info({ user_id: newUser.id, email, role }, 'New user created by super_admin');
 
       res.status(201).json({
