@@ -869,6 +869,10 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
       try {
         const { auditorId } = req.params;
 
+        if (req.user!.role !== 'super_admin' && req.user!.user_id !== auditorId) {
+          return res.status(403).json({ error: 'Acceso denegado' });
+        }
+
         // IDs de prestadores asignados al auditor
         const providerIds = await pool.query<{ provider_id: string }>(
           `SELECT provider_id FROM auditor_providers WHERE auditor_id = $1`,

@@ -555,13 +555,14 @@ export class ReportService {
       const semaforo: 'verde' | 'naranja' | 'rojo' | 'na' =
         pct === -1 ? 'na' : pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
 
-      // Hallazgos NC de este estándar — usa el texto negado de la respuesta si existe
+      // Hallazgos NC — prioridad: descripción del usuario → nc_hint (texto negado) → nombre original
       const hallazgosResult = await this.pool.query<{
         title: string; criterion_code: string; severity: string; status: string;
       }>(
         `SELECT
                 COALESCE(
                   NULLIF(acr.description, ''),
+                  NULLIF(ec.nc_hint, ''),
                   CASE
                     WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.name
                     ELSE COALESCE(NULLIF(f.title, ''), f.description, '')

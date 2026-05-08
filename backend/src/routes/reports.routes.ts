@@ -27,6 +27,27 @@ function safeFilename(name: string, ext: string): string {
   return `reporte_cumplimiento_${slug || 'prestador'}_${date}.${ext}`;
 }
 
+/** Verifica que un provider_admin solo acceda a su propio prestador */
+async function assertProviderAccess(
+  pool: Pool,
+  userId: string,
+  role: string,
+  providerId: string,
+  res: Response
+): Promise<boolean> {
+  if (role === 'provider_admin') {
+    const r = await pool.query<{ provider_id: string }>(
+      'SELECT provider_id FROM users WHERE id = $1',
+      [userId]
+    );
+    if (r.rows[0]?.provider_id !== providerId) {
+      res.status(403).json({ error: 'Acceso denegado' });
+      return false;
+    }
+  }
+  return true;
+}
+
 export function createReportsRouter(pool: Pool): Router {
   const router = Router();
   const service = new ReportService(pool);
@@ -43,6 +64,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
         const generatedBy = req.user?.user_id || 'system';
         const buffer = await service.generatePdfReport(req.params.providerId, generatedBy);
 
@@ -89,6 +111,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
         const generatedBy = req.user?.user_id || 'system';
         const buffer = await service.generateExcelReport(req.params.providerId, generatedBy);
 
@@ -136,6 +159,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
         const generatedBy = req.user?.user_id || 'system';
         const data = await service.gatherProviderData(req.params.providerId, generatedBy);
         res.json({ data });
@@ -351,6 +375,7 @@ export function createReportsRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, providerId, res)) return;
 
         // 1. Count open findings
         const openFindingsResult = await pool.query<{ count: string }>(

@@ -407,13 +407,13 @@ export class PushService {
         ROUND(100.0 * COUNT(CASE WHEN status = 'sent' THEN 1 END) / COUNT(*), 2) as success_rate
       FROM push_deliveries
       WHERE provider_id = $1
-        AND created_at > CURRENT_TIMESTAMP - INTERVAL '${days} days'
+        AND created_at > CURRENT_TIMESTAMP - (INTERVAL '1 day' * $2)
       GROUP BY DATE(created_at), device_platform
       ORDER BY date DESC;
     `;
 
     try {
-      const result = await this.pool.query(query, [providerId]);
+      const result = await this.pool.query(query, [providerId, days]);
       return result.rows;
     } catch (error) {
       logger.error('Failed to get push delivery stats', {
