@@ -229,15 +229,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               />
               <defs>
                 <linearGradient id="brand-gradient" x1="0" y1="0" x2="32" y2="32">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#818cf8" />
+                  <stop offset="0%" stopColor="#8B5CF6" />
+                  <stop offset="100%" stopColor="#06B6D4" />
                 </linearGradient>
               </defs>
             </svg>
           </div>
           <div className="brand-text">
-            <span className="brand-name">Norma resolución 3100/2019</span>
-            <span className="brand-tagline">Normatividad aplicable vigente</span>
+            <span className="brand-name">HabilitaPro</span>
+            <span className="brand-tagline">
+              {user?.role === 'auditor' ? 'Auditor Elite' : user?.role === 'super_admin' ? 'Administración' : 'Gestión & Alertas'}
+            </span>
           </div>
         </div>
 

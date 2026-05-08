@@ -28,7 +28,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(99, 102, 241, 0.3) 50%,
+    rgba(139, 92, 246, 0.3) 50%,
     transparent 100%
   );
 }
@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.4));
+  filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.4));
 }
 
 .brand-logo svg {
