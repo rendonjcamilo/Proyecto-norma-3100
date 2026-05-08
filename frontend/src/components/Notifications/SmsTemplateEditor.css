@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SMS Template Editor Styles
  * Diseño premium Norma 3100 — paleta índigo
  */
@@ -35,8 +35,8 @@
 }
 
 .back-button:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #8B5CF6;
+  color: #8B5CF6;
   background: #eef2ff;
 }
 
@@ -95,8 +95,8 @@
 }
 
 .template-card:hover {
-  border-color: #6366f1;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+  border-color: #8B5CF6;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.12);
   transform: translateY(-2px);
   background: #fff;
 }
@@ -195,8 +195,8 @@
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .form-textarea {
@@ -230,9 +230,9 @@
 
 .variable-button {
   padding: 4px 10px;
-  border: 1px solid #6366f1;
+  border: 1px solid #8B5CF6;
   background: white;
-  color: #6366f1;
+  color: #8B5CF6;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -241,7 +241,7 @@
 }
 
 .variable-button:hover {
-  background: #6366f1;
+  background: #8B5CF6;
   color: white;
 }
 
@@ -310,14 +310,14 @@
 }
 
 .btn-primary {
-  background-color: #6366f1;
+  background-color: #8B5CF6;
   color: white;
   flex: 1;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #4f46e5;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  background-color: #7C3AED;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .btn-primary:disabled {
@@ -424,7 +424,7 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   animation: slideUp 0.3s ease;
   z-index: 1000;
-  border-left: 4px solid #6366f1;
+  border-left: 4px solid #8B5CF6;
 }
 
 @keyframes slideUp {
@@ -518,7 +518,7 @@
 .stpl-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e1040 45%, #0f172a 100%);
   border-radius: 14px;
   padding: 2.25rem 2.5rem;
   display: flex;
@@ -528,16 +528,36 @@
   margin-bottom: 1.5rem;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.05) inset,
-    0 20px 40px rgba(15,23,42,0.18);
+    0 20px 40px rgba(15,23,42,0.25);
+}
+
+.stpl-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #8B5CF6 0%, #06B6D4 100%);
+  z-index: 3;
+}
+
+.stpl-hero::after {
+  content: '';
+  position: absolute;
+  width: 300px; height: 300px;
+  bottom: -80px; right: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6,182,212,0.42) 0%, transparent 62%);
+  filter: blur(22px);
+  pointer-events: none;
 }
 
 .stpl-hero-orb {
   position: absolute;
-  width: 360px; height: 360px;
-  top: -130px; right: 55px;
+  width: 460px; height: 460px;
+  top: -170px; right: 40px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-  filter: blur(28px);
+  background: radial-gradient(circle, rgba(139,92,246,0.52) 0%, transparent 62%);
+  filter: blur(20px);
   pointer-events: none;
 }
 
@@ -554,8 +574,8 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.28rem 0.7rem;
-  background: rgba(99,102,241,0.18);
-  border: 1px solid rgba(99,102,241,0.35);
+  background: rgba(139,92,246,0.18);
+  border: 1px solid rgba(139,92,246,0.35);
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 600;
@@ -592,7 +612,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.65rem 1.3rem;
-  background: #6366f1;
+  background: #8B5CF6;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -600,14 +620,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.32);
+  box-shadow: 0 4px 12px rgba(139,92,246,0.32);
   white-space: nowrap;
 }
 
 .stpl-hero-btn:hover {
-  background: #4f46e5;
+  background: #7C3AED;
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(99,102,241,0.42);
+  box-shadow: 0 8px 20px rgba(139,92,246,0.42);
 }
 
 /* ── Editor back-bar ─────────────────────────────────────────── */
@@ -640,8 +660,8 @@
 }
 
 .stpl-back-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #8B5CF6;
+  color: #8B5CF6;
   background: #eef2ff;
 }
 

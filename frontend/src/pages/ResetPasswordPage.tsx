@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../services/api';
 import './LoginPage.css';
@@ -126,7 +126,7 @@ export const ResetPasswordPage: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
             <Link
               to="/forgot-password"
-              style={{ fontSize: '13px', color: '#667eea', textDecoration: 'none' }}
+              style={{ fontSize: '13px', color: '#8B5CF6', textDecoration: 'none' }}
             >
               Solicitar nuevo enlace
             </Link>

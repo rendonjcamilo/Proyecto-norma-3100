@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Findings Page — Hallazgos y acciones correctivas
  * Features: detalles, edición, cambio de estado, acciones correctivas
  */
@@ -255,7 +255,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
       <div className="aud-hero">
         <div className="aud-hero-content">
           <span className="aud-hero-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#A78BFA"/></svg>
             Gestión de Cumplimiento
           </span>
           <h1 className="aud-hero-title">Hallazgos</h1>
@@ -335,7 +335,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
             <div className="prov-card-info">
               <div className="prov-info-row">
                 <span className="prov-info-label">Estado</span>
-                <span className="prov-info-value" style={{ color: f.status === 'closed' || f.status === 'resolved' ? '#059669' : f.status === 'in_progress' ? '#6366f1' : '#64748b' }}>
+                <span className="prov-info-value" style={{ color: f.status === 'closed' || f.status === 'resolved' ? '#059669' : f.status === 'in_progress' ? '#8B5CF6' : '#64748b' }}>
                   {STATUS_LABELS[f.status]}
                 </span>
               </div>
@@ -411,7 +411,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
                           padding: '6px 14px',
                           border: selectedFinding.status === status ? 'none' : '1px solid #e2e8f0',
                           borderRadius: '6px',
-                          background: selectedFinding.status === status ? '#6366f1' : '#fff',
+                          background: selectedFinding.status === status ? '#8B5CF6' : '#fff',
                           color: selectedFinding.status === status ? '#fff' : '#475569',
                           cursor: 'pointer',
                           fontSize: '12px',
@@ -448,7 +448,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                    Acciones Correctivas <span style={{ color: '#6366f1' }}>({findingActions.length})</span>
+                    Acciones Correctivas <span style={{ color: '#8B5CF6' }}>({findingActions.length})</span>
                   </p>
                   {can('findings', 'create') && (
                     <button
@@ -594,9 +594,9 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
             </div>
             <div className="modal-body">
               {/* Prestador seleccionado */}
-              <div style={{ marginBottom: '16px', padding: '10px 14px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '8px', fontSize: '13px' }}>
+              <div style={{ marginBottom: '16px', padding: '10px 14px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '8px', fontSize: '13px' }}>
                 <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Para prestador</span>
-                <p style={{ margin: '3px 0 0', fontWeight: 700, color: '#6366f1' }}>
+                <p style={{ margin: '3px 0 0', fontWeight: 700, color: '#8B5CF6' }}>
                   {selectedProvider?.legalName || 'No seleccionado'}
                 </p>
               </div>

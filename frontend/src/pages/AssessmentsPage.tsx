@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Assessments Page — Evaluaciones de cumplimiento Norma 3100
  * Carga servicios dinámicamente desde el modelo JSON
  */
@@ -282,7 +282,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
       <div className="aud-hero">
         <div className="aud-hero-content">
           <span className="aud-hero-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#A78BFA"/></svg>
             Gestión de Cumplimiento
           </span>
           <h1 className="aud-hero-title">{user?.role === 'auditor' ? 'Auditoría' : 'Evaluaciones'}</h1>
@@ -371,7 +371,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         {/* Accent bar con color de estado */}
                         <div className="prov-card-accent" style={{
                           background: a.status === 'completed' ? 'linear-gradient(180deg,#10b981,#34d399)'
-                            : a.status === 'in_progress' ? 'linear-gradient(180deg,#6366f1,#818cf8)'
+                            : a.status === 'in_progress' ? 'linear-gradient(180deg,#8B5CF6,#A78BFA)'
                             : 'linear-gradient(180deg,#94a3b8,#cbd5e1)',
                         }} />
 
@@ -384,7 +384,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                                 checked={isSelected}
                                 onChange={() => toggleAssessmentSelection(a.id)}
                                 onClick={e => e.stopPropagation()}
-                                style={{ width: '16px', height: '16px', accentColor: '#6366f1', cursor: 'pointer' }}
+                                style={{ width: '16px', height: '16px', accentColor: '#8B5CF6', cursor: 'pointer' }}
                               />
                             ) : (
                               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -734,7 +734,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   </select>
                 )}
                 {servicesFiltered && !loadingProviderServices && (
-                  <small style={{ color: '#6366f1', display: 'block', marginTop: '4px' }}>
+                  <small style={{ color: '#8B5CF6', display: 'block', marginTop: '4px' }}>
                     ✓ {services.length} servicio{services.length !== 1 ? 's' : ''} habilitado{services.length !== 1 ? 's' : ''} para este prestador
                   </small>
                 )}

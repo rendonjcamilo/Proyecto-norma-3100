@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sidebar Navigation Component
  * Professional sidebar with sections, active states and collapsible mode
  */
@@ -317,7 +317,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     right: 0,
                     marginBottom: '6px',
                     background: '#1e1b4b',
-                    border: '1px solid rgba(99,102,241,0.35)',
+                    border: '1px solid rgba(139,92,246,0.35)',
                     borderRadius: '10px',
                     boxShadow: '0 8px 24px rgba(15,23,42,0.5)',
                     minWidth: '172px',

@@ -1,4 +1,4 @@
-/* ─────────────────────────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────────────────────────
    WhatsAppPanel.css
    Módulo WhatsApp para auditores — Prefijo: wap-
 ───────────────────────────────────────────────────────────────── */
@@ -622,7 +622,7 @@
 }
 
 .wap-venc-link {
-  color: #4f46e5;
+  color: #7C3AED;
   text-decoration: underline;
   font-weight: 600;
 }
@@ -712,7 +712,7 @@
 
 .wap-composer-venc--desconocida a,
 .wap-link-btn {
-  color: #4f46e5;
+  color: #7C3AED;
   text-decoration: underline;
   background: none;
   border: none;
@@ -779,7 +779,7 @@
 
 .wap-enrich-btn {
   padding: 0.5rem 1rem;
-  background: #4f46e5;
+  background: #7C3AED;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -799,7 +799,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #4f46e5;
+  color: #7C3AED;
 }
 
 .wap-enrich-cancel {
@@ -875,7 +875,7 @@
 
 /* Fecha en meta de item */
 .wap-item-venc-date {
-  color: #6366f1;
+  color: #8B5CF6;
   font-weight: 500;
 }
 
@@ -972,7 +972,7 @@
 }
 
 .wap-modal-hint a {
-  color: #4f46e5;
+  color: #7C3AED;
   text-decoration: underline;
   font-weight: 600;
 }
@@ -1015,7 +1015,7 @@
 
 .wap-modal-save {
   padding: 0.5rem 1.2rem;
-  background: #4f46e5;
+  background: #7C3AED;
   border: none;
   border-radius: 8px;
   color: #fff;

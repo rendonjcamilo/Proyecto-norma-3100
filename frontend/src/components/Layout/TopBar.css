@@ -102,8 +102,8 @@
 
 .search-input:focus {
   background: var(--surface-raised);
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
   outline: none;
 }
 
@@ -149,8 +149,8 @@
 }
 
 .topbar-icon-btn:hover {
-  background: var(--neutral-100);
-  color: #6366f1;
+  background: rgba(139, 92, 246, 0.08);
+  color: #8B5CF6;
   transform: translateY(-1px);
 }
 

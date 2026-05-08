@@ -1,4 +1,4 @@
-/* Documents Page — Professional styling for Documentary Matrix */
+﻿/* Documents Page — Professional styling for Documentary Matrix */
 
 .docs-page {
   padding: 24px 32px 60px;
@@ -46,7 +46,7 @@
   letter-spacing: -0.02em;
   margin: 0 0 6px 0;
   color: #0b1229;
-  background: linear-gradient(135deg, #6366f1, #818cf8);
+  background: linear-gradient(135deg, #8B5CF6, #A78BFA);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -226,8 +226,8 @@
 
 .docs-search:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
 }
 
 .chip-group {
@@ -253,9 +253,9 @@
 }
 
 .chip-active {
-  background: #6366f1;
+  background: #8B5CF6;
   color: #fff;
-  border-color: #4f46e5;
+  border-color: #7C3AED;
 }
 
 /* === TABLE === */
@@ -318,7 +318,7 @@
   font-family: 'JetBrains Mono', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 600;
-  color: #0052cc;
+  color: #7C3AED;
   white-space: nowrap;
 }
 
@@ -388,9 +388,9 @@
 }
 
 .btn-icon:hover {
-  background: rgba(99, 102, 241, 0.07);
-  border-color: rgba(99, 102, 241, 0.4);
-  color: #6366f1;
+  background: rgba(139, 92, 246, 0.07);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #8B5CF6;
 }
 
 .btn-upload:hover {
@@ -478,7 +478,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #0052cc;
+  color: #7C3AED;
   margin-bottom: 4px;
 }
 
@@ -546,7 +546,7 @@
 
 .btn-primary {
   padding: 10px 18px;
-  background: #6366f1;
+  background: #8B5CF6;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -557,7 +557,7 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #4f46e5;
+  background: #7C3AED;
 }
 
 .btn-primary:disabled {
@@ -645,44 +645,10 @@
 }
 
 /* ── Hero Banner (paleta índigo) ─────────────────────────── */
-.docs-spinner { border-top-color: #6366f1; }
+.docs-spinner { border-top-color: #8B5CF6; }
 .docs-page { background: #f1f5f9; }
 
-/* ── Hero Banner ─────────────────────────────────────────── */
-.aud-hero {
-  position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
-  border-radius: 14px; padding: 2.25rem 2.5rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 40px rgba(15,23,42,0.18);
-}
-.aud-hero-orb {
-  position: absolute; width: 360px; height: 360px; top: -130px; right: 55px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-  filter: blur(28px); pointer-events: none;
-}
-.aud-hero-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.45rem; }
-.aud-hero-badge {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.28rem 0.7rem;
-  background: rgba(99,102,241,0.18); border: 1px solid rgba(99,102,241,0.35);
-  border-radius: 999px; font-size: 0.7rem; font-weight: 600; color: #a5b4fc;
-  letter-spacing: 0.5px; text-transform: uppercase; width: fit-content;
-}
-.aud-hero-title { margin: 0; font-size: 1.75rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.4px; line-height: 1.15; }
-.aud-hero-subtitle { margin: 0; font-size: 0.88rem; color: #94a3b8; font-weight: 400; }
-.aud-hero-actions { position: relative; z-index: 1; flex-shrink: 0; }
-.aud-hero-btn {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.65rem 1.3rem; background: #6366f1; color: #fff; border: none;
-  border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(99,102,241,0.32); white-space: nowrap;
-}
-.aud-hero-btn:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(99,102,241,0.42); }
-@media (max-width: 1100px) { .aud-hero { flex-direction: column; align-items: flex-start; } .aud-hero-actions { width: 100%; } }
-@media (max-width: 700px) { .aud-hero { padding: 1.75rem; } .aud-hero-title { font-size: 1.4rem; } .aud-hero-btn { width: 100%; justify-content: center; } }
+/* ── Hero Banner (usa definición de Pages.css — no duplicar aquí) ── */
 
 /* ═══════════════════════════════════════════════════════
    DOCUMENT CARDS — DocumentsPage
@@ -723,7 +689,7 @@
   font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #6366f1;
+  color: #8B5CF6;
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }

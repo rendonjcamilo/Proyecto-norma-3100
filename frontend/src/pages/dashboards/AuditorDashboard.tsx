@@ -93,7 +93,7 @@ export function AuditorDashboard(): JSX.Element {
         <div className="adb-hero-content">
           <span className="adb-hero-badge">
             <svg width="6" height="6" viewBox="0 0 6 6" fill="none">
-              <circle cx="3" cy="3" r="3" fill="#818cf8"/>
+              <circle cx="3" cy="3" r="3" fill="#A78BFA"/>
             </svg>
             Auditoría — Norma 3100
           </span>

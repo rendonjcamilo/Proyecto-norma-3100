@@ -1,4 +1,4 @@
-/**
+﻿/**
  * REPS Page Styles
  */
 
@@ -23,7 +23,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #e5e7eb;
-  border-top-color: #6366f1;
+  border-top-color: #8B5CF6;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -123,8 +123,8 @@
 }
 
 .reps-tab.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
+  color: #8B5CF6;
+  border-bottom-color: #8B5CF6;
 }
 
 /* TAB CONTENT */
@@ -183,13 +183,13 @@
 
 .reps-consulta-form input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
 }
 
 .reps-consulta-form button {
   padding: 0.75rem 1.5rem;
-  background: #6366f1;
+  background: #8B5CF6;
   color: white;
   border: none;
   border-radius: 0.375rem;
@@ -199,7 +199,7 @@
 }
 
 .reps-consulta-form button:hover:not(:disabled) {
-  background: #4f46e5;
+  background: #7C3AED;
 }
 
 .reps-consulta-form button:disabled {
@@ -378,7 +378,7 @@
 
 .servicio-code {
   font-weight: 700;
-  color: #6366f1;
+  color: #8B5CF6;
   font-size: 0.85rem;
   min-width: 80px;
   padding: 0.25rem 0.75rem;
@@ -496,7 +496,7 @@
 .aud-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e1040 45%, #0f172a 100%);
   border-radius: 14px;
   padding: 2.25rem 2.5rem;
   display: flex;
@@ -504,18 +504,38 @@
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 1.5rem;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 40px rgba(15,23,42,0.18);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 40px rgba(15,23,42,0.25);
+}
+
+.aud-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #8B5CF6 0%, #06B6D4 100%);
+  z-index: 3;
+}
+
+.aud-hero::after {
+  content: '';
+  position: absolute;
+  width: 300px; height: 300px;
+  bottom: -80px; right: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6,182,212,0.42) 0%, transparent 62%);
+  filter: blur(22px);
+  pointer-events: none;
 }
 
 .aud-hero-orb {
   position: absolute;
-  width: 360px;
-  height: 360px;
-  top: -130px;
-  right: 55px;
+  width: 460px;
+  height: 460px;
+  top: -170px;
+  right: 40px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-  filter: blur(28px);
+  background: radial-gradient(circle, rgba(139,92,246,0.52) 0%, transparent 62%);
+  filter: blur(20px);
   pointer-events: none;
 }
 
@@ -532,8 +552,8 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.28rem 0.7rem;
-  background: rgba(99,102,241,0.18);
-  border: 1px solid rgba(99,102,241,0.35);
+  background: rgba(139,92,246,0.18);
+  border: 1px solid rgba(139,92,246,0.35);
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 600;
@@ -570,7 +590,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.65rem 1.3rem;
-  background: #6366f1;
+  background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -578,14 +598,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.32);
+  box-shadow: 0 4px 12px rgba(139,92,246,0.35);
   white-space: nowrap;
 }
 
 .aud-hero-btn:hover {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #7C3AED 0%, #0891b2 100%);
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(99,102,241,0.42);
+  box-shadow: 0 8px 20px rgba(139,92,246,0.45);
 }
 
 @media (max-width: 1100px) {

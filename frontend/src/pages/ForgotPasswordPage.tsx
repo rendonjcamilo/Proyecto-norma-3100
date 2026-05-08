@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authApi } from '../services/api';
 import './LoginPage.css';
@@ -59,7 +59,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => { setSubmitted(false); setEmail(''); }}
-                  style={{ background: 'none', border: 'none', color: '#667eea', cursor: 'pointer', fontSize: '13px', padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#8B5CF6', cursor: 'pointer', fontSize: '13px', padding: 0 }}
                 >
                   intenta de nuevo
                 </button>.
@@ -95,7 +95,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
             <Link
               to="/login"
-              style={{ fontSize: '13px', color: '#667eea', textDecoration: 'none' }}
+              style={{ fontSize: '13px', color: '#8B5CF6', textDecoration: 'none' }}
             >
               ← Volver al inicio de sesión
             </Link>

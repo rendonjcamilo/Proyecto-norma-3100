@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TopBar Component
  * Professional top navigation with breadcrumbs, search and quick actions
  */
@@ -288,9 +288,9 @@ export const TopBar: React.FC<TopBarProps> = ({
                     style={{
                       flex: 1,
                       padding: '8px',
-                      border: theme === 'light' ? '2px solid #6366f1' : '1px solid #ddd',
+                      border: theme === 'light' ? '2px solid #8B5CF6' : '1px solid #ddd',
                       background: theme === 'light' ? 'white' : '#f5f5f5',
-                      color: theme === 'light' ? '#6366f1' : '#666',
+                      color: theme === 'light' ? '#8B5CF6' : '#666',
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontWeight: theme === 'light' ? 500 : 400,
@@ -303,9 +303,9 @@ export const TopBar: React.FC<TopBarProps> = ({
                     style={{
                       flex: 1,
                       padding: '8px',
-                      border: theme === 'dark' ? '2px solid #6366f1' : '1px solid #ddd',
+                      border: theme === 'dark' ? '2px solid #8B5CF6' : '1px solid #ddd',
                       background: theme === 'dark' ? 'white' : '#f5f5f5',
-                      color: theme === 'dark' ? '#6366f1' : '#666',
+                      color: theme === 'dark' ? '#8B5CF6' : '#666',
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontWeight: theme === 'dark' ? 500 : 400,
@@ -318,9 +318,9 @@ export const TopBar: React.FC<TopBarProps> = ({
                     style={{
                       flex: 1,
                       padding: '8px',
-                      border: theme === 'auto' ? '2px solid #6366f1' : '1px solid #ddd',
+                      border: theme === 'auto' ? '2px solid #8B5CF6' : '1px solid #ddd',
                       background: theme === 'auto' ? 'white' : '#f5f5f5',
-                      color: theme === 'auto' ? '#6366f1' : '#666',
+                      color: theme === 'auto' ? '#8B5CF6' : '#666',
                       borderRadius: '4px',
                       cursor: 'pointer',
                       fontWeight: theme === 'auto' ? 500 : 400,
@@ -338,7 +338,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 width: '100%',
                 padding: '10px',
                 marginTop: '16px',
-                background: '#6366f1',
+                background: '#8B5CF6',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',

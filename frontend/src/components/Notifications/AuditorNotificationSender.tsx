@@ -183,7 +183,7 @@ export const AuditorNotificationSender: React.FC = () => {
         {/* Header */}
         <div className="ans-header">
           <span className="ans-header-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#A78BFA"/></svg>
             Comunicaciones
           </span>
           <h2>Enviar notificación</h2>

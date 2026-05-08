@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Providers Page — Gestión de prestadores de salud
  */
 
@@ -422,7 +422,7 @@ export const ProvidersPage: React.FC = () => {
       <div className="aud-hero">
         <div className="aud-hero-content">
           <span className="aud-hero-badge">
-            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
+            <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#A78BFA"/></svg>
             Gestión de Prestadores
           </span>
           <h1 className="aud-hero-title">Prestadores de Salud</h1>
@@ -596,7 +596,7 @@ export const ProvidersPage: React.FC = () => {
                       type="button"
                       onClick={handleRepsSearch}
                       disabled={repsSearching || creating || !repsSearchCode.trim()}
-                      style={{ padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: (!repsSearchCode.trim() || repsSearching) ? 0.6 : 1 }}
+                      style={{ padding: '8px 16px', background: '#7C3AED', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap', opacity: (!repsSearchCode.trim() || repsSearching) ? 0.6 : 1 }}
                     >
                       {repsSearching ? 'Buscando...' : 'Buscar'}
                     </button>
@@ -800,7 +800,7 @@ export const ProvidersPage: React.FC = () => {
                 </div>
 
                 {selectedServiceIds.length > 0 && (
-                  <div style={{ marginBottom: '10px', fontSize: '13px', color: '#4f46e5', fontWeight: 600 }}>
+                  <div style={{ marginBottom: '10px', fontSize: '13px', color: '#7C3AED', fontWeight: 600 }}>
                     {selectedServiceIds.length} servicio{selectedServiceIds.length !== 1 ? 's' : ''} seleccionado{selectedServiceIds.length !== 1 ? 's' : ''}
                     {repsServiciosCodigos.size > 0 && (
                       <span style={{ marginLeft: '8px', fontSize: '11px', background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px', borderRadius: '10px', fontWeight: 600 }}>
@@ -838,7 +838,7 @@ export const ProvidersPage: React.FC = () => {
                       );
                       return categories.map((cat) => (
                         <div key={cat}>
-                          <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#f8f9ff', borderBottom: '1px solid #e8eaff', position: 'sticky', top: 0 }}>
+                          <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#f8f9ff', borderBottom: '1px solid #e8eaff', position: 'sticky', top: 0 }}>
                             {cat}
                           </div>
                           {grouped[cat].map((service) => {
@@ -857,7 +857,7 @@ export const ProvidersPage: React.FC = () => {
                                     );
                                   }}
                                   disabled={creating}
-                                  style={{ accentColor: '#6366f1', width: '15px', height: '15px', flexShrink: 0 }}
+                                  style={{ accentColor: '#8B5CF6', width: '15px', height: '15px', flexShrink: 0 }}
                                 />
                                 <span style={{ flex: 1 }}>{service.name}</span>
                                 {isFromReps && (

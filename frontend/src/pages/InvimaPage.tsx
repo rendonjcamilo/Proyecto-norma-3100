@@ -1,4 +1,4 @@
-/**
+﻿/**
  * INVIMA Registry Page — Consulta de registros sanitarios
  * Busca por número de registro o texto libre; muestra todos los campos.
  */
@@ -16,7 +16,7 @@ const ESTADO_COLORS: Record<string, string> = {
   vencido: '#dc2626',
   suspendido: '#d97706',
   cancelado: '#dc2626',
-  en_tramite: '#6366f1',
+  en_tramite: '#8B5CF6',
   desconocido: '#64748b',
 };
 
