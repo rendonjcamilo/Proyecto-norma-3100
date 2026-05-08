@@ -129,42 +129,9 @@ export const WhatsAppPanel: React.FC = () => {
 
   const enrichedCount = prospectos.filter((p) => p.fecha_vencimiento !== null).length;
 
-  // ── Búsqueda ──────────────────────────────────────────────────────────────
-
-  const cargar = useCallback(async () => {
-    if (!canSearch) return;
-    setLoading(true);
-    setError('');
-    setSelected(null);
-    setEnrichStatus('idle');
-    setEnrichProgress({ done: 0, total: 0, exitosos: 0 });
-    setEnrichErrors([]);
-    try {
-      const res = await repsApi.getMercadoPotencial({
-        departamento: departamento || undefined,
-        municipio: municipio.trim().toUpperCase() || undefined,
-        clase: clase || undefined,
-        soloConCelular,
-      });
-      setProspectos(res.data || []);
-      setTotalEncontrados(res.total ?? res.data.length);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.toLowerCase().includes('jwt') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('unauthorized')) {
-        setError('Sesión expirada — vuelve a iniciar sesión para consultar el REPS.');
-      } else {
-        setError('No se pudo conectar con datos.gov.co. Verifica tu conexión e intenta de nuevo.');
-      }
-      setTotalEncontrados(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [departamento, municipio, clase, soloConCelular, canSearch]);
-
   // ── Enriquecimiento por lotes ──────────────────────────────────────────────
 
-  const handleEnriquecer = async () => {
-    const nits = prospectos.map((p) => p.nit).filter(Boolean);
+  const doEnrich = useCallback(async (nits: string[]) => {
     if (nits.length === 0) return;
 
     enrichAbort.current = false;
@@ -216,7 +183,45 @@ export const WhatsAppPanel: React.FC = () => {
     }
 
     setEnrichStatus('done');
-  };
+  }, []);
+
+  // ── Búsqueda ──────────────────────────────────────────────────────────────
+
+  const cargar = useCallback(async () => {
+    if (!canSearch) return;
+    setLoading(true);
+    setError('');
+    setSelected(null);
+    setEnrichStatus('idle');
+    setEnrichProgress({ done: 0, total: 0, exitosos: 0 });
+    setEnrichErrors([]);
+    let fetchedData: RepsProspecto[] = [];
+    try {
+      const res = await repsApi.getMercadoPotencial({
+        departamento: departamento || undefined,
+        municipio: municipio.trim().toUpperCase() || undefined,
+        clase: clase || undefined,
+        soloConCelular,
+      });
+      fetchedData = res.data || [];
+      setProspectos(fetchedData);
+      setTotalEncontrados(res.total ?? fetchedData.length);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.toLowerCase().includes('jwt') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('unauthorized')) {
+        setError('Sesión expirada — vuelve a iniciar sesión para consultar el REPS.');
+      } else {
+        setError('No se pudo conectar con datos.gov.co. Verifica tu conexión e intenta de nuevo.');
+      }
+      setTotalEncontrados(null);
+    } finally {
+      setLoading(false);
+    }
+    // Auto-enrich: carga fechas de vencimiento automáticamente tras la búsqueda
+    if (fetchedData.length > 0) {
+      await doEnrich(fetchedData.map((p) => p.nit).filter(Boolean));
+    }
+  }, [departamento, municipio, clase, soloConCelular, canSearch, doEnrich]);
 
   // ── Ingreso manual de fecha ────────────────────────────────────────────────
 
@@ -277,8 +282,8 @@ export const WhatsAppPanel: React.FC = () => {
         </span>
         <h2>Prestadores habilitados — Prospección comercial</h2>
         <p>
-          Busca prestadores del REPS nacional, carga sus fechas de vencimiento de habilitación
-          y contáctalos antes de que venzan para ofrecerles servicios de auditoría Res. 3100.
+          Busca prestadores del REPS nacional. Las fechas de vencimiento se cargan automáticamente
+          para que puedas filtrar y contactar a quienes tienen habilitación próxima a vencer.
         </p>
       </div>
 
@@ -349,17 +354,21 @@ export const WhatsAppPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Barra de enriquecimiento — aparece una vez hay resultados */}
+      {/* Barra de fechas — aparece una vez hay resultados */}
       {prospectos.length > 0 && (
         <div className="wap-enrich-bar">
           <div className="wap-enrich-bar-left">
-            <span className="wap-enrich-icon">📅</span>
+            <span className="wap-enrich-icon">
+              {enrichStatus === 'running' ? <div className="wap-spinner-sm" /> : '📅'}
+            </span>
             <div>
               <div className="wap-enrich-title">Fechas de vencimiento MINSALUD</div>
               <div className="wap-enrich-sub">
-                {enrichedCount === 0
-                  ? 'Sin fechas cargadas — el filtro por vencimiento requiere este paso'
-                  : `${enrichedCount} de ${prospectos.length} prestadores con fecha cargada`}
+                {enrichStatus === 'running'
+                  ? `Consultando MINSALUD… ${enrichProgress.done}/${enrichProgress.total}${enrichProgress.exitosos > 0 ? ` · ${enrichProgress.exitosos} con fecha` : ''}`
+                  : enrichedCount === 0
+                    ? 'Sin fechas disponibles en el portal MINSALUD'
+                    : `${enrichedCount} de ${prospectos.length} prestadores con fecha cargada`}
               </div>
             </div>
           </div>
@@ -385,26 +394,23 @@ export const WhatsAppPanel: React.FC = () => {
               días
             </label>
 
-            <button
-              className={`wap-enrich-btn${enrichStatus === 'running' ? ' wap-enrich-btn--loading' : ''}`}
-              onClick={enrichStatus === 'running' ? () => { enrichAbort.current = true; } : handleEnriquecer}
-              title={enrichStatus === 'running' ? 'Cancelar consulta' : 'Consulta el portal MINSALUD para obtener la fecha de vencimiento de cada prestador'}
-            >
-              {enrichStatus === 'running' ? (
-                <>
-                  <div className="wap-spinner-sm" />
-                  <span>
-                    {enrichProgress.done}/{enrichProgress.total}
-                    {enrichProgress.exitosos > 0 && ` · ${enrichProgress.exitosos} con fecha`}
-                  </span>
-                  <span className="wap-enrich-btn-cancel">Cancelar</span>
-                </>
-              ) : enrichStatus === 'done' && enrichedCount > 0 ? (
-                '🔄 Actualizar fechas'
-              ) : (
-                '📥 Cargar fechas de vencimiento'
-              )}
-            </button>
+            {enrichStatus === 'running' ? (
+              <button
+                className="wap-enrich-btn wap-enrich-btn--loading"
+                onClick={() => { enrichAbort.current = true; }}
+                title="Cancelar consulta"
+              >
+                Cancelar
+              </button>
+            ) : (
+              <button
+                className="wap-enrich-btn"
+                onClick={() => doEnrich(prospectos.map((p) => p.nit).filter(Boolean))}
+                title="Actualizar fechas desde MINSALUD"
+              >
+                🔄 Actualizar
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -509,7 +515,7 @@ export const WhatsAppPanel: React.FC = () => {
                               ? (p.dias_hasta_vencer <= 0 ? 'Vencido' : `${p.dias_hasta_vencer}d`)
                               : formatFechaVenc(p.fecha_vencimiento)}
                           </span>
-                        ) : enrichStatus !== 'idle' ? (
+                        ) : (
                           <button
                             className="wap-venc-manual-btn"
                             onClick={(e) => { e.stopPropagation(); abrirManual(p); }}
@@ -517,7 +523,7 @@ export const WhatsAppPanel: React.FC = () => {
                           >
                             📅 Fecha manual
                           </button>
-                        ) : null}
+                        )}
                         <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
                       </div>
                     </div>
@@ -554,12 +560,6 @@ export const WhatsAppPanel: React.FC = () => {
             <div className="wap-composer-empty">
               <div className="wap-composer-empty-icon">💬</div>
               <p>Selecciona un prestador de la lista para preparar el mensaje de contacto</p>
-              {prospectos.length > 0 && enrichedCount === 0 && (
-                <p className="wap-composer-empty-hint">
-                  💡 Haz clic en <strong>"Cargar fechas de vencimiento"</strong> para identificar
-                  prestadores cuya habilitación vence pronto.
-                </p>
-              )}
             </div>
           ) : (
             <>

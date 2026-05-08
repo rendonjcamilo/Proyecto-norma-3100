@@ -344,7 +344,9 @@ export class RepsEnrichmentService {
     return res.rows.map((row) => ({
       nit: row.nit,
       fecha_vencimiento: row.fecha_vencimiento
-        ? String(row.fecha_vencimiento).split('T')[0]
+        ? (row.fecha_vencimiento instanceof Date
+            ? row.fecha_vencimiento.toISOString().split('T')[0]
+            : String(row.fecha_vencimiento).split('T')[0])
         : null,
       fuente: 'cache' as const,
       ok: true,

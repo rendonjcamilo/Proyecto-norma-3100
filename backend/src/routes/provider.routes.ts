@@ -264,7 +264,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           const result = await pool.query(
             `SELECT p.* FROM providers p
              INNER JOIN auditor_providers ap ON p.id = ap.provider_id
-             WHERE ap.auditor_id = $1`,
+             WHERE ap.auditor_id = $1 AND p.status != 'revoked'`,
             [user?.user_id]
           );
           providers = result.rows;
@@ -419,7 +419,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.delete(
     '/providers/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['super_admin', 'auditor']),
     async (req: Request, res: Response) => {
       try {
         const provider = await providerModel.getProviderById(req.params.id);
@@ -838,7 +838,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           `SELECT p.id, p.legal_name, p.rut, p.city, p.department, p.status, ap.assigned_at, ap.assigned_by
            FROM providers p
            INNER JOIN auditor_providers ap ON p.id = ap.provider_id
-           WHERE ap.auditor_id = $1
+           WHERE ap.auditor_id = $1 AND p.status != 'revoked'
            ORDER BY p.legal_name ASC`,
           [req.params.auditorId]
         );
