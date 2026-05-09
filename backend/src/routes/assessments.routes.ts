@@ -40,10 +40,10 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         const userId = req.user?.user_id;
         const userRole = req.user?.role;
 
-        // Validation
-        if (!serviceId || !assessmentVersion) {
+        // Validation — serviceId is optional (null → transversal assessment with master questionnaire)
+        if (!assessmentVersion) {
           return res.status(400).json({
-            error: 'serviceId y assessmentVersion son requeridos',
+            error: 'assessmentVersion es requerido',
           });
         }
 

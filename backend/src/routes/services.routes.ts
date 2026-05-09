@@ -63,6 +63,37 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
   });
 
   /**
+   * GET /api/services/evaluable
+   * Returns the 35 Res.3100/2019 services that have published service-specific questionnaires.
+   * Used by audit creation UI to show applicable evaluations beyond the 7 transversal standards.
+   */
+  router.get('/services/evaluable', authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(`
+        SELECT
+          s.id,
+          s.code,
+          s.name,
+          s.category,
+          q.id AS questionnaire_id,
+          q.total_criteria
+        FROM services s
+        JOIN questionnaires q ON q.service_id = s.id
+        WHERE q.status = 'published' AND q.version_type = 'initial'
+        ORDER BY s.category, s.name
+      `);
+
+      res.status(200).json({
+        data: result.rows,
+        count: result.rows.length,
+      });
+    } catch (error) {
+      logger.error({ msg: 'Error fetching evaluable services', error: (error as Error).message });
+      res.status(500).json({ error: 'Failed to fetch evaluable services' });
+    }
+  });
+
+  /**
    * GET /api/services/:serviceId
    * Get specific service details
    */

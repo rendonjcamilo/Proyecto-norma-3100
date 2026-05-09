@@ -100,16 +100,27 @@ export class AssessmentService {
     try {
       await client.query('BEGIN');
 
-      // 1. Find published master questionnaire for version
-      // Master questionnaire (service_id IS NULL) contains all 7 standards + 512 criteria
-      const questionnaireQuery = `
-        SELECT id, total_criteria
-        FROM questionnaires
-        WHERE version_type = $1 AND status = 'published' AND service_id IS NULL
-        LIMIT 1
-      `;
+      // 1. Find published questionnaire for version
+      // - Service-specific (service_id = serviceId): when serviceId matches a Res.3100 service with questionnaire
+      // - Master (service_id IS NULL): transversal 512-criteria questionnaire (fallback)
+      let qResult = serviceId
+        ? await client.query(
+            `SELECT id, total_criteria FROM questionnaires
+             WHERE version_type = $1 AND status = 'published' AND service_id = $2
+             LIMIT 1`,
+            [assessmentVersion, serviceId]
+          )
+        : { rows: [] };
 
-      const qResult = await client.query(questionnaireQuery, [assessmentVersion]);
+      // Fall back to master questionnaire if no service-specific one exists
+      if (qResult.rows.length === 0) {
+        qResult = await client.query(
+          `SELECT id, total_criteria FROM questionnaires
+           WHERE version_type = $1 AND status = 'published' AND service_id IS NULL
+           LIMIT 1`,
+          [assessmentVersion]
+        );
+      }
 
       if (qResult.rows.length === 0) {
         throw new Error(

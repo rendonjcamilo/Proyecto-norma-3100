@@ -417,6 +417,15 @@ export interface HealthService {
   status: string;
 }
 
+export interface EvaluableService {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  questionnaire_id: string;
+  total_criteria: number;
+}
+
 export const servicesApi = {
   getAll: (params?: { category?: string; status?: string; search?: string }) => {
     const qs = params
@@ -424,6 +433,8 @@ export const servicesApi = {
       : '';
     return get<{ data: HealthService[]; count: number; categories: string[] }>(`/api/services${qs}`);
   },
+  getEvaluable: () =>
+    get<{ data: EvaluableService[]; count: number }>('/api/services/evaluable'),
 };
 
 export const providerServicesApi = {

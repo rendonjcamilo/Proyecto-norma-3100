@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { assessmentsApi, servicesApi, providerServicesApi, providersApi, type Assessment, type HealthService } from '../services/api';
+import { assessmentsApi, servicesApi, providerServicesApi, providersApi, type Assessment, type HealthService, type EvaluableService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useAuth } from '../context/AuthContext';
 import './Pages.css';
@@ -63,6 +63,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingProviderServices, setLoadingProviderServices] = useState(false);
+  const [evaluableServices, setEvaluableServices] = useState<EvaluableService[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+  const [loadingEvaluable, setLoadingEvaluable] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedAssessments, setSelectedAssessments] = useState<Set<string>>(new Set());
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -299,9 +302,22 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             </button>
           )}
           {can('assessments', 'create') && (
-            <button className="aud-hero-btn" onClick={() => {
+            <button className="aud-hero-btn" onClick={async () => {
               setFormData((prev) => ({ ...prev, providerId: providerId || prev.providerId, serviceId: '' }));
+              setSelectedServiceIds(new Set());
               setShowCreateModal(true);
+              // Cargar servicios evaluables al abrir el modal
+              if (evaluableServices.length === 0) {
+                setLoadingEvaluable(true);
+                try {
+                  const res = await servicesApi.getEvaluable();
+                  setEvaluableServices(res.data || []);
+                } catch {
+                  setEvaluableServices([]);
+                } finally {
+                  setLoadingEvaluable(false);
+                }
+              }
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" />
@@ -573,49 +589,54 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 return;
               }
 
-              if (!formData.serviceId) {
-                if (servicesFiltered && services.length === 0) {
-                  setModalError('Este prestador no tiene servicios asignados. Asígnalos antes de crear una evaluación.');
-                } else {
-                  setModalError('Por favor selecciona un servicio de salud');
-                }
-                return;
-              }
-
               setModalError(null);
 
               try {
                 setIsSubmitting(true);
 
-                // Auditor selects from their assigned providers; super_admin uses prop
                 const finalProviderId = user?.role === 'auditor' ? formData.providerId : providerId;
+                const baseTitle = formData.title.trim();
+                let firstAssessmentId: string | null = null;
 
-                // Intentar crear via API
-                let createdAssessmentId: string | null = null;
+                // 1. Crear evaluación transversal (7 estándares — siempre obligatoria)
                 try {
-                  const createRes = await assessmentsApi.create({
+                  const transversalRes = await assessmentsApi.create({
                     providerId: finalProviderId,
-                    serviceId: formData.serviceId,
-                    questionnaireId: formData.serviceId,
+                    serviceId: undefined as unknown as string,
+                    questionnaireId: '',
                     assessmentVersion: formData.type,
-                    title: formData.title.trim(),
+                    title: `${baseTitle} — 7 Estándares Transversales`,
                   });
-                  createdAssessmentId = createRes.data?.id;
-                  console.log('[DEBUG] Assessment created:', createdAssessmentId);
+                  firstAssessmentId = transversalRes.data?.id || null;
                 } catch (apiError) {
-                  console.error('Error al crear evaluación:', apiError);
                   throw new Error(
-                    apiError instanceof Error ? apiError.message : 'No se pudo crear la evaluación'
+                    apiError instanceof Error ? apiError.message : 'No se pudo crear la evaluación transversal'
                   );
+                }
+
+                // 2. Crear evaluaciones de servicio específico seleccionadas
+                for (const svcId of selectedServiceIds) {
+                  const svc = evaluableServices.find(s => s.id === svcId);
+                  try {
+                    await assessmentsApi.create({
+                      providerId: finalProviderId,
+                      serviceId: svcId,
+                      questionnaireId: '',
+                      assessmentVersion: formData.type,
+                      title: `${baseTitle} — ${svc?.name || svcId}`,
+                    });
+                  } catch (err) {
+                    console.warn(`No se pudo crear evaluación para servicio ${svcId}:`, err);
+                  }
                 }
 
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '' });
+                setSelectedServiceIds(new Set());
 
-                // Si se creó exitosamente, redirigir al cuestionario
-                if (createdAssessmentId) {
-                  console.log('[DEBUG] Redirecting to assessment:', createdAssessmentId);
-                  navigate(`/assessments/${createdAssessmentId}`);
+                // Navegar a la evaluación transversal recién creada
+                if (firstAssessmentId) {
+                  navigate(`/assessments/${firstAssessmentId}`);
                   return;
                 }
 
@@ -696,53 +717,81 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 </div>
               )}
 
+              {/* Evaluaciones a crear */}
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>
-                  Servicio de Salud <span style={{ color: '#ef4444' }}>*</span>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                  Evaluaciones a crear
                 </label>
-                {loadingProviderServices ? (
-                  <div style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', color: '#6b778c', background: '#f4f5f7' }}>
-                    Cargando servicios del prestador...
+
+                {/* Evaluación transversal — siempre obligatoria */}
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '10px',
+                  padding: '10px 12px', marginBottom: '8px',
+                  background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px',
+                }}>
+                  <input type="checkbox" checked readOnly style={{ marginTop: '2px', accentColor: '#16a34a' }} />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#15803d' }}>
+                      Evaluación Transversal — 7 Estándares (obligatoria)
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#4b5563' }}>
+                      512 criterios · Aplica a todos los servicios de salud
+                    </div>
                   </div>
-                ) : (
-                  <select
-                    value={formData.serviceId}
-                    onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
-                    required
-                    disabled={user?.role === 'auditor' && !formData.providerId}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: formData.serviceId ? '1px solid #ddd' : '2px solid #ef4444',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      backgroundColor: formData.serviceId ? 'white' : '#fee2e2',
-                    }}
-                  >
-                    <option value="">-- Selecciona un servicio de salud --</option>
-                    {[...new Set(services.map((s) => s.category))].sort().map((category) => {
-                      const categoryServices = services.filter((s) => s.category === category);
-                      return (
-                        <optgroup key={category} label={`${category} (${categoryServices.length})`}>
-                          {categoryServices.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
+                </div>
+
+                {/* Evaluaciones de servicio específico */}
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
+                  <div style={{ padding: '8px 12px', background: '#f9fafb', fontSize: '13px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
+                    Evaluaciones específicas por servicio (opcional)
+                    {selectedServiceIds.size > 0 && (
+                      <span style={{ marginLeft: '8px', background: '#2563eb', color: 'white', borderRadius: '10px', padding: '1px 8px', fontSize: '11px' }}>
+                        {selectedServiceIds.size} seleccionada{selectedServiceIds.size !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  {loadingEvaluable ? (
+                    <div style={{ padding: '16px', textAlign: 'center', fontSize: '13px', color: '#6b778c' }}>
+                      Cargando servicios evaluables...
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                      {[...new Set(evaluableServices.map(s => s.category))].sort().map(category => (
+                        <div key={category}>
+                          <div style={{ padding: '6px 12px', background: '#f3f4f6', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {category}
+                          </div>
+                          {evaluableServices.filter(s => s.category === category).map(svc => (
+                            <label key={svc.id} style={{
+                              display: 'flex', alignItems: 'flex-start', gap: '10px',
+                              padding: '8px 12px', cursor: 'pointer',
+                              background: selectedServiceIds.has(svc.id) ? '#eff6ff' : 'white',
+                              borderBottom: '1px solid #f3f4f6',
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={selectedServiceIds.has(svc.id)}
+                                onChange={() => {
+                                  setSelectedServiceIds(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(svc.id)) next.delete(svc.id);
+                                    else next.add(svc.id);
+                                    return next;
+                                  });
+                                }}
+                                style={{ marginTop: '2px', accentColor: '#2563eb' }}
+                              />
+                              <div>
+                                <div style={{ fontSize: '13px', fontWeight: 500, color: '#111827' }}>{svc.name}</div>
+                                <div style={{ fontSize: '11px', color: '#6b7280' }}>{svc.total_criteria} criterios · {svc.code}</div>
+                              </div>
+                            </label>
                           ))}
-                        </optgroup>
-                      );
-                    })}
-                  </select>
-                )}
-                {servicesFiltered && !loadingProviderServices && (
-                  <small style={{ color: '#8B5CF6', display: 'block', marginTop: '4px' }}>
-                    ✓ {services.length} servicio{services.length !== 1 ? 's' : ''} habilitado{services.length !== 1 ? 's' : ''} para este prestador
-                  </small>
-                )}
-                {!formData.serviceId && !loadingProviderServices && (
-                  <small style={{ color: '#ef4444', display: 'block', marginTop: '4px' }}>
-                    Debes seleccionar un servicio para continuar
-                  </small>
-                )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
