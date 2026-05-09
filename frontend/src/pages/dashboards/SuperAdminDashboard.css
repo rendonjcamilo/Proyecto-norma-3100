@@ -473,3 +473,64 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Dark Mode ───────────────────────────────────────────────── */
+[data-theme="dark"] .sad-root {
+  --sad-bg:        #0f0d1a;
+  --sad-surface:   #1a1729;
+  --sad-border:    rgba(255, 255, 255, 0.08);
+  --sad-text:      #e8e4f7;
+  --sad-muted:     #8b8aad;
+
+  --sad-indigo-bg: rgba(98, 85, 160, 0.18);
+  --sad-cyan-bg:   rgba(16, 152, 158, 0.18);
+  --sad-amber-bg:  rgba(16, 152, 158, 0.14);
+  --sad-rose-bg:   rgba(98, 85, 160, 0.14);
+}
+
+/* KPI cards */
+[data-theme="dark"] .sad-kpi-card {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] .sad-kpi-indigo {
+  background: linear-gradient(135deg, #231e3a 0%, #1a1729 100%);
+  border-color: rgba(98, 85, 160, 0.25);
+}
+[data-theme="dark"] .sad-kpi-cyan,
+[data-theme="dark"] .sad-kpi-amber {
+  background: linear-gradient(135deg, #0f1e28 0%, #1a1729 100%);
+  border-color: rgba(16, 152, 158, 0.25);
+}
+[data-theme="dark"] .sad-kpi-rose {
+  background: linear-gradient(135deg, #231e3a 0%, #1a1729 100%);
+  border-color: rgba(98, 85, 160, 0.25);
+}
+
+/* Ícono KPI — borde sutil claro */
+[data-theme="dark"] .sad-kpi-icon-wrap {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Sección */
+[data-theme="dark"] .sad-section {
+  background: #1a1729;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+}
+
+[data-theme="dark"] .sad-section-header {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Tarjetas de navegación */
+[data-theme="dark"] .sad-nav-card {
+  background: #201d30;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+}
+[data-theme="dark"] .sad-nav-card:hover {
+  background: #27233b;
+  border-color: rgba(98, 85, 160, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}

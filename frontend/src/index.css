@@ -159,6 +159,101 @@
 }
 
 /* ============================================
+   DARK MODE VARIABLES
+   ============================================ */
+
+[data-theme="dark"] {
+  /* Surfaces */
+  --surface-base: #0f0d1a;
+  --surface-raised: #1a1729;
+  --surface-overlay: rgba(26, 23, 41, 0.97);
+  --surface-sidebar: #3b2f80;
+  --surface-sidebar-hover: #4d3f9a;
+  --surface-sidebar-active: #6255A0;
+
+  /* Text */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-disabled: #64748b;
+  --text-inverse: #13111f;
+  --text-link: #9080C0;
+  --text-link-hover: #b0a0d8;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 16px -4px rgba(0, 0, 0, 0.55), 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 12px 24px -6px rgba(0, 0, 0, 0.6), 0 0 1px rgba(0, 0, 0, 0.35);
+  --shadow-2xl: 0 20px 32px -8px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 0, 0, 0.35);
+
+  /* Semantic color backgrounds */
+  --color-success-light: rgba(0, 135, 90, 0.18);
+  --color-success-bg: rgba(0, 135, 90, 0.1);
+  --color-warning-light: rgba(255, 139, 0, 0.18);
+  --color-warning-bg: rgba(255, 139, 0, 0.1);
+  --color-danger-light: rgba(222, 53, 11, 0.18);
+  --color-danger-bg: rgba(222, 53, 11, 0.1);
+  --color-info-light: rgba(98, 85, 160, 0.22);
+  --color-info-bg: rgba(98, 85, 160, 0.12);
+
+  /* Neutral palette remapped para dark */
+  --neutral-0: #1a1729;
+  --neutral-50: #201d30;
+  --neutral-100: #27233b;
+  --neutral-200: #312c4a;
+  --neutral-300: rgba(255, 255, 255, 0.08);
+  --neutral-400: rgba(255, 255, 255, 0.15);
+  --neutral-500: #9080C0;
+  --neutral-600: #b0a0d8;
+  --neutral-700: #d0c8ee;
+  --neutral-800: #e8e4f7;
+  --neutral-900: #f4f2fd;
+  --neutral-1000: #faf9ff;
+
+  /* Card hover gradient */
+  --gradient-card-hover: linear-gradient(135deg, rgba(98, 85, 160, 0.08) 0%, rgba(16, 152, 158, 0.08) 100%);
+}
+
+/* Body background in dark mode */
+[data-theme="dark"] body {
+  background-color: var(--surface-base);
+  background: linear-gradient(135deg, #0f0d1a 0%, #13101f 100%);
+}
+
+/* Code blocks in dark mode */
+[data-theme="dark"] code,
+[data-theme="dark"] pre {
+  background-color: var(--neutral-100);
+  color: var(--neutral-800);
+}
+
+/* Tables in dark mode */
+[data-theme="dark"] table {
+  background: var(--surface-raised);
+}
+
+[data-theme="dark"] table th {
+  background-color: var(--neutral-100);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] table td {
+  border-bottom-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] table tr:hover {
+  background-color: var(--neutral-50);
+}
+
+/* ============================================
    RESET & BASE STYLES
    ============================================ */
 
@@ -829,4 +924,83 @@ table tbody tr:hover {
     width: 95%;
     max-width: none;
   }
+}
+
+/* ============================================
+   DARK MODE — GLOBAL COMPONENT OVERRIDES
+   Cubre componentes con colores hardcodeados
+   ============================================ */
+
+/* Modales y overlays */
+[data-theme="dark"] .dashboard-modal,
+[data-theme="dark"] [class*="-modal"],
+[data-theme="dark"] [class*="modal-"] {
+  background: #1c1830;
+  border-color: rgba(255, 255, 255, 0.10);
+  color: #f1f5f9;
+}
+
+/* Contenedores de sección genéricos */
+[data-theme="dark"] .section,
+[data-theme="dark"] [class*="-section"] {
+  background: #1a1729;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Paneles / cards genéricos con bg blanco */
+[data-theme="dark"] [class*="-panel"] {
+  background: #1a1729;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Inputs de búsqueda y filtros */
+[data-theme="dark"] .dashboard-search,
+[data-theme="dark"] [class*="-search"] input,
+[data-theme="dark"] [class*="-filter"] input {
+  background: #221e38;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .dashboard-search input::placeholder,
+[data-theme="dark"] [class*="-search"] input::placeholder {
+  color: #64748b;
+}
+
+/* Badges y chips */
+[data-theme="dark"] [class*="-badge"]:not([class*="status-"]):not([class*="severity-"]) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+/* Tablas dentro de dashboards */
+[data-theme="dark"] [class*="-table"] th {
+  background: #221e38;
+  color: #94a3b8;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] [class*="-table"] td {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] [class*="-table"] tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Headers de página */
+[data-theme="dark"] [class*="-header"]:not(.topbar):not(.sidebar-brand) {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Texto muted genérico */
+[data-theme="dark"] [class*="-muted"],
+[data-theme="dark"] [class*="-subtitle"],
+[data-theme="dark"] [class*="-desc"] { color: #94a3b8; }
+
+/* Líneas divisoras */
+[data-theme="dark"] hr,
+[data-theme="dark"] [class*="-divider"] {
+  border-color: rgba(255, 255, 255, 0.08);
 }

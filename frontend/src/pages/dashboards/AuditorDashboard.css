@@ -502,3 +502,118 @@
 @media (max-width: 480px) {
   .adb-kpi-strip { grid-template-columns: 1fr; }
 }
+
+/* ── Dark Mode ───────────────────────────────────────────────── */
+[data-theme="dark"] .adb-root {
+  --adb-bg:      #0f0d1a;
+  --adb-surface: #1a1729;
+  --adb-border:  rgba(255, 255, 255, 0.08);
+  --adb-text:    #e8e4f7;
+  --adb-muted:   #8b8aad;
+
+  --adb-indigo-bg:  rgba(98, 85, 160, 0.18);
+  --adb-cyan-bg:    rgba(16, 152, 158, 0.18);
+  --adb-amber-bg:   rgba(16, 152, 158, 0.14);
+  --adb-rose-bg:    rgba(98, 85, 160, 0.14);
+  --adb-emerald-bg: rgba(16, 185, 129, 0.14);
+}
+
+/* KPI cards */
+[data-theme="dark"] .adb-kpi-card {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] .adb-kpi-indigo {
+  background: linear-gradient(135deg, #231e3a 0%, #1a1729 100%);
+  border-color: rgba(98, 85, 160, 0.25);
+}
+[data-theme="dark"] .adb-kpi-cyan,
+[data-theme="dark"] .adb-kpi-amber {
+  background: linear-gradient(135deg, #0f1e28 0%, #1a1729 100%);
+  border-color: rgba(16, 152, 158, 0.25);
+}
+[data-theme="dark"] .adb-kpi-rose {
+  background: linear-gradient(135deg, #231e3a 0%, #1a1729 100%);
+  border-color: rgba(98, 85, 160, 0.25);
+}
+[data-theme="dark"] .adb-kpi-emerald {
+  background: linear-gradient(135deg, #0f201a 0%, #1a1729 100%);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+/* Ícono KPI — borde sutil claro en lugar del negro */
+[data-theme="dark"] .adb-kpi-icon-wrap {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Sección */
+[data-theme="dark"] .adb-section {
+  background: #1a1729;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+}
+
+[data-theme="dark"] .adb-section-header {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Tarjetas de prestadores */
+[data-theme="dark"] .adb-provider-card {
+  background: #201d30;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
+}
+[data-theme="dark"] .adb-provider-card:hover {
+  background: #27233b;
+  border-color: rgba(98, 85, 160, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .adb-provider-icon {
+  background: rgba(98, 85, 160, 0.18);
+  border: 1px solid rgba(98, 85, 160, 0.2);
+}
+
+/* Badges de estado */
+[data-theme="dark"] .adb-badge-green  { background: rgba(16, 185, 129, 0.14); color: #6ee7b7; }
+[data-theme="dark"] .adb-badge-orange { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+[data-theme="dark"] .adb-badge-red    { background: rgba(239, 68, 68, 0.14);  color: #fca5a5; }
+[data-theme="dark"] .adb-badge-gray   { background: rgba(100, 116, 139, 0.14); color: #94a3b8; }
+
+/* Badge pendientes */
+[data-theme="dark"] .adb-pending-badge {
+  background: rgba(98, 85, 160, 0.18);
+  border-color: rgba(98, 85, 160, 0.3);
+  color: #b0a0d8;
+}
+
+/* Footer de acciones de tarjeta */
+[data-theme="dark"] .adb-provider-actions {
+  border-top-color: rgba(255, 255, 255, 0.07);
+  background: linear-gradient(to bottom, transparent, rgba(15, 13, 26, 0.4));
+}
+
+/* Botones outline */
+[data-theme="dark"] .adb-btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #c4bfe8;
+}
+[data-theme="dark"] .adb-btn-outline:hover {
+  background: var(--adb-indigo);
+  border-color: var(--adb-indigo);
+  color: white;
+}
+
+/* Tarjetas de navegación */
+[data-theme="dark"] .adb-nav-card {
+  background: #201d30;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .adb-nav-card:hover {
+  background: #27233b;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+/* Empty state */
+[data-theme="dark"] .adb-empty svg { color: rgba(255,255,255,0.2); }

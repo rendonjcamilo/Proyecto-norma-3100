@@ -547,3 +547,59 @@ body.compact-mode {
   --space-5: 16px;
   --space-6: 20px;
 }
+
+/* ============================================
+   DARK MODE — TOPBAR
+   ============================================ */
+
+[data-theme="dark"] .topbar-panel {
+  background: #1c1830;
+  border-left-color: rgba(255, 255, 255, 0.10);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .panel-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .panel-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .help-section {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .topbar-search-trigger {
+  background: #221e38;
+}
+
+[data-theme="dark"] .topbar-search-trigger:hover {
+  background: #2a2540;
+}
+
+/* Command palette */
+[data-theme="dark"] .command-palette {
+  background: #1c1830;
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .command-input-wrapper {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .command-input {
+  background: transparent;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .command-result-item:hover,
+[data-theme="dark"] .command-result-item.selected {
+  background: rgba(98, 85, 160, 0.15);
+}
+
+[data-theme="dark"] .command-result-item-title { color: #f1f5f9; }
+[data-theme="dark"] .command-result-item-desc { color: #94a3b8; }
+
+[data-theme="dark"] .command-section-title { color: #64748b; }
