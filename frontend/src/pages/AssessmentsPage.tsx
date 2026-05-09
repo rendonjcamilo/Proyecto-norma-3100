@@ -147,7 +147,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         // Cargar servicios: filtrados por prestador (si aplica) o todos
         try {
           let loadedServices: HealthService[] = [];
-          if (providerId && user?.role !== 'auditor') {
+          if (providerId) {
             const provSvcRes = await providerServicesApi.getForProvider(providerId);
             loadedServices = provSvcRes.data || [];
           }

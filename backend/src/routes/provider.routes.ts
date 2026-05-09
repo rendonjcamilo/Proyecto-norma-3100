@@ -344,12 +344,12 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   /**
    * PUT /api/providers/:id
    * Update provider
-   * RBAC: super_admin only
+   * RBAC: super_admin + auditor (solo sus prestadores asignados)
    */
   router.put(
     '/providers/:id',
     authMiddleware,
-    rbacMiddleware(['super_admin']),
+    rbacMiddleware(['super_admin', 'auditor']),
     async (req: Request, res: Response) => {
       try {
         const provider = await providerModel.getProviderById(req.params.id);
@@ -362,6 +362,16 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         const user = req.user;
         if (user.role === 'provider_admin' && user.provider_id !== provider.id) {
           return res.status(403).json({ error: 'Access denied' });
+        }
+
+        if (user.role === 'auditor') {
+          const assignment = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [user.user_id, req.params.id]
+          );
+          if (assignment.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied — provider not assigned to this auditor' });
+          }
         }
 
         // Validate required fields if provided
@@ -1040,19 +1050,18 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         try {
           await client.query('BEGIN');
 
-          // Deactivate all current services
+          // Elimina todas las asignaciones sin sede para este prestador (location_id IS NULL)
+          // ON CONFLICT no funciona con NULL en PostgreSQL, por eso usamos DELETE + INSERT
           await client.query(
-            `UPDATE services_enabled SET status = 'inactive' WHERE provider_id = $1`,
+            `DELETE FROM services_enabled WHERE provider_id = $1 AND location_id IS NULL`,
             [providerId]
           );
 
-          // Upsert active services
+          // Insertar servicios activos seleccionados
           for (const serviceId of serviceIds) {
             await client.query(
-              `INSERT INTO services_enabled (id, provider_id, service_id, status)
-               VALUES (gen_random_uuid(), $1, $2, 'active')
-               ON CONFLICT (provider_id, service_id, location_id)
-               DO UPDATE SET status = 'active', enabled_from = CURRENT_DATE`,
+              `INSERT INTO services_enabled (provider_id, service_id, location_id, enabled_from, status)
+               VALUES ($1, $2, NULL, CURRENT_DATE, 'active')`,
               [providerId, serviceId]
             );
           }

@@ -220,7 +220,7 @@ async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
-  options: { blob?: boolean; formData?: boolean } = {}
+  options: { blob?: boolean; formData?: boolean; signal?: AbortSignal } = {}
 ): Promise<T> {
   const token = getToken();
   const headers: HeadersInit = {
@@ -232,6 +232,7 @@ async function request<T>(
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
+    signal: options.signal,
     ...(body !== undefined ? { body: options.formData ? (body as FormData) : JSON.stringify(body) } : {}),
   });
 
@@ -865,6 +866,7 @@ export const repsApi = {
     clase?: string;
     soloConCelular?: boolean;
     diasHastaVencer?: number;
+    limit?: number;
   }) => {
     const params = new URLSearchParams();
     if (opts.departamento) params.set('departamento', opts.departamento);
@@ -872,6 +874,7 @@ export const repsApi = {
     if (opts.clase) params.set('clase', opts.clase);
     if (opts.soloConCelular) params.set('soloConCelular', 'true');
     if (opts.diasHastaVencer) params.set('diasHastaVencer', String(opts.diasHastaVencer));
+    if (opts.limit !== undefined) params.set('limit', String(opts.limit));
     return get<{
       data: RepsProspecto[];
       total: number;
@@ -883,10 +886,9 @@ export const repsApi = {
   },
 
   /** Enriquece hasta 20 NITs con fecha_vencimiento vía scraping del portal MINSALUD */
-  enrichLote: (nits: string[]) =>
-    post<{ data: RepsEnrichResult[]; total: number; exitosos: number }>(
-      '/api/reps/enriquecer-lote',
-      { nits }
+  enrichLote: (nits: string[], signal?: AbortSignal) =>
+    request<{ data: RepsEnrichResult[]; total: number; exitosos: number }>(
+      'POST', '/api/reps/enriquecer-lote', { nits }, { signal }
     ),
 
   /** Ingreso manual de fecha_vencimiento para un NIT cuando el scraping falla */

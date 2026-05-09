@@ -103,6 +103,7 @@ export const WhatsAppPanel: React.FC = () => {
   const [soloConCelular, setSoloConCelular] = useState(false);
   const [filtrarPorVencimiento, setFiltrarPorVencimiento] = useState(false);
   const [diasHastaVencer, setDiasHastaVencer] = useState(30);
+  const [limitResultados, setLimitResultados] = useState<number>(100);
 
   const [selected, setSelected] = useState<RepsProspecto | null>(null);
   const [plantilla, setPlantilla] = useState(PLANTILLA_DEFAULT);
@@ -139,6 +140,7 @@ export const WhatsAppPanel: React.FC = () => {
     setEnrichErrors([]);
 
     const BATCH = 10;
+    const BATCH_TIMEOUT_MS = 90000;
     let done = 0;
     let exitosos = 0;
     const allErrors: RepsEnrichResult[] = [];
@@ -150,7 +152,9 @@ export const WhatsAppPanel: React.FC = () => {
 
       const batch = nits.slice(i, i + BATCH);
       try {
-        const res = await repsApi.enrichLote(batch);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
+        const res = await repsApi.enrichLote(batch, controller.signal).finally(() => clearTimeout(timeoutId));
         const results = res.data || [];
 
         // Actualizar prospectos con las fechas obtenidas
@@ -202,6 +206,7 @@ export const WhatsAppPanel: React.FC = () => {
         municipio: municipio.trim().toUpperCase() || undefined,
         clase: clase || undefined,
         soloConCelular,
+        limit: limitResultados,
       });
       fetchedData = res.data || [];
       setProspectos(fetchedData);
@@ -217,11 +222,11 @@ export const WhatsAppPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-    // Auto-enrich: carga fechas de vencimiento automáticamente tras la búsqueda
+    // Auto-enrich: primeros 100 automáticamente; el resto con el botón "Actualizar"
     if (fetchedData.length > 0) {
-      await doEnrich(fetchedData.map((p) => p.nit).filter(Boolean));
+      await doEnrich(fetchedData.slice(0, 100).map((p) => p.nit).filter(Boolean));
     }
-  }, [departamento, municipio, clase, soloConCelular, canSearch, doEnrich]);
+  }, [departamento, municipio, clase, soloConCelular, limitResultados, canSearch, doEnrich]);
 
   // ── Ingreso manual de fecha ────────────────────────────────────────────────
 
@@ -320,6 +325,17 @@ export const WhatsAppPanel: React.FC = () => {
             {CLASES_PRESTADOR.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
+          </select>
+        </div>
+
+        <div className="wap-filter-group wap-filter-group--limit">
+          <label>Resultados</label>
+          <select value={limitResultados} onChange={(e) => setLimitResultados(Number(e.target.value))}>
+            <option value={100}>100 registros</option>
+            <option value={250}>250 registros</option>
+            <option value={500}>500 registros</option>
+            <option value={1000}>1000 registros</option>
+            <option value={0}>Todos</option>
           </select>
         </div>
 

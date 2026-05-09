@@ -159,7 +159,8 @@ export function createRepsRouter(pool: Pool): Router {
         const municipio = req.query.municipio ? String(req.query.municipio).trim() : undefined;
         const clasePrestador = req.query.clase ? String(req.query.clase).trim() : undefined;
         const soloConCelular = req.query.soloConCelular === 'true';
-        const limit = Math.min(Math.max(parseInt(String(req.query.limit || '100'), 10) || 100, 1), 200);
+        const limitRaw = parseInt(String(req.query.limit ?? '100'), 10);
+        const limit = isNaN(limitRaw) ? 100 : limitRaw === 0 ? 0 : Math.min(Math.max(limitRaw, 1), 1000);
         const diasHastaVencer = req.query.diasHastaVencer
           ? Math.min(Math.max(parseInt(String(req.query.diasHastaVencer), 10) || 0, 0), 365)
           : undefined;
