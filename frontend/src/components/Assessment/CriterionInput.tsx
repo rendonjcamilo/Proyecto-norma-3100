@@ -69,8 +69,9 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   };
 
   const handleSuggest = () => {
-    if (!criterion.ncHint) return;
-    const newResponse = { ...localResponse, description: criterion.ncHint };
+    const suggested = criterion.ncHint ||
+      'No se aporta evidencia documental que acredite el cumplimiento de este criterio.';
+    const newResponse = { ...localResponse, description: suggested };
     setLocalResponse(newResponse);
     onChange(newResponse);
   };
@@ -185,7 +186,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
                   {localResponse.description?.length || 0}/500
                 </span>
               </label>
-              {criterion.ncHint && !readOnly && (
+              {!readOnly && (
                 <button
                   type="button"
                   className="btn-suggest"
