@@ -78,7 +78,8 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
     if (!standardMap.has(c.standard_id)) {
       standardMap.set(c.standard_id, {
         id: c.standard_id,
-        code: extractStandardCode(c.code),
+        // Usar standard_code del backend si está disponible; fallback a extracción por código
+        code: (c as any).standard_code ?? extractStandardCode(c.code),
         name: c.standard_name,
         isTransversal: c.is_transversal,
         criteria: [],
@@ -193,16 +194,29 @@ export const AssessmentExecutionPage: React.FC = () => {
         setAssessment(assessmentData);
         setInitialResponses(mapBackendResponses(assessmentData.responses));
 
-        // 2. Si viene del JSON model, construir standards desde criterios del questionnaire
-        if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
-          const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
+        // 2. Cargar criterios desde el assessment (incluye transversales + específicos del servicio)
+        const hasServiceId = assessmentData.service_id || assessmentData.serviceId;
+        try {
+          const questionsRes = await assessmentsApi.getQuestions(id);
+          const grouped = groupCriteriaByStandard(questionsRes.data.criteria);
           setStandards(grouped);
-        } else if (assessmentData.questionnaire_id || assessmentData.questionnaireId) {
-          // Si tiene questionnaireId pero no los criterios, cargar desde backend
-          const qid = assessmentData.questionnaire_id ?? assessmentData.questionnaireId;
-          const questionnaireRes = await questionnairesApi.getById(qid);
-          const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
-          setStandards(grouped);
+        } catch (questionsErr) {
+          // Si el assessment tiene servicio, el fallback omitiría criterios específicos → propagar error
+          if (hasServiceId) {
+            throw new Error(
+              'No se pudieron cargar los criterios del servicio. Por favor recarga la página.'
+            );
+          }
+          // Fallback solo para assessments sin servicio (solo 7 estándares transversales)
+          if (assessmentData.questionnaire && assessmentData.questionnaire.criteria) {
+            const grouped = groupCriteriaByStandard(assessmentData.questionnaire.criteria);
+            setStandards(grouped);
+          } else if (assessmentData.questionnaire_id || assessmentData.questionnaireId) {
+            const qid = assessmentData.questionnaire_id ?? assessmentData.questionnaireId;
+            const questionnaireRes = await questionnairesApi.getById(qid);
+            const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
+            setStandards(grouped);
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cargar la evaluación';
@@ -330,6 +344,7 @@ export const AssessmentExecutionPage: React.FC = () => {
           id: assessment.id,
           providerId: assessment.provider_id,
           serviceId: assessment.service_id,
+          serviceName: assessment.service_name ?? undefined,
           questionnaireId: assessment.questionnaire_id,
           assessmentVersion: assessment.assessment_version,
           status: (assessment.status as 'in_progress' | 'submitted' | 'locked') ?? 'in_progress',

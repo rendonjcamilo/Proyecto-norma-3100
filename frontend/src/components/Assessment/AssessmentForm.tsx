@@ -24,6 +24,7 @@ interface Assessment {
   id: string;
   providerId: string;
   serviceId: string;
+  serviceName?: string;
   questionnaireId: string;
   assessmentVersion: string;
   status: 'in_progress' | 'submitted' | 'locked';
@@ -221,7 +222,9 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     <div className="assessment-form">
       <div className="form-header">
         <h1>Evaluación de Cumplimiento - {assessment.assessmentVersion}</h1>
-        <p>Servicio: {assessment.serviceId}</p>
+        {(assessment.serviceName || assessment.serviceId) && (
+          <p>Servicio: {assessment.serviceName || assessment.serviceId}</p>
+        )}
 
         {/* Progress & Scores */}
         <div className="form-stats">

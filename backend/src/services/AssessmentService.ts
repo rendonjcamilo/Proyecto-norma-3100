@@ -100,36 +100,35 @@ export class AssessmentService {
     try {
       await client.query('BEGIN');
 
-      // 1. Find published questionnaire for version
-      // - Service-specific (service_id = serviceId): when serviceId matches a Res.3100 service with questionnaire
-      // - Master (service_id IS NULL): transversal 512-criteria questionnaire (fallback)
-      let qResult = serviceId
-        ? await client.query(
-            `SELECT id, total_criteria FROM questionnaires
-             WHERE version_type = $1 AND status = 'published' AND service_id = $2
-             LIMIT 1`,
-            [assessmentVersion, serviceId]
-          )
-        : { rows: [] };
+      // 1. Cargar cuestionario maestro (512 criterios transversales — siempre obligatorio)
+      const masterResult = await client.query(
+        `SELECT id, total_criteria FROM questionnaires
+         WHERE version_type = $1 AND status = 'published' AND service_id IS NULL
+         LIMIT 1`,
+        [assessmentVersion]
+      );
+      if (masterResult.rows.length === 0) {
+        throw new Error(`No published questionnaire found for version ${assessmentVersion}`);
+      }
+      const masterQuestionnaire = masterResult.rows[0] as { id: string; total_criteria: number };
 
-      // Fall back to master questionnaire if no service-specific one exists
-      if (qResult.rows.length === 0) {
-        qResult = await client.query(
+      // Cuestionario específico del servicio (si aplica)
+      let serviceQuestionnaire: { id: string; total_criteria: number } | null = null;
+      if (serviceId) {
+        const svcResult = await client.query(
           `SELECT id, total_criteria FROM questionnaires
-           WHERE version_type = $1 AND status = 'published' AND service_id IS NULL
+           WHERE version_type = $1 AND status = 'published' AND service_id = $2
            LIMIT 1`,
-          [assessmentVersion]
+          [assessmentVersion, serviceId]
         );
+        if (svcResult.rows.length > 0) {
+          serviceQuestionnaire = svcResult.rows[0] as { id: string; total_criteria: number };
+        }
       }
 
-      if (qResult.rows.length === 0) {
-        throw new Error(
-          `No published questionnaire found for version ${assessmentVersion}`
-        );
-      }
-
-      const questionnaireId = qResult.rows[0].id;
-      const totalCriteria = qResult.rows[0].total_criteria;
+      // questionnaire_id apunta al maestro; total = 512 + criterios del servicio
+      const questionnaireId = masterQuestionnaire.id;
+      const totalCriteria = masterQuestionnaire.total_criteria + (serviceQuestionnaire?.total_criteria ?? 0);
 
       // 2. Create assessment instance
       // Note: version is determined by questionnaire.version_type, not stored here
@@ -163,8 +162,7 @@ export class AssessmentService {
 
       await client.query(metricsQuery, [assessment.id, totalCriteria]);
 
-      // 4. Pre-poblar todas las respuestas con NA por defecto
-      // Así el usuario parte de 512/512 y solo edita lo que necesite
+      // 4. Pre-poblar criterios del cuestionario maestro (512 transversales)
       await client.query(`
         INSERT INTO assessment_responses_detailed
           (assessment_id, criterion_id, response_status, description, comments, responded_by)
@@ -172,7 +170,19 @@ export class AssessmentService {
         FROM questionnaire_criteria qc
         WHERE qc.questionnaire_id = $2
         ON CONFLICT DO NOTHING
-      `, [assessment.id, questionnaireId, userId]);
+      `, [assessment.id, masterQuestionnaire.id, userId]);
+
+      // Agregar criterios específicos del servicio (si hay cuestionario específico)
+      if (serviceQuestionnaire) {
+        await client.query(`
+          INSERT INTO assessment_responses_detailed
+            (assessment_id, criterion_id, response_status, description, comments, responded_by)
+          SELECT $1, qc.criterion_id, 'NA', '', '', $3
+          FROM questionnaire_criteria qc
+          WHERE qc.questionnaire_id = $2
+          ON CONFLICT DO NOTHING
+        `, [assessment.id, serviceQuestionnaire.id, userId]);
+      }
 
       // 5. Actualizar métricas iniciales: todos en NA
       await client.query(`
@@ -231,6 +241,7 @@ export class AssessmentService {
         a.provider_id,
         a.location_id,
         a.service_id,
+        s.name AS service_name,
         a.questionnaire_id,
         COALESCE(q.version_type, 'initial') AS assessment_version,
         a.status,
@@ -240,6 +251,7 @@ export class AssessmentService {
         a.compliance_pct AS compliance_percent
       FROM assessments a
       LEFT JOIN questionnaires q ON a.questionnaire_id = q.id
+      LEFT JOIN services s ON s.id = a.service_id
       WHERE a.id = $1
     `;
 
@@ -281,6 +293,7 @@ export class AssessmentService {
       providerId: assessment.provider_id,
       locationId: assessment.location_id,
       serviceId: assessment.service_id,
+      serviceName: assessment.service_name ?? null,
       questionnaireId: assessment.questionnaire_id,
       assessmentVersion: assessment.assessment_version,
       status: assessment.status,
@@ -694,10 +707,12 @@ export class AssessmentService {
         a.submitted_at, a.compliance_pct, a.semaforo_color,
         a.hallazgos_generated, a.created_at, a.updated_at,
         a.title,
-        p.legal_name AS provider_name
+        p.legal_name AS provider_name,
+        s.name AS service_name
       FROM assessments a
       LEFT JOIN questionnaires q ON a.questionnaire_id = q.id
       LEFT JOIN providers p ON a.provider_id = p.id
+      LEFT JOIN services s ON s.id = a.service_id
       WHERE 1=1
     `;
 
@@ -762,6 +777,7 @@ export class AssessmentService {
       provider_name: row.provider_name,
       location_id: row.location_id,
       service_id: row.service_id,
+      service_name: row.service_name ?? null,
       questionnaire_id: row.questionnaire_id,
       assessment_version: row.assessment_version,
       status: row.status,

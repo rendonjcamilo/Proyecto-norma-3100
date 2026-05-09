@@ -598,35 +598,33 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 const baseTitle = formData.title.trim();
                 let firstAssessmentId: string | null = null;
 
-                // 1. Crear evaluación transversal (7 estándares — siempre obligatoria)
-                try {
-                  const transversalRes = await assessmentsApi.create({
+                if (selectedServiceIds.size === 0) {
+                  // Sin servicio específico: evaluación transversal pura (512 criterios)
+                  const res = await assessmentsApi.create({
                     providerId: finalProviderId,
                     serviceId: undefined as unknown as string,
                     questionnaireId: '',
                     assessmentVersion: formData.type,
-                    title: `${baseTitle} — 7 Estándares Transversales`,
+                    title: baseTitle,
                   });
-                  firstAssessmentId = transversalRes.data?.id || null;
-                } catch (apiError) {
-                  throw new Error(
-                    apiError instanceof Error ? apiError.message : 'No se pudo crear la evaluación transversal'
-                  );
-                }
-
-                // 2. Crear evaluaciones de servicio específico seleccionadas
-                for (const svcId of selectedServiceIds) {
-                  const svc = evaluableServices.find(s => s.id === svcId);
-                  try {
-                    await assessmentsApi.create({
-                      providerId: finalProviderId,
-                      serviceId: svcId,
-                      questionnaireId: '',
-                      assessmentVersion: formData.type,
-                      title: `${baseTitle} — ${svc?.name || svcId}`,
-                    });
-                  } catch (err) {
-                    console.warn(`No se pudo crear evaluación para servicio ${svcId}:`, err);
+                  firstAssessmentId = res.data?.id || null;
+                } else {
+                  // Un assessment combinado por cada servicio seleccionado
+                  // (transversal 512 + criterios específicos del servicio)
+                  for (const svcId of selectedServiceIds) {
+                    const svc = evaluableServices.find(s => s.id === svcId);
+                    try {
+                      const res = await assessmentsApi.create({
+                        providerId: finalProviderId,
+                        serviceId: svcId,
+                        questionnaireId: '',
+                        assessmentVersion: formData.type,
+                        title: `${baseTitle} — ${svc?.name || svcId}`,
+                      });
+                      if (!firstAssessmentId) firstAssessmentId = res.data?.id || null;
+                    } catch (err) {
+                      console.warn(`No se pudo crear evaluación para servicio ${svcId}:`, err);
+                    }
                   }
                 }
 

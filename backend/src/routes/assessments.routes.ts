@@ -247,6 +247,100 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
   );
 
   /**
+   * GET /api/assessments/:id/questions
+   * Retorna todos los criterios del assessment (transversales + específicos del servicio)
+   * consultando directamente desde assessment_responses_detailed.
+   * Reemplaza la búsqueda por questionnaire_id para soportar evaluaciones combinadas.
+   */
+  router.get(
+    '/assessments/:id/questions',
+    authMiddleware,
+    rbacMiddleware(['provider_admin', 'auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
+
+        // Verificar que el assessment existe
+        const assessmentCheck = await pool.query(
+          'SELECT provider_id FROM assessments WHERE id = $1',
+          [id]
+        );
+        if (assessmentCheck.rows.length === 0) {
+          return res.status(404).json({ error: 'Assessment not found' });
+        }
+        const providerId = assessmentCheck.rows[0].provider_id;
+
+        // RBAC: provider_admin solo puede ver su propio prestador
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query('SELECT provider_id FROM users WHERE id = $1', [userId]);
+          if (userResult.rows[0]?.provider_id !== providerId) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // RBAC: auditor solo puede ver prestadores asignados
+        if (userRole === 'auditor') {
+          const assigned = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, providerId]
+          );
+          if (assigned.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        const result = await pool.query(`
+          SELECT
+            ec.id,
+            ec.code,
+            COALESCE(ec.number, '') AS number,
+            ec.name,
+            COALESCE(ec.description, '') AS description,
+            COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
+            COALESCE(ec.complexity, 'simple') AS complexity,
+            ec.nc_hint,
+            ec.weight,
+            COALESCE(ec.is_mandatory, false) AS is_mandatory,
+            es.id AS standard_id,
+            es.code AS standard_code,
+            es.name AS standard_name,
+            es.is_transversal
+          FROM assessment_responses_detailed ard
+          JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
+          JOIN evaluation_standards es ON es.id = ec.standard_id
+          WHERE ard.assessment_id = $1
+          ORDER BY es.is_transversal DESC, es.id, ec.code
+        `, [id]);
+
+        const criteria = result.rows.map(row => ({
+          id: row.id,
+          code: row.code,
+          number: row.number,
+          name: row.name,
+          description: row.description,
+          evidence_requirement: row.evidence_requirement,
+          complexity: row.complexity,
+          nc_hint: row.nc_hint,
+          weight: row.weight,
+          is_mandatory: row.is_mandatory,
+          standard_id: row.standard_id,
+          standard_code: row.standard_code,
+          standard_name: row.standard_name,
+          is_transversal: row.is_transversal,
+        }));
+
+        res.json({ data: { criteria }, count: criteria.length });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error fetching assessment questions', error: msg });
+        res.status(500).json({ error: 'Failed to fetch assessment questions' });
+      }
+    }
+  );
+
+  /**
    * GET /api/providers/:providerId/assessments
    * List assessments for a specific provider
    * RBAC: provider_admin (own), auditor (assigned), super_admin (all)

@@ -68,6 +68,7 @@ export interface Assessment {
   provider_id: string;
   provider_name?: string;
   service_id: string;
+  service_name?: string;
   questionnaire_id: string;
   assessment_version: 'initial' | 'year4' | 'annual' | 'pre-novelty';
   status: 'draft' | 'in_progress' | 'submitted' | 'locked' | 'completed' | 'archived';
@@ -403,6 +404,9 @@ export const assessmentsApi = {
 
   delete: (assessmentId: string) =>
     del<{ message: string }>(`/api/assessments/${assessmentId}`),
+
+  getQuestions: (assessmentId: string) =>
+    get<{ data: { criteria: QuestionnaireCriterion[] }; count: number }>(`/api/assessments/${assessmentId}/questions`),
 };
 
 // ─────────────────────────────────────────────
@@ -458,6 +462,7 @@ export interface QuestionnaireCriterion {
   evidence_requirement?: string;
   complexity: 'simple' | 'medium' | 'complex';
   standard_id: string;
+  standard_code?: string;
   standard_name: string;
   is_transversal: boolean;
   is_mandatory: boolean;
