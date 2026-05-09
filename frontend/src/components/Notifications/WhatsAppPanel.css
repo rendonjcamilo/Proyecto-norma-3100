@@ -375,7 +375,7 @@
 
 .wap-chip--azul   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .wap-chip--verde  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-.wap-chip--morado { background: #faf5ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.wap-chip--morado { background: #faf5ff; color: #4d4080; border: 1px solid #ddd6fe; }
 .wap-chip--gris   { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 
 /* ── Panel derecho: compositor ─────────────────────────────────── */
@@ -622,7 +622,7 @@
 }
 
 .wap-venc-link {
-  color: #7C3AED;
+  color: #4d4080;
   text-decoration: underline;
   font-weight: 600;
 }
@@ -712,7 +712,7 @@
 
 .wap-composer-venc--desconocida a,
 .wap-link-btn {
-  color: #7C3AED;
+  color: #4d4080;
   text-decoration: underline;
   background: none;
   border: none;
@@ -779,7 +779,7 @@
 
 .wap-enrich-btn {
   padding: 0.5rem 1rem;
-  background: #7C3AED;
+  background: #4d4080;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -804,7 +804,7 @@
 }
 
 .wap-enrich-btn--loading:hover {
-  background: #7c3aed;
+  background: #4d4080;
 }
 
 .wap-enrich-btn-cancel {
@@ -827,7 +827,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #7C3AED;
+  color: #4d4080;
 }
 
 .wap-enrich-cancel {
@@ -903,7 +903,7 @@
 
 /* Fecha en meta de item */
 .wap-item-venc-date {
-  color: #8B5CF6;
+  color: #6255A0;
   font-weight: 500;
 }
 
@@ -1000,7 +1000,7 @@
 }
 
 .wap-modal-hint a {
-  color: #7C3AED;
+  color: #4d4080;
   text-decoration: underline;
   font-weight: 600;
 }
@@ -1043,7 +1043,7 @@
 
 .wap-modal-save {
   padding: 0.5rem 1.2rem;
-  background: #7C3AED;
+  background: #4d4080;
   border: none;
   border-radius: 8px;
   color: #fff;

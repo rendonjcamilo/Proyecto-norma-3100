@@ -82,7 +82,7 @@
 .compliancePercent {
   font-size: 3.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #4d4080 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -107,8 +107,8 @@
 }
 
 .metricBox:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: #6255A0;
+  box-shadow: 0 4px 12px rgba(98, 85, 160, 0.1);
 }
 
 .metricLabel {
@@ -174,8 +174,8 @@
 }
 
 .standardItem:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: #6255A0;
+  box-shadow: 0 4px 12px rgba(98, 85, 160, 0.1);
 }
 
 .standardHeader {
@@ -293,12 +293,12 @@
 }
 
 .severity-media {
-  border-left-color: #f59e0b;
-  background-color: #fffbeb;
+  border-left-color: #ea580c;
+  background-color: #fef9f6;
 }
 
 .severity-baja {
-  border-left-color: #eab308;
+  border-left-color: #d97706;
   background-color: #fefce8;
 }
 
@@ -323,7 +323,7 @@
   font-family: 'Courier New', monospace;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #3b82f6;
+  color: #6255A0;
 }
 
 .hallazgoDescription {
@@ -392,13 +392,13 @@
 }
 
 .btnPrimary {
-  background-color: #3b82f6;
+  background-color: #6255A0;
   color: white;
 }
 
 .btnPrimary:hover {
-  background-color: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background-color: #4d4080;
+  box-shadow: 0 4px 12px rgba(98, 85, 160, 0.4);
   transform: translateY(-2px);
 }
 

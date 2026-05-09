@@ -37,7 +37,7 @@
 
 .criterion-header-note {
   font-size: 0.78rem;
-  color: #8B5CF6;
+  color: #6255A0;
   font-style: italic;
   margin: 4px 0 0 0;
   padding-left: 2px;
@@ -235,7 +235,7 @@
 
 .btn-suggest:hover {
   background: #ddd6fe;
-  border-color: #a78bfa;
+  border-color: #9080C0;
 }
 
 .hallazgo-field strong {

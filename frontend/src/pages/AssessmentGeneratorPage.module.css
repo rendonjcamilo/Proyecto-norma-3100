@@ -20,7 +20,7 @@
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #0052cc 0%, #0052cc 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #6255A0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -78,16 +78,16 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #0052cc, #3b82f6, #0052cc);
+  background: linear-gradient(90deg, #6255A0, #10989E, #6255A0);
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
 .serviceCard:hover {
-  border-color: #0052cc;
-  box-shadow: 0 20px 25px rgba(5, 82, 204, 0.15), 0 8px 12px rgba(0, 0, 0, 0.08);
+  border-color: #6255A0;
+  box-shadow: 0 20px 25px rgba(98, 85, 160, 0.15), 0 8px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-6px) scale(1.02);
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
 }
 
 .serviceCard:hover::before {
@@ -103,7 +103,7 @@
 }
 
 .serviceCard:hover h3 {
-  color: #0052cc;
+  color: #6255A0;
 }
 
 .groupName {
@@ -126,8 +126,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #f0f4ff 100%);
-  color: #0052cc;
+  background: linear-gradient(135deg, #ede9f5 0%, #f5f3ff 100%);
+  color: #6255A0;
   padding: 0.6rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.9rem;
@@ -137,9 +137,9 @@
 }
 
 .serviceCard:hover .criteriaCount {
-  background: linear-gradient(135deg, #0052cc 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #10989E 100%);
   color: white;
-  box-shadow: 0 4px 12px rgba(5, 82, 204, 0.25);
+  box-shadow: 0 4px 12px rgba(98, 85, 160, 0.25);
 }
 
 .criteriaCount::before {
@@ -178,15 +178,15 @@
   top: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, #0052cc, #3b82f6);
+  background: linear-gradient(180deg, #6255A0, #10989E);
   transform: scaleY(0);
   transition: transform 0.35s ease;
 }
 
 .versionSelector label:hover {
-  border-color: #0052cc;
-  background-color: #f8f9ff;
-  box-shadow: 0 8px 16px rgba(5, 82, 204, 0.1);
+  border-color: #6255A0;
+  background-color: #f5f3ff;
+  box-shadow: 0 8px 16px rgba(98, 85, 160, 0.1);
 }
 
 .versionSelector label:hover::before {
@@ -200,7 +200,7 @@
   cursor: pointer;
   width: 1.5rem;
   height: 1.5rem;
-  accent-color: #0052cc;
+  accent-color: #6255A0;
   flex-shrink: 0;
 }
 
@@ -248,7 +248,7 @@
   color: #1f2937;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #3b82f6;
+  border-bottom: 2px solid #10989E;
 }
 
 .standardName {
@@ -256,8 +256,8 @@
 }
 
 .badge {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #ede9f5;
+  color: #4d4080;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.75rem;
@@ -281,7 +281,7 @@
 }
 
 .criterionItem:hover {
-  border-left-color: #3b82f6;
+  border-left-color: #10989E;
   background-color: #eff6ff;
 }
 
@@ -292,7 +292,7 @@
 .criterionNumber {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #3b82f6;
+  color: #10989E;
   margin-bottom: 0.25rem;
 }
 
@@ -336,11 +336,11 @@
   grid-template-columns: 1fr 2fr;
   gap: 2.5rem;
   padding: 2.5rem;
-  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
   border: 1px solid #e2e8f0;
   border-radius: 1.25rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 15px rgba(5, 82, 204, 0.08);
+  box-shadow: 0 4px 15px rgba(98, 85, 160, 0.08);
 }
 
 .complianceGauge {
@@ -390,7 +390,7 @@
   color: #0f172a;
   margin: 0;
   line-height: 1;
-  background: linear-gradient(135deg, #0052cc 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #10989E 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -427,14 +427,14 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #0052cc, #3b82f6);
+  background: linear-gradient(90deg, #6255A0, #10989E);
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
 .metricItem:hover {
-  border-color: #0052cc;
-  box-shadow: 0 8px 16px rgba(5, 82, 204, 0.12);
+  border-color: #6255A0;
+  box-shadow: 0 8px 16px rgba(98, 85, 160, 0.12);
   transform: translateY(-4px);
 }
 
@@ -497,9 +497,9 @@
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, #0052cc 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #10989E 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(5, 82, 204, 0.2);
+  box-shadow: 0 4px 15px rgba(98, 85, 160, 0.2);
 }
 
 .btnPrimary::before {
@@ -517,7 +517,7 @@
 
 .btnPrimary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(5, 82, 204, 0.35);
+  box-shadow: 0 8px 25px rgba(98, 85, 160, 0.35);
 }
 
 .btnPrimary:hover:not(:disabled)::before {
@@ -540,10 +540,10 @@
 }
 
 .btnSecondary:hover:not(:disabled) {
-  border-color: #0052cc;
-  color: #0052cc;
-  background-color: #f8f9ff;
-  box-shadow: 0 4px 12px rgba(5, 82, 204, 0.15);
+  border-color: #6255A0;
+  color: #6255A0;
+  background-color: #f5f3ff;
+  box-shadow: 0 4px 12px rgba(98, 85, 160, 0.15);
   transform: translateY(-2px);
 }
 

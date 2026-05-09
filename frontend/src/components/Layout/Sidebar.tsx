@@ -218,22 +218,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-logo">
-            <svg viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="url(#brand-gradient)" />
-              <path
-                d="M10 16L14 20L22 12"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <defs>
-                <linearGradient id="brand-gradient" x1="0" y1="0" x2="32" y2="32">
-                  <stop offset="0%" stopColor="#8B5CF6" />
-                  <stop offset="100%" stopColor="#06B6D4" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <img
+              src="/ah-consultores-logo.png"
+              alt="A&H Consultores"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }}
+            />
           </div>
           <div className="brand-text">
             <span className="brand-name">HabilitaPro</span>
@@ -317,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                     right: 0,
                     marginBottom: '6px',
                     background: '#1e1b4b',
-                    border: '1px solid rgba(139,92,246,0.35)',
+                    border: '1px solid rgba(98,85,160,0.35)',
                     borderRadius: '10px',
                     boxShadow: '0 8px 24px rgba(15,23,42,0.5)',
                     minWidth: '172px',

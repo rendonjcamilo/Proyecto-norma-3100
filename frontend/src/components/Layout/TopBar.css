@@ -1,4 +1,4 @@
-/* ============================================
+﻿/* ============================================
    TOPBAR
    Professional sticky topbar with breadcrumbs
    ============================================ */
@@ -150,8 +150,8 @@
 }
 
 .topbar-icon-btn:hover {
-  background: rgba(139, 92, 246, 0.08);
-  color: #8B5CF6;
+  background: rgba(98, 85, 160, 0.08);
+  color: #6255A0;
   transform: translateY(-1px);
 }
 
@@ -456,7 +456,7 @@
 
 .command-item:hover,
 .command-item.selected {
-  background: rgba(139, 92, 246, 0.08);
+  background: rgba(98, 85, 160, 0.08);
 }
 
 .command-item-icon {
@@ -492,10 +492,10 @@
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 2px 6px;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+  background: rgba(98, 85, 160, 0.12);
+  border: 1px solid rgba(98, 85, 160, 0.25);
   border-radius: 4px;
-  color: #7c3aed;
+  color: #4d4080;
   flex-shrink: 0;
 }
 

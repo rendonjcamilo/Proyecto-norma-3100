@@ -1,12 +1,12 @@
-/* ─────────────────────────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────────────────────────
    LoginPage.css — rediseño visual alineado con el sistema de diseño
    del dashboard (hero indigo, cards, tipografía, tokens)
 ───────────────────────────────────────────────────────────────── */
 
 /* ── Tokens ─────────────────────────────────────────────────── */
 .lp-root {
-  --lp-indigo:      #8B5CF6;
-  --lp-indigo-dark: #7C3AED;
+  --lp-indigo:      #6255A0;
+  --lp-indigo-dark: #4d4080;
   --lp-indigo-bg:   #ede9fe;
   --lp-navy:        #0f172a;
   --lp-navy-mid:    #1e1b4b;
@@ -47,19 +47,19 @@
 .lp-orb-1 {
   width: 420px; height: 420px;
   top: -140px; right: -60px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.32) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(98, 85, 160, 0.32) 0%, transparent 70%);
   filter: blur(32px);
 }
 .lp-orb-2 {
   width: 300px; height: 300px;
   bottom: -100px; left: -60px;
-  background: radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(98,85,160,0.22) 0%, transparent 70%);
   filter: blur(28px);
 }
 .lp-orb-3 {
   width: 200px; height: 200px;
   top: 50%; left: 40%;
-  background: radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(16,152,158,0.12) 0%, transparent 70%);
   filter: blur(20px);
 }
 
@@ -77,8 +77,8 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.85rem;
-  background: rgba(139, 92, 246, 0.18);
-  border: 1px solid rgba(139, 92, 246, 0.4);
+  background: rgba(98, 85, 160, 0.18);
+  border: 1px solid rgba(98, 85, 160, 0.4);
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
@@ -98,7 +98,7 @@
 }
 
 .lp-hero-title span {
-  background: linear-gradient(90deg, #A78BFA, #06B6D4);
+  background: linear-gradient(90deg, #9080C0, #10989E);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -133,7 +133,7 @@
 .lp-feature-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #A78BFA;
+  background: #9080C0;
   flex-shrink: 0;
 }
 
@@ -217,7 +217,7 @@
 .lp-input:focus {
   border-color: var(--lp-indigo);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+  box-shadow: 0 0 0 3px rgba(98, 85, 160, 0.12);
 }
 
 .lp-input:disabled {
@@ -244,7 +244,7 @@
 .lp-submit-btn {
   width: 100%;
   padding: 0.7rem 1rem;
-  background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+  background: linear-gradient(135deg, #4d4080 0%, #10989E 100%);
   color: #fff;
   border: none;
   border-radius: var(--lp-radius-sm);
@@ -254,13 +254,13 @@
   transition: all 0.2s ease;
   margin-top: 0.25rem;
   letter-spacing: 0.1px;
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 14px rgba(77, 64, 128, 0.3);
 }
 
 .lp-submit-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.42);
-  background: linear-gradient(135deg, #6D28D9 0%, #0891b2 100%);
+  box-shadow: 0 8px 22px rgba(77, 64, 128, 0.42);
+  background: linear-gradient(135deg, #4d4080 0%, #0891b2 100%);
 }
 
 .lp-submit-btn:active:not(:disabled) {
@@ -402,7 +402,7 @@
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 4px;
-  background: linear-gradient(90deg, #7C3AED, #06B6D4);
+  background: linear-gradient(90deg, #4d4080, #10989E);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -446,9 +446,9 @@
 }
 
 .dashboard-form-group input:focus {
-  border-color: #8B5CF6;
+  border-color: #6255A0;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
+  box-shadow: 0 0 0 3px rgba(98, 85, 160, 0.12);
 }
 
 .dashboard-form-group input:disabled {
@@ -469,7 +469,7 @@
 .login-btn {
   width: 100%;
   padding: 0.7rem 1rem;
-  background: linear-gradient(135deg, #7C3AED 0%, #06B6D4 100%);
+  background: linear-gradient(135deg, #4d4080 0%, #10989E 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -478,13 +478,13 @@
   cursor: pointer;
   transition: all 0.2s ease;
   margin-top: 0.25rem;
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 14px rgba(77, 64, 128, 0.3);
 }
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.42);
-  background: linear-gradient(135deg, #6D28D9 0%, #0891b2 100%);
+  box-shadow: 0 8px 22px rgba(77, 64, 128, 0.42);
+  background: linear-gradient(135deg, #4d4080 0%, #0891b2 100%);
 }
 
 .login-btn:disabled {

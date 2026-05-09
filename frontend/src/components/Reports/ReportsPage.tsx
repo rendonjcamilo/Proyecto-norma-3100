@@ -188,13 +188,13 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '1px solid rgba(139,92,246,0.3)',
+                border: '1px solid rgba(98,85,160,0.3)',
                 borderRadius: '8px',
                 fontSize: '14px',
                 fontFamily: 'inherit',
                 marginBottom: '24px',
                 outline: 'none',
-                boxShadow: '0 1px 4px rgba(139,92,246,0.08)',
+                boxShadow: '0 1px 4px rgba(98,85,160,0.08)',
               }}
             >
               <option value="">-- Selecciona prestador --</option>
@@ -444,11 +444,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: '1px solid rgba(139,92,246,0.3)',
+                      border: '1px solid rgba(98,85,160,0.3)',
                       borderRadius: '6px',
                       fontSize: '13px',
                       fontFamily: 'inherit',
-                      boxShadow: '0 1px 3px rgba(139,92,246,0.07)',
+                      boxShadow: '0 1px 3px rgba(98,85,160,0.07)',
                     }}
                   >
                     <option value="">-- Selecciona evaluación --</option>

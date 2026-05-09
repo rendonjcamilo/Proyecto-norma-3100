@@ -14,7 +14,7 @@
 .inv-badge {
   display: inline-block;
   background: #e0e7ff;
-  color: #7C3AED;
+  color: #4d4080;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -49,15 +49,15 @@
   display: flex;
   align-items: center;
   background: #fff;
-  border: 2px solid #8B5CF6;
+  border: 2px solid #6255A0;
   border-radius: 10px;
   padding: 4px 4px 4px 14px;
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);
+  box-shadow: 0 2px 12px rgba(98, 85, 160, 0.1);
   gap: 8px;
 }
 
 .inv-search-icon {
-  color: #8B5CF6;
+  color: #6255A0;
   flex-shrink: 0;
 }
 
@@ -77,7 +77,7 @@
 
 .inv-search-btn {
   padding: 10px 22px;
-  background: #8B5CF6;
+  background: #6255A0;
   color: #fff;
   border: none;
   border-radius: 7px;
@@ -89,7 +89,7 @@
 }
 
 .inv-search-btn:hover:not(:disabled) {
-  background: #7C3AED;
+  background: #4d4080;
 }
 
 .inv-search-btn:disabled {
@@ -151,7 +151,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid #e0e7ff;
-  border-top-color: #8B5CF6;
+  border-top-color: #6255A0;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -188,8 +188,8 @@
 }
 
 .inv-result-item:hover {
-  border-color: #8B5CF6;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+  border-color: #6255A0;
+  box-shadow: 0 2px 8px rgba(98, 85, 160, 0.1);
 }
 
 .inv-result-main {
@@ -203,7 +203,7 @@
 .inv-result-numero {
   font-size: 12px;
   font-weight: 700;
-  color: #8B5CF6;
+  color: #6255A0;
   letter-spacing: 0.3px;
 }
 
@@ -252,7 +252,7 @@
   background: none;
   border: none;
   font-size: 13px;
-  color: #8B5CF6;
+  color: #6255A0;
   cursor: pointer;
   padding: 0;
   margin-bottom: 16px;
@@ -273,7 +273,7 @@
 .inv-card-numero {
   font-size: 13px;
   font-weight: 700;
-  color: #8B5CF6;
+  color: #6255A0;
   letter-spacing: 0.5px;
 }
 
@@ -319,7 +319,7 @@
 .inv-field-label {
   font-size: 11px;
   font-weight: 600;
-  color: #8B5CF6;
+  color: #6255A0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -389,7 +389,7 @@
 
 .inv-not-found-hint code {
   font-weight: 700;
-  color: #8B5CF6;
+  color: #6255A0;
   background: #ede9fe;
   padding: 1px 6px;
   border-radius: 4px;

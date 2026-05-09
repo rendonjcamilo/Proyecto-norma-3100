@@ -102,14 +102,24 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
     });
   }
 
-  // Orden según Resolución 3100: TSTH, TSINF, TSDOT, TSMD, TSPP, TSHCR, TSINT
-  const STANDARD_ORDER: Record<string, number> = {
-    TSTH: 1, TSINF: 2, TSDOT: 3, TSMD: 4, TSPP: 5, TSHCR: 6, TSINT: 7,
+  // TH=1, INF=2, DOT=3, MD=4, PP=5, HCR=6, INT=7
+  // Aplica tanto a transversales (TSTH, TSINF…) como a específicos (APH_TH, APH_INF…)
+  const DOMAIN_ORDER: Record<string, number> = {
+    TH: 1, INF: 2, DOT: 3, MD: 4, PP: 5, HCR: 6, INT: 7,
+  };
+  const getDomainSuffix = (code: string): string => {
+    const underscoreIdx = code.lastIndexOf('_');
+    if (underscoreIdx !== -1) return code.slice(underscoreIdx + 1);
+    if (code.startsWith('TS')) return code.slice(2);
+    return code;
   };
   return Array.from(standardMap.values()).sort((a, b) => {
-    const orderA = STANDARD_ORDER[a.code] ?? 99;
-    const orderB = STANDARD_ORDER[b.code] ?? 99;
-    return orderA - orderB;
+    const orderA = DOMAIN_ORDER[getDomainSuffix(a.code)] ?? 99;
+    const orderB = DOMAIN_ORDER[getDomainSuffix(b.code)] ?? 99;
+    if (orderA !== orderB) return orderA - orderB;
+    // Mismo dominio: transversales primero
+    if (a.isTransversal !== b.isTransversal) return a.isTransversal ? -1 : 1;
+    return 0;
   });
 }
 

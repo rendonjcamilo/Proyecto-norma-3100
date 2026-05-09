@@ -594,7 +594,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
             </div>
             <div className="modal-body">
               {/* Prestador seleccionado */}
-              <div style={{ marginBottom: '16px', padding: '10px 14px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '8px', fontSize: '13px' }}>
+              <div style={{ marginBottom: '16px', padding: '10px 14px', background: 'rgba(98,85,160,0.06)', border: '1px solid rgba(98,85,160,0.2)', borderRadius: '8px', fontSize: '13px' }}>
                 <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Para prestador</span>
                 <p style={{ margin: '3px 0 0', fontWeight: 700, color: '#8B5CF6' }}>
                   {selectedProvider?.legalName || 'No seleccionado'}

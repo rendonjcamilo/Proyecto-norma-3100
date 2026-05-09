@@ -28,7 +28,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(139, 92, 246, 0.3) 50%,
+    rgba(98, 85, 160, 0.3) 50%,
     transparent 100%
   );
 }
@@ -44,18 +44,16 @@
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.4));
-}
-
-.brand-logo svg {
-  width: 100%;
-  height: 100%;
+  background: white;
+  border-radius: 8px;
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .brand-text {
@@ -67,7 +65,7 @@
 .brand-name {
   font-size: var(--text-lg);
   font-weight: 800;
-  background: linear-gradient(90deg, #ffffff 0%, #a5b4fc 100%);
+  background: linear-gradient(90deg, #ffffff 0%, #b0a0d8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -78,7 +76,7 @@
 .brand-tagline {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: #A78BFA;
+  color: #9080C0;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   margin-top: 2px;
@@ -202,11 +200,11 @@
 .nav-link.active {
   background: linear-gradient(
     90deg,
-    rgba(139, 92, 246, 0.2) 0%,
-    rgba(139, 92, 246, 0.08) 100%
+    rgba(98, 85, 160, 0.2) 0%,
+    rgba(98, 85, 160, 0.08) 100%
   );
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(98, 85, 160, 0.2);
 }
 
 .nav-link.active::before {
@@ -283,7 +281,7 @@
   width: 38px;
   height: 38px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+  background: linear-gradient(135deg, #6255A0 0%, #9080C0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -292,7 +290,7 @@
   font-size: var(--text-sm);
   flex-shrink: 0;
   border: 2px solid rgba(165, 180, 252, 0.3);
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.45);
+  box-shadow: 0 4px 14px rgba(98, 85, 160, 0.45);
 }
 
 .user-info {
@@ -312,7 +310,7 @@
 .user-role {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: #A78BFA;
+  color: #9080C0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
