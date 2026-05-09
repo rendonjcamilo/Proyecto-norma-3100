@@ -492,7 +492,7 @@
 .etpl-hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1a1535 45%, #0f172a 100%);
+  background: linear-gradient(135deg, #2e2468 0%, #3b2f80 45%, #2e2468 100%);
   border-radius: 14px;
   padding: 2.25rem 2.5rem;
   display: flex;
@@ -602,7 +602,7 @@
 }
 
 .etpl-hero-btn:hover {
-  background: linear-gradient(135deg, #4d4080 0%, #0891b2 100%);
+  background: linear-gradient(135deg, #4d4080 0%, #10989E 100%);
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(98,85,160,0.45);
 }

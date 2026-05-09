@@ -22,7 +22,7 @@
 
   display: flex;
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Myriad Pro', 'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--lp-navy);
 }
 
@@ -376,7 +376,7 @@
   justify-content: center;
   min-height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Myriad Pro', 'Source Sans 3', 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   padding: 2rem 1rem;
 }
 
