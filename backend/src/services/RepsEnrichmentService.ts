@@ -18,10 +18,10 @@ const MINSALUD_BASE = 'https://prestadores.minsalud.gov.co/habilitacion';
 const REPS_PATH = '/consultas/habilitados_reps.aspx?pageTitle=Registro%20Actual&pageHlp=';
 const CACHE_TTL_DAYS = 30;
 const RETRY_COOLDOWN_HOURS = 24;
-const CONCURRENCY = 10;
+const CONCURRENCY = 5;
 const HTTP_TIMEOUT_MS = 12000;
 const SESSION_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutos
-const SLOT_DELAY_MS = 150; // pausa entre requests del mismo slot
+const SLOT_DELAY_MS = 500; // pausa entre requests del mismo slot
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';

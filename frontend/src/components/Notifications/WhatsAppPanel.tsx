@@ -141,6 +141,7 @@ export const WhatsAppPanel: React.FC = () => {
 
     const BATCH = 10;
     const BATCH_TIMEOUT_MS = 90000;
+    const INTER_BATCH_DELAY_MS = 1500;
     let done = 0;
     let exitosos = 0;
     const allErrors: RepsEnrichResult[] = [];
@@ -149,6 +150,9 @@ export const WhatsAppPanel: React.FC = () => {
 
     for (let i = 0; i < nits.length; i += BATCH) {
       if (enrichAbort.current) break;
+
+      // Pausa entre lotes para no saturar el portal MINSALUD
+      if (i > 0) await new Promise((r) => setTimeout(r, INTER_BATCH_DELAY_MS));
 
       const batch = nits.slice(i, i + BATCH);
       try {
@@ -421,10 +425,15 @@ export const WhatsAppPanel: React.FC = () => {
             ) : (
               <button
                 className="wap-enrich-btn"
-                onClick={() => doEnrich(prospectos.map((p) => p.nit).filter(Boolean))}
-                title="Actualizar fechas desde MINSALUD"
+                onClick={() => doEnrich(
+                  prospectos
+                    .filter((p: RepsProspecto) => !p.fecha_vencimiento)
+                    .map((p: RepsProspecto) => p.nit)
+                    .filter(Boolean)
+                )}
+                title="Consultar MINSALUD solo para prestadores sin fecha"
               >
-                🔄 Actualizar
+                🔄 Actualizar ({prospectos.filter((p: RepsProspecto) => !p.fecha_vencimiento).length} pendientes)
               </button>
             )}
           </div>
