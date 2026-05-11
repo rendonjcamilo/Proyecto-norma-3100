@@ -1,21 +1,16 @@
-name: Deploy to Production (VPS Hostinger)
+name: Deploy to Production
 
-# Dispara ÚNICAMENTE en push a main después de que pase CI
+# Dispara en push a main
 on:
   push:
     branches: [main]
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false  # No cancelar deploys en curso
-
-# Permisos mínimos necesarios para publicar imágenes en GHCR
-permissions:
-  contents: read
-  packages: write
+  cancel-in-progress: false
 
 jobs:
-  # ── 1. Validaciones previas (lint + test deben pasar antes de deploy) ─────
+  # ── 1. Validaciones previas ────────────────────────────────────────────────
   pre-deploy-check:
     name: Pre-deploy validation
     runs-on: ubuntu-latest
@@ -41,148 +36,37 @@ jobs:
         working-directory: ./backend
         run: npm run lint
 
-  # ── 2. Build y push de imágenes Docker a GitHub Container Registry ────────
-  build-and-push:
-    name: Build & Push Docker images
+  # ── 2. Deploy al VPS vía SSH ───────────────────────────────────────────────
+  deploy:
+    name: Deploy to VPS (app.habilitapro.com)
     runs-on: ubuntu-latest
     needs: pre-deploy-check
-    outputs:
-      backend-image: ${{ steps.meta-backend.outputs.tags }}
-      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
-      version: ${{ steps.version.outputs.sha }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set version tag
-        id: version
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Backend image metadata
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/backend
-          tags: |
-            type=sha,prefix=,suffix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Frontend image metadata
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/frontend
-          tags: |
-            type=sha,prefix=,suffix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build & push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./config/Dockerfile.backend
-          target: production
-          push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=gha,scope=backend-prod
-          cache-to: type=gha,mode=max,scope=backend-prod
-
-      - name: Build & push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          target: production
-          push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=gha,scope=frontend-prod
-          cache-to: type=gha,mode=max,scope=frontend-prod
-
-  # ── 3. Deploy al VPS vía SSH ──────────────────────────────────────────────
-  deploy:
-    name: Deploy to VPS
-    runs-on: ubuntu-latest
-    needs: build-and-push
     environment:
       name: production
-      url: ${{ vars.PROD_URL }}
+      url: https://app.habilitapro.com
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT || 22 }}
-          # Timeout total del deploy: 10 minutos
-          command_timeout: 10m
-          script: |
-            set -euo pipefail
+          host: 147.93.45.4
+          username: root
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          command_timeout: 15m
+          script: bash /opt/norma3100/scripts/deploy.sh
 
-            cd /opt/norma3100
-
-            echo "=== [1/5] Autenticando en GHCR ==="
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
-              -u ${{ github.actor }} --password-stdin
-
-            echo "=== [2/5] Descargando nuevas imágenes ==="
-            docker compose -f docker-compose.prod.yml pull backend frontend
-
-            echo "=== [3/5] Iniciando rolling update (zero-downtime) ==="
-            docker compose -f docker-compose.prod.yml up -d \
-              --no-deps --remove-orphans backend frontend
-
-            echo "=== [4/5] Aplicando migraciones de BD ==="
-            docker compose -f docker-compose.prod.yml exec -T backend \
-              npm run migrate:up
-
-            echo "=== [5/5] Health check ==="
-            sleep 5
-            STATUS=$(curl -sf http://localhost:3001/health | \
-              python3 -c "import sys,json; d=json.load(sys.stdin); print(d['status'])" 2>/dev/null || echo "unreachable")
-
-            if [ "$STATUS" != "healthy" ]; then
-              echo "ERROR: Backend no responde como healthy (status=$STATUS)"
-              echo "Iniciando rollback..."
-              docker compose -f docker-compose.prod.yml rollout backend
-              exit 1
-            fi
-
-            echo "=== Deploy completado: commit ${{ needs.build-and-push.outputs.version }} ==="
-
-            # Limpiar imágenes antiguas (mantener las 3 últimas)
-            docker image prune -f --filter "until=168h" || true
-
-  # ── 4. Notificación post-deploy ───────────────────────────────────────────
+  # ── 3. Resumen post-deploy ────────────────────────────────────────────────
   notify:
-    name: Post-deploy notification
+    name: Post-deploy summary
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: deploy
     if: always()
     steps:
-      - name: Deployment summary
+      - name: Result
         run: |
           if [ "${{ needs.deploy.result }}" = "success" ]; then
-            echo "✅ Deploy exitoso"
-            echo "  Commit: ${{ github.sha }}"
-            echo "  Actor:  ${{ github.actor }}"
-            echo "  Rama:   ${{ github.ref_name }}"
+            echo "Deploy exitoso en https://app.habilitapro.com"
+            echo "Commit: ${{ github.sha }} — Actor: ${{ github.actor }}"
           else
-            echo "❌ Deploy FALLIDO — revisar logs en GitHub Actions"
-            echo "  Commit: ${{ github.sha }}"
+            echo "ERROR: Deploy fallido — revisar logs en GitHub Actions"
           fi
