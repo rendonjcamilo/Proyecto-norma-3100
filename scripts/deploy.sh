@@ -11,6 +11,7 @@ set -euo pipefail
 
 APP_DIR="/opt/norma3100"
 COMPOSE_FILE="$APP_DIR/docker-compose.prod.yml"
+COMPOSE_CMD="docker compose -f $COMPOSE_FILE --env-file $APP_DIR/.env.production"
 LOG_FILE="/var/log/norma3100-deploy.log"
 
 log() {
