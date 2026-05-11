@@ -62,7 +62,7 @@ export function SuperAdminDashboard(): JSX.Element {
             Sistema de Gestión — Norma 3100
           </span>
           <h1 className="sad-hero-title">
-            Bienvenido, <span>{user?.first_name || 'Administrador'}</span>
+            Bienvenido(a), <span>{user?.first_name || 'Administrador'}</span>
           </h1>
           <p className="sad-hero-subtitle">
             Panel de control del sistema de auditoría y cumplimiento

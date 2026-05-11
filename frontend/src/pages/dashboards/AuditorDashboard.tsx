@@ -98,7 +98,7 @@ export function AuditorDashboard(): JSX.Element {
             Auditoría — Norma 3100
           </span>
           <h1 className="adb-hero-title">
-            Bienvenido, <span>{user?.first_name || 'Auditor'}</span>
+            Bienvenido(a), <span>{user?.first_name || 'Auditor'}</span>
           </h1>
           <p className="adb-hero-subtitle">
             Panel de auditoría y seguimiento de cumplimiento de prestadores

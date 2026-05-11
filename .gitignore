@@ -73,5 +73,6 @@ docker-compose.override.yml
 tmp/
 temp/
 
-# Public files (if generated)
-frontend/public/
+# Public files (if generated) — logo excluido de la regla
+frontend/public/*
+!frontend/public/ah-consultores-logo.png
