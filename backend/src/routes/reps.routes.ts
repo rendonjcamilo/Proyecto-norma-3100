@@ -160,7 +160,7 @@ export function createRepsRouter(pool: Pool): Router {
         const clasePrestador = req.query.clase ? String(req.query.clase).trim() : undefined;
         const soloConCelular = req.query.soloConCelular === 'true';
         const limitRaw = parseInt(String(req.query.limit ?? '100'), 10);
-        const limit = isNaN(limitRaw) ? 100 : limitRaw === 0 ? 0 : Math.min(Math.max(limitRaw, 1), 1000);
+        const limit = isNaN(limitRaw) ? 100 : Math.min(Math.max(limitRaw, 1), 3000);
         const diasHastaVencer = req.query.diasHastaVencer
           ? Math.min(Math.max(parseInt(String(req.query.diasHastaVencer), 10) || 0, 0), 365)
           : undefined;
@@ -214,9 +214,12 @@ export function createRepsRouter(pool: Pool): Router {
           campo_vencimiento: 'reps_enriched_cache',
         });
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+        const isAbort = (error as Error)?.name === 'AbortError' || String((error as Error)?.message).includes('abort');
+        const msg = isAbort
+          ? 'Tiempo de espera agotado al consultar datos.gov.co. Reduce el número de resultados o afina los filtros.'
+          : (error instanceof Error ? error.message : String(error));
         logger.error({ msg: 'Error consultando prospectos REPS', error: msg });
-        res.status(500).json({ error: msg });
+        res.status(isAbort ? 504 : 500).json({ error: msg });
       }
     }
   );

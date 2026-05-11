@@ -120,6 +120,11 @@ export const WhatsAppPanel: React.FC = () => {
     nit: string; nombre: string; fecha: string; saving: boolean;
   } | null>(null);
 
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [tablePage, setTablePage] = useState(0);
+  const [sortCol, setSortCol] = useState<'dias' | 'nombre' | 'municipio'>('dias');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
   const canSearch = departamento.trim() !== '' || municipio.trim() !== '';
 
   const prospectosFiltrados = filtrarPorVencimiento
@@ -219,6 +224,8 @@ export const WhatsAppPanel: React.FC = () => {
       const msg = err instanceof Error ? err.message : '';
       if (msg.toLowerCase().includes('jwt') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('unauthorized')) {
         setError('Sesión expirada — vuelve a iniciar sesión para consultar el REPS.');
+      } else if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('504') || msg.toLowerCase().includes('504')) {
+        setError('La consulta tardó demasiado. Reduce el número de resultados o afina los filtros e intenta de nuevo.');
       } else {
         setError('No se pudo conectar con datos.gov.co. Verifica tu conexión e intenta de nuevo.');
       }
@@ -226,9 +233,9 @@ export const WhatsAppPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-    // Auto-enrich: primeros 100 automáticamente; el resto con el botón "Actualizar"
+    // Auto-enrich: todos los registros sin fecha en caché
     if (fetchedData.length > 0) {
-      await doEnrich(fetchedData.slice(0, 100).map((p) => p.nit).filter(Boolean));
+      await doEnrich(fetchedData.map((p) => p.nit).filter(Boolean));
     }
   }, [departamento, municipio, clase, soloConCelular, limitResultados, canSearch, doEnrich]);
 
@@ -278,6 +285,58 @@ export const WhatsAppPanel: React.FC = () => {
   };
 
   const phoneValido = manualPhone.replace(/\D/g, '').length >= 10;
+
+  // ── Tabla: sorting, paginación y exportación ─────────────────────────────
+
+  const TABLE_PAGE_SIZE = 50;
+
+  const prospectosSorted = [...prospectosFiltrados].sort((a, b) => {
+    if (sortCol === 'dias') {
+      const da = a.dias_hasta_vencer ?? 99999;
+      const db = b.dias_hasta_vencer ?? 99999;
+      return sortDir === 'asc' ? da - db : db - da;
+    }
+    if (sortCol === 'nombre') {
+      return sortDir === 'asc'
+        ? a.nombre_prestador.localeCompare(b.nombre_prestador, 'es')
+        : b.nombre_prestador.localeCompare(a.nombre_prestador, 'es');
+    }
+    const ma = a.municipio, mb = b.municipio;
+    return sortDir === 'asc' ? ma.localeCompare(mb, 'es') : mb.localeCompare(ma, 'es');
+  });
+
+  const totalTablePages = Math.ceil(prospectosSorted.length / TABLE_PAGE_SIZE);
+  const prospectosPaged = prospectosSorted.slice(tablePage * TABLE_PAGE_SIZE, (tablePage + 1) * TABLE_PAGE_SIZE);
+
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortCol(col); setSortDir('asc'); }
+    setTablePage(0);
+  };
+
+  const sortArrow = (col: typeof sortCol) =>
+    sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕';
+
+  const exportCSV = () => {
+    const headers = ['Nombre', 'NIT', 'Municipio', 'Departamento', 'Clase', 'Celular', 'Teléfono', 'Email', 'Fecha Vencimiento', 'Días hasta vencer', 'Código Habilitación'];
+    const rows = prospectosFiltrados.map((p) => [
+      p.nombre_prestador, p.nit, p.municipio, p.departamento, p.clase_prestador,
+      p.celular || '', p.telefono_raw || '', p.email || '',
+      p.fecha_vencimiento || '',
+      p.dias_hasta_vencer !== null ? String(p.dias_hasta_vencer) : '',
+      p.codigo_habilitacion,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reps-${(departamento || 'todos').toLowerCase()}-${(municipio || 'todos').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -339,7 +398,8 @@ export const WhatsAppPanel: React.FC = () => {
             <option value={250}>250 registros</option>
             <option value={500}>500 registros</option>
             <option value={1000}>1000 registros</option>
-            <option value={0}>Todos</option>
+            <option value={2000}>2000 registros</option>
+            <option value={3000}>3000 registros (máx.)</option>
           </select>
         </div>
 
@@ -466,25 +526,47 @@ export const WhatsAppPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="wap-body">
+      <div className={`wap-body${viewMode === 'table' ? ' wap-body--table' : ''}`}>
         {/* Panel izquierdo: lista */}
         <div className="wap-list-panel">
           <div className="wap-list-header">
-            {!loading && totalEncontrados !== null && prospectos.length > 0 && (
-              <span className="wap-list-count">
-                <strong>{prospectosFiltrados.length}</strong>
-                {filtrarPorVencimiento && enrichedCount > 0
-                  ? <> vencen en ≤ {diasHastaVencer} días</>
-                  : <> prestadores</>}
-                {departamento && <> en <strong>{departamento}</strong></>}
-                {municipio && <> · <strong>{municipio.toUpperCase()}</strong></>}
-                {filtrarPorVencimiento && enrichedCount === 0 && (
-                  <span className="wap-list-count-hint"> (carga fechas para filtrar)</span>
-                )}
-              </span>
-            )}
-            {!loading && prospectos.length === 0 && !error && totalEncontrados === null && (
-              <span className="wap-list-count">Usa los filtros y presiona Buscar</span>
+            <div className="wap-list-header-left">
+              {!loading && totalEncontrados !== null && prospectos.length > 0 && (
+                <span className="wap-list-count">
+                  <strong>{prospectosFiltrados.length}</strong>
+                  {filtrarPorVencimiento && enrichedCount > 0
+                    ? <> vencen en ≤ {diasHastaVencer} días</>
+                    : <> prestadores</>}
+                  {departamento && <> en <strong>{departamento}</strong></>}
+                  {municipio && <> · <strong>{municipio.toUpperCase()}</strong></>}
+                  {filtrarPorVencimiento && enrichedCount === 0 && (
+                    <span className="wap-list-count-hint"> (carga fechas para filtrar)</span>
+                  )}
+                </span>
+              )}
+              {!loading && prospectos.length === 0 && !error && totalEncontrados === null && (
+                <span className="wap-list-count">Usa los filtros y presiona Buscar</span>
+              )}
+            </div>
+
+            {prospectosFiltrados.length > 0 && (
+              <div className="wap-list-header-actions">
+                <button
+                  className={`wap-view-btn${viewMode === 'cards' ? ' wap-view-btn--active' : ''}`}
+                  onClick={() => setViewMode('cards')}
+                  title="Vista de tarjetas"
+                >☰ Tarjetas</button>
+                <button
+                  className={`wap-view-btn${viewMode === 'table' ? ' wap-view-btn--active' : ''}`}
+                  onClick={() => { setViewMode('table'); setTablePage(0); }}
+                  title="Vista de tabla — recomendada para muchos registros"
+                >⊞ Tabla</button>
+                <button
+                  className="wap-export-btn"
+                  onClick={exportCSV}
+                  title={`Exportar ${prospectosFiltrados.length} registros a CSV`}
+                >⬇ CSV ({prospectosFiltrados.length})</button>
+              </div>
             )}
           </div>
 
@@ -519,7 +601,7 @@ export const WhatsAppPanel: React.FC = () => {
             </div>
           )}
 
-          {!loading && !error && prospectosFiltrados.length > 0 && (
+          {!loading && !error && prospectosFiltrados.length > 0 && viewMode === 'cards' && (
             <ul className="wap-list">
               {prospectosFiltrados.map((p) => {
                 const chip = chipParaClase(p.clase_prestador);
@@ -577,10 +659,102 @@ export const WhatsAppPanel: React.FC = () => {
               })}
             </ul>
           )}
+
+          {/* ── Vista de tabla ───────────────────────────────────────── */}
+          {!loading && !error && prospectosFiltrados.length > 0 && viewMode === 'table' && (
+            <div className="wap-table-wrap">
+              <table className="wap-table">
+                <thead>
+                  <tr>
+                    <th className="wap-th wap-th-num">#</th>
+                    <th className="wap-th wap-th-sort" onClick={() => handleSort('nombre')}>
+                      Nombre{sortArrow('nombre')}
+                    </th>
+                    <th className="wap-th">NIT</th>
+                    <th className="wap-th wap-th-sort" onClick={() => handleSort('municipio')}>
+                      Municipio{sortArrow('municipio')}
+                    </th>
+                    <th className="wap-th">Clase</th>
+                    <th className="wap-th">Celular</th>
+                    <th className="wap-th">Fecha Vencimiento</th>
+                    <th className="wap-th wap-th-sort" onClick={() => handleSort('dias')}>
+                      Días{sortArrow('dias')}
+                    </th>
+                    <th className="wap-th">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prospectosPaged.map((p, idx) => {
+                    const rowNum = tablePage * TABLE_PAGE_SIZE + idx + 1;
+                    const chip = chipParaClase(p.clase_prestador);
+                    return (
+                      <tr key={`${p.codigo_habilitacion}-${p.nit}`} className="wap-tr">
+                        <td className="wap-td wap-td-num">{rowNum}</td>
+                        <td className="wap-td wap-td-name" title={p.nombre_prestador}>{p.nombre_prestador}</td>
+                        <td className="wap-td wap-td-mono">{p.nit}</td>
+                        <td className="wap-td">{p.municipio}</td>
+                        <td className="wap-td">
+                          <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
+                        </td>
+                        <td className="wap-td wap-td-phone">
+                          {p.celular
+                            ? <span>📱 {p.celular}</span>
+                            : p.telefono_raw
+                              ? <span className="wap-no-phone">📞 {p.telefono_raw}</span>
+                              : <span className="wap-no-phone">—</span>}
+                        </td>
+                        <td className="wap-td">
+                          {p.fecha_vencimiento
+                            ? <span>{formatFechaVenc(p.fecha_vencimiento)}</span>
+                            : <span className="wap-no-phone">Sin fecha</span>}
+                        </td>
+                        <td className="wap-td">
+                          {p.dias_hasta_vencer !== null
+                            ? <span className={`wap-venc-badge ${diasBadgeClass(p.dias_hasta_vencer)}`}>
+                                {p.dias_hasta_vencer <= 0 ? 'Vencido' : `${p.dias_hasta_vencer}d`}
+                              </span>
+                            : <span className="wap-no-phone">—</span>}
+                        </td>
+                        <td className="wap-td wap-td-actions">
+                          {p.celular && (
+                            <button
+                              className="wap-table-wa-btn"
+                              title="Preparar mensaje WhatsApp"
+                              onClick={() => { handleSelect(p); setViewMode('cards'); }}
+                            >💬</button>
+                          )}
+                          {!p.fecha_vencimiento && (
+                            <button
+                              className="wap-venc-manual-btn"
+                              title="Ingresar fecha manualmente"
+                              onClick={() => abrirManual(p)}
+                            >📅</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {totalTablePages > 1 && (
+                <div className="wap-pagination">
+                  <button className="wap-page-btn" onClick={() => setTablePage(0)} disabled={tablePage === 0}>«</button>
+                  <button className="wap-page-btn" onClick={() => setTablePage((p) => Math.max(0, p - 1))} disabled={tablePage === 0}>‹</button>
+                  <span className="wap-page-info">
+                    Página <strong>{tablePage + 1}</strong> de <strong>{totalTablePages}</strong>
+                    <span className="wap-page-total"> · {prospectosFiltrados.length} registros totales</span>
+                  </span>
+                  <button className="wap-page-btn" onClick={() => setTablePage((p) => Math.min(totalTablePages - 1, p + 1))} disabled={tablePage === totalTablePages - 1}>›</button>
+                  <button className="wap-page-btn" onClick={() => setTablePage(totalTablePages - 1)} disabled={tablePage === totalTablePages - 1}>»</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Panel derecho: compositor */}
-        <div className="wap-composer">
+        {/* Panel derecho: compositor — oculto en vista tabla */}
+        <div className={`wap-composer${viewMode === 'table' ? ' wap-composer--hidden' : ''}`}>
           {!selected ? (
             <div className="wap-composer-empty">
               <div className="wap-composer-empty-icon">💬</div>

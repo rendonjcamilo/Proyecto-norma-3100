@@ -251,6 +251,12 @@ async function request<T>(
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      window.location.href = '/login';
+      throw new Error('Sesión expirada');
+    }
     let msg = `Error ${res.status}`;
     try { const e = await res.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
     throw new Error(msg);

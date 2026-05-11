@@ -430,27 +430,28 @@ export class RepsService {
     }
 
     const SODA_PAGE_SIZE = 200;
-    const fetchAll = limit === 0;
     const whereClause = conditions.length > 0 ? conditions.join(' AND ') : null;
 
-    logger.debug({ msg: 'REPS SODA query', where: whereClause, limit, fetchAll });
+    logger.debug({ msg: 'REPS SODA query', where: whereClause, limit });
 
     const controller = new AbortController();
-    const timeoutMs = fetchAll ? 120000 : limit > 200 ? 60000 : 20000;
+    const timeoutMs = limit <= 200 ? 25000 : limit <= 1000 ? 90000 : 300000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const fetchHeaders = { Accept: 'application/json', 'User-Agent': 'Norma3100-ComplianceSystem/1.0' };
 
-    const fetchPage = async (pageLimit: number, offset: number): Promise<Record<string, string>[]> => {
+    const fetchPage = async (pageLimit: number, offset: number): Promise<Record<string, string>[] | null> => {
       const params = new URLSearchParams({
         $limit: String(pageLimit),
         $offset: String(offset),
-        $order: 'municipioprestadordesc ASC, nombreprestador ASC',
       });
       if (whereClause) params.set('$where', whereClause);
       const url = `${DATOS_GOV_REPS_ENDPOINT}?${params.toString()}`;
       const response = await fetch(url, { signal: controller.signal, headers: fetchHeaders });
-      if (!response.ok) throw new Error(`REPS API error: ${response.status}`);
+      if (!response.ok) {
+        logger.warn({ msg: 'REPS API page error (datos.gov.co)', status: response.status, offset, pageLimit });
+        return null;
+      }
       const json = await response.json();
       return Array.isArray(json) ? json : [];
     };
@@ -458,33 +459,29 @@ export class RepsService {
     try {
       let rawResults: Record<string, string>[] = [];
 
-      if (!fetchAll && limit <= SODA_PAGE_SIZE) {
-        rawResults = await fetchPage(limit, 0);
+      if (limit <= SODA_PAGE_SIZE) {
+        const page = await fetchPage(limit, 0);
+        if (page === null) throw new Error('REPS API error: datos.gov.co no respondió correctamente');
+        rawResults = page;
       } else {
         let offset = 0;
-        while (true) {
-          const batchSize = SODA_PAGE_SIZE;
+        while (rawResults.length < limit) {
+          const batchSize = Math.min(SODA_PAGE_SIZE, limit - rawResults.length);
           const batch = await fetchPage(batchSize, offset);
+          if (batch === null) break; // datos.gov.co error en offset alto — devolver lo que tenemos
           rawResults.push(...batch);
           if (batch.length < batchSize) break;
-          if (!fetchAll && rawResults.length >= limit) break;
           offset += batchSize;
         }
       }
 
       clearTimeout(timeout);
 
-      const results = rawResults;
-      if (!Array.isArray(results)) return { data: [], total: 0 };
-
-      // Log del primer valor de claseprestador para verificar formato real del dataset
-      if (results.length > 0 && results[0].claseprestador) {
-        logger.debug({ msg: 'REPS claseprestador muestra', valor: results[0].claseprestador });
-      }
+      if (!Array.isArray(rawResults)) return { data: [], total: 0 };
 
       // Nota: el dataset c36g-9fc2 de datos.gov.co NO incluye fecha de vencimiento
       // de habilitación. El campo fecha_vencimiento siempre vendrá null desde esta fuente.
-      const data: RepsProspecto[] = (fetchAll ? results : results.slice(0, limit)).map((r) => {
+      const data: RepsProspecto[] = rawResults.slice(0, limit).map((r) => {
         const telefonoRaw = this.pick(r, 'telefonoprestador', 't_lefonosede') || null;
         return {
           codigo_habilitacion: this.pick(r, 'codigohabilitacionsede') || '',

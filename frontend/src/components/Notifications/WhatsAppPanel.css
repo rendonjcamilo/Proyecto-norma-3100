@@ -345,12 +345,6 @@
   max-width: 160px;
 }
 
-.wap-list-header {
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
 .wap-list-count {
   font-size: 0.78rem;
   color: #64748b;
@@ -1055,4 +1049,213 @@
 .wap-modal-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Cabecera de lista: toggle de vista + exportación ──────────── */
+.wap-list-header {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.wap-list-header-left {
+  display: flex;
+  align-items: center;
+}
+
+.wap-list-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.wap-view-btn {
+  padding: 0.28rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.wap-view-btn:hover { background: #f1f5f9; color: #374151; }
+
+.wap-view-btn--active {
+  background: #6255A0;
+  color: #fff;
+  border-color: #6255A0;
+}
+
+.wap-export-btn {
+  padding: 0.28rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #10989E;
+  background: #e0f5f6;
+  color: #10989E;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.wap-export-btn:hover { background: #b3eaed; }
+
+/* ── Vista tabla full-width ─────────────────────────────────────── */
+.wap-body--table {
+  display: block;
+}
+
+.wap-body--table .wap-list-panel {
+  width: 100%;
+  border-radius: 12px;
+}
+
+.wap-composer--hidden {
+  display: none;
+}
+
+.wap-table-wrap {
+  overflow-x: auto;
+}
+
+.wap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  color: #1e293b;
+}
+
+.wap-th {
+  padding: 0.55rem 0.75rem;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.wap-th-sort {
+  cursor: pointer;
+}
+
+.wap-th-sort:hover {
+  color: #6255A0;
+  background: #f1f0f8;
+}
+
+.wap-th-num { width: 40px; text-align: center; }
+
+.wap-tr:nth-child(even) { background: #fafafa; }
+.wap-tr:hover { background: #f0f4ff; }
+
+.wap-td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.wap-td-num {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.wap-td-name {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.wap-td-mono {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.wap-td-phone {
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.wap-td-actions {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.wap-table-wa-btn {
+  padding: 0.2rem 0.4rem;
+  border-radius: 5px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.12s;
+}
+
+.wap-table-wa-btn:hover { background: #dcfce7; }
+
+/* ── Paginación de tabla ─────────────────────────────────────────── */
+.wap-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+  flex-wrap: wrap;
+}
+
+.wap-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.wap-page-btn:hover:not(:disabled) {
+  background: #6255A0;
+  color: #fff;
+  border-color: #6255A0;
+}
+
+.wap-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wap-page-info {
+  font-size: 0.8rem;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.wap-page-total {
+  color: #94a3b8;
 }
