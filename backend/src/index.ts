@@ -24,6 +24,8 @@ import { createSuficienciaPatrimonialRouter } from './routes/suficiencia-patrimo
 import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js';
 import { createInvimaRouter } from './routes/invima.routes.js';
 import { createRepsRouter } from './routes/reps.routes.js';
+import { createRepsAlertsRouter } from './routes/reps-alerts.routes.js';
+import { RepsAlertService } from './services/RepsAlertService.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createLocationsRouter } from './routes/locations.routes.js';
@@ -210,6 +212,10 @@ app.use('/api', apiLimiter, createInvimaRouter(pool));
 // REPS: Registro Especial de Prestadores (Condición 1 — datos.gov.co SODA API)
 app.use('/api', apiLimiter, createRepsRouter(pool));
 
+// REPS Alert Triggers: cron de prospección semi-automática por vencimiento
+const repsAlertService = new RepsAlertService(pool);
+app.use('/api', apiLimiter, createRepsAlertsRouter(pool, repsAlertService));
+
 // Norma 3100 JSON-based assessments (no database required)
 app.use('/api', apiLimiter, createNorma3100Router());
 
@@ -250,6 +256,9 @@ app.listen(PORT, () => {
   const notificationService = new NotificationService(pool);
   const habilitacionAlertService = new HabilitacionAlertService(pool, notificationService);
   habilitacionAlertService.startDailyCheck();
+
+  // Iniciar schedulers de alertas REPS configuradas por el usuario
+  repsAlertService.initAllActiveSchedulers();
 });
 
 export default app;

@@ -1259,3 +1259,402 @@
 .wap-page-total {
   color: #94a3b8;
 }
+/* ─────────────────────────────────────────────────────────────────
+   RepsAlertTrigger.css — Prefijo: rat-
+   Panel de cron de prospección semi-automática por vencimiento REPS
+───────────────────────────────────────────────────────────────── */
+
+.rat-root {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: border-color 0.2s;
+}
+
+.rat-root--open {
+  border-color: #6255A0;
+  box-shadow: 0 2px 12px rgba(98,85,160,0.12);
+}
+
+/* ── Cabecera siempre visible ──────────────────────────────────── */
+.rat-header {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  gap: 1rem;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.rat-header:hover {
+  background: #f8f7ff;
+}
+
+.rat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.rat-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.rat-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.rat-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e1b4b;
+  line-height: 1.2;
+}
+
+.rat-subtitle {
+  display: block;
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34ch;
+}
+
+.rat-badge {
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rat-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.rat-status--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rat-status--off {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.rat-chevron {
+  font-size: 1rem;
+  color: #64748b;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.rat-chevron--open {
+  transform: rotate(180deg);
+}
+
+.rat-bar--loading {
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+/* ── Cuerpo expandible ─────────────────────────────────────────── */
+.rat-body {
+  border-top: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Formulario de configuración ───────────────────────────────── */
+.rat-config-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.rat-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.65rem;
+}
+
+.rat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rat-field label {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rat-field select,
+.rat-field input[type="number"] {
+  padding: 0.4rem 0.55rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.rat-field select:focus,
+.rat-field input[type="number"]:focus {
+  outline: none;
+  border-color: #6255A0;
+}
+
+.rat-field--sm {
+  min-width: 100px;
+}
+
+.rat-field--check {
+  justify-content: flex-end;
+}
+
+.rat-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  padding-top: 1.2rem;
+}
+
+.rat-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+/* ── Botones ───────────────────────────────────────────────────── */
+.rat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+}
+
+.rat-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rat-btn--save {
+  background: #6255A0;
+  color: #fff;
+  border-color: #6255A0;
+}
+.rat-btn--save:hover:not(:disabled) { background: #4e4388; border-color: #4e4388; }
+
+.rat-btn--activate {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.rat-btn--activate:hover:not(:disabled) { background: #15803d; border-color: #15803d; }
+
+.rat-btn--deactivate {
+  background: #fff;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+.rat-btn--deactivate:hover:not(:disabled) { background: #f8f7ff; border-color: #6255A0; color: #6255A0; }
+
+.rat-btn--run {
+  background: #fff;
+  color: #6255A0;
+  border-color: #6255A0;
+}
+.rat-btn--run:hover:not(:disabled) { background: #f8f7ff; }
+
+.rat-btn--send {
+  background: #25d366;
+  color: #fff;
+  border-color: #25d366;
+  font-size: 0.85rem;
+  padding: 0.55rem 1.25rem;
+}
+.rat-btn--send:hover:not(:disabled) { background: #1db654; border-color: #1db654; }
+
+/* ── Mensajes de estado ────────────────────────────────────────── */
+.rat-msg {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.rat-msg--ok   { color: #16a34a; }
+.rat-msg--error { color: #dc2626; }
+
+/* ── Controles principales ─────────────────────────────────────── */
+.rat-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+}
+
+.rat-controls-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* ── Último resultado ──────────────────────────────────────────── */
+.rat-last-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rat-last-when {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.rat-last-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+}
+
+.rat-last-count--alert {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rat-last-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+/* ── Panel de resultado ────────────────────────────────────────── */
+.rat-result-panel {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1.5px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rat-result-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.rat-result-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.rat-result-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.rat-result-sub {
+  font-size: 0.78rem;
+  color: #15803d;
+  margin-top: 0.15rem;
+}
+
+.rat-result-warn {
+  font-size: 0.75rem;
+  color: #92400e;
+  margin-top: 0.25rem;
+}
+
+.rat-result-hint {
+  font-size: 0.73rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.rat-result-empty {
+  font-size: 0.82rem;
+  color: #16a34a;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-weight: 500;
+}
+
+/* ── Cajas de aviso ────────────────────────────────────────────── */
+.rat-hint-box {
+  font-size: 0.78rem;
+  color: #374151;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  line-height: 1.5;
+}
+
+.rat-hint-box--warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #78350f;
+}

@@ -7,6 +7,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { repsApi, RepsProspecto, RepsEnrichResult } from '../../services/api';
 import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../data/municipiosColombia';
+import { RepsAlertTrigger } from './RepsAlertTrigger';
 import './WhatsAppPanel.css';
 
 const DEPARTAMENTOS_COLOMBIA = [
@@ -41,7 +42,10 @@ He revisado su registro en el REPS y su habilitación vence el {{fecha_vencimien
 ¿Le interesa conocer cómo podemos apoyar a su institución?
 
 Quedo atento(a),
-[Tu nombre y contacto]`;
+[Tu nombre y contacto]
+
+---
+_Sus datos de contacto fueron obtenidos del Registro Especial de Prestadores de Servicios de Salud (REPS), fuente de acceso público administrada por el Ministerio de Salud y Protección Social, conforme al artículo 10 de la Ley 1581 de 2012. Si no desea recibir más comunicaciones, responda NO a este mensaje._`;
 
 type ClaseChip = { label: string; color: 'azul' | 'morado' | 'verde' | 'gris' };
 type EnrichStatus = 'idle' | 'running' | 'done';
@@ -338,10 +342,33 @@ export const WhatsAppPanel: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // ── Carga desde Alerta Automática ─────────────────────────────────────────
+
+  const handleCargarAlerta = useCallback((providers: RepsProspecto[], diasFiltro: number) => {
+    setProspectos(providers);
+    setTotalEncontrados(providers.length);
+    setFiltrarPorVencimiento(true);
+    setDiasHastaVencer(diasFiltro);
+    setError('');
+    setSelected(null);
+    setEnrichStatus('idle');
+    setEnrichProgress({ done: 0, total: 0, exitosos: 0 });
+    setViewMode('cards');
+    // Precargar filtros visibles con los datos del trigger
+    if (providers.length > 0) {
+      const first = providers[0];
+      if (first.departamento) setDepartamento(first.departamento);
+      if (first.municipio) setMunicipio(first.municipio);
+    }
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="wap-root">
+      {/* Panel de alerta automática */}
+      <RepsAlertTrigger onCargarAlerta={handleCargarAlerta} />
+
       {/* Header */}
       <div className="wap-header">
         <span className="wap-header-badge">

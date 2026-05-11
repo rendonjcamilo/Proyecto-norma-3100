@@ -935,6 +935,62 @@ export const repsApi = {
 };
 
 // ─────────────────────────────────────────────
+// REPS ALERT TRIGGERS
+// ─────────────────────────────────────────────
+
+export interface RepsAlertTrigger {
+  id: string;
+  departamento: string | null;
+  municipio: string | null;
+  clase_prestador: string | null;
+  max_providers: number;
+  dias_antes_vencer: number;
+  solo_con_celular: boolean;
+  hora_local: number;
+  is_active: boolean;
+  last_run_at: string | null;
+  last_run_total: number | null;
+  last_run_por_vencer: number | null;
+  last_run_con_celular: number | null;
+  last_run_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RepsAlertResult {
+  id: string;
+  trigger_id: string;
+  run_at: string;
+  total_consultados: number;
+  total_por_vencer: number;
+  con_celular: number;
+  providers: RepsProspecto[];
+  error: string | null;
+}
+
+export const repsAlertsApi = {
+  getConfig: () =>
+    get<{ data: { trigger: RepsAlertTrigger; lastResult: RepsAlertResult | null } }>(
+      '/api/reps/alertas/config'
+    ),
+
+  updateConfig: (config: Partial<Omit<RepsAlertTrigger, 'id' | 'is_active' | 'last_run_at' | 'last_run_total' | 'last_run_por_vencer' | 'last_run_con_celular' | 'last_run_error' | 'created_at' | 'updated_at'>>) =>
+    put<{ data: RepsAlertTrigger }>('/api/reps/alertas/config', config),
+
+  activar: () =>
+    request<{ data: RepsAlertTrigger; message: string }>('POST', '/api/reps/alertas/activar'),
+
+  desactivar: () =>
+    request<{ data: RepsAlertTrigger; message: string }>('POST', '/api/reps/alertas/desactivar'),
+
+  ejecutar: () =>
+    request<{ data: RepsAlertResult; message: string }>('POST', '/api/reps/alertas/ejecutar'),
+
+  getResultado: () =>
+    get<{ data: RepsAlertResult | null }>('/api/reps/alertas/resultado'),
+};
+
+// ─────────────────────────────────────────────
 // NOTIFICACIONES
 // ─────────────────────────────────────────────
 
