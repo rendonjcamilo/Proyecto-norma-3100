@@ -27,6 +27,9 @@ import { createRepsRouter } from './routes/reps.routes.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
 import { createLocationsRouter } from './routes/locations.routes.js';
+import { createNotificationsRouter } from './routes/notifications.routes.js';
+import { HabilitacionAlertService } from './services/HabilitacionAlertService.js';
+import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
@@ -213,6 +216,9 @@ app.use('/api', apiLimiter, createNorma3100Router());
 // Locations (Colombian departments and municipalities)
 app.use('/api', apiLimiter, createLocationsRouter(pool));
 
+// In-app Notifications
+app.use('/api/notifications', apiLimiter, createNotificationsRouter(pool));
+
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
@@ -239,6 +245,11 @@ app.use((err: Error, _req: Request, res: Response) => {
 app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Environment: ${NODE_ENV}`);
+
+  // Iniciar cron de alertas de habilitación (verifica vencimientos ≤30 días)
+  const notificationService = new NotificationService(pool);
+  const habilitacionAlertService = new HabilitacionAlertService(pool, notificationService);
+  habilitacionAlertService.startDailyCheck();
 });
 
 export default app;

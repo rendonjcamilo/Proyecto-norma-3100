@@ -66,6 +66,7 @@ interface FormData {
   codigo_habilitacion: string;
   tipo_prestador: string;
   auditor_id: string;
+  habilitacion_fecha_vencimiento: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -80,6 +81,7 @@ const INITIAL_FORM: FormData = {
   codigo_habilitacion: '',
   tipo_prestador: '',
   auditor_id: '',
+  habilitacion_fecha_vencimiento: '',
 };
 
 interface Department {
@@ -222,6 +224,7 @@ export const ProvidersPage: React.FC = () => {
         nombre_sede: formData.nombre_sede.trim() || undefined,
         codigo_habilitacion: formData.codigo_habilitacion.trim() || undefined,
         legal_entity_type: formData.tipo_prestador.trim() || undefined,
+        habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || undefined,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
       } as any);
 
@@ -266,7 +269,8 @@ export const ProvidersPage: React.FC = () => {
         address: formData.address.trim(),
         city: formData.city.trim(),
         department: formData.department.trim(),
-      });
+        habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || null,
+      } as any);
 
       // Asignar el auditor si se seleccionó
       if (formData.auditor_id) {
@@ -325,6 +329,8 @@ export const ProvidersPage: React.FC = () => {
 
   const openEditModal = (provider: Provider) => {
     setEditingId(provider.id);
+    const rawDate = (provider as any).habilitacion_fecha_vencimiento;
+    const fechaVencimiento = rawDate ? rawDate.substring(0, 10) : '';
     setFormData({
       rut: provider.rut,
       legal_name: provider.legal_name,
@@ -337,6 +343,7 @@ export const ProvidersPage: React.FC = () => {
       codigo_habilitacion: (provider as any).codigo_habilitacion || '',
       tipo_prestador: (provider as any).legal_entity_type || '',
       auditor_id: '',
+      habilitacion_fecha_vencimiento: fechaVencimiento,
     });
     setCreateError(null);
     setServicesSearch('');
@@ -668,6 +675,22 @@ export const ProvidersPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, codigo_habilitacion: e.target.value })}
                   disabled={creating}
                 />
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="habilitacion_fecha_vencimiento">
+                  Fecha de vencimiento de habilitación
+                </label>
+                <input
+                  id="habilitacion_fecha_vencimiento"
+                  type="date"
+                  value={formData.habilitacion_fecha_vencimiento}
+                  onChange={(e) => setFormData({ ...formData, habilitacion_fecha_vencimiento: e.target.value })}
+                  disabled={creating}
+                />
+                <small style={{ color: '#6b778c', marginTop: '4px' }}>
+                  Se enviará alerta automática 30 días antes del vencimiento
+                </small>
               </div>
 
               <div className="dashboard-form-group">

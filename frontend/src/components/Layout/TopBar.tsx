@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { ProviderSelector } from './ProviderSelector';
 import { Provider } from '../../context/ProviderContext';
+import { inAppNotificationsApi, InAppNotification } from '../../services/api';
 import './TopBar.css';
 
 interface TopBarProps {
@@ -68,6 +69,80 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Notification bell state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const notifPanelRef = useRef<HTMLDivElement>(null);
+
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await inAppNotificationsApi.getUnreadCount();
+      setUnreadCount(res.count ?? 0);
+    } catch { /* silencioso — no hay sesión activa */ }
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    setNotifLoading(true);
+    try {
+      const res = await inAppNotificationsApi.getAll();
+      setNotifications(res.notifications ?? []);
+    } catch { /* silencioso */ }
+    finally { setNotifLoading(false); }
+  }, []);
+
+  // Polling de conteo cada 60 segundos
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
+  // Cargar lista completa al abrir el panel
+  useEffect(() => {
+    if (showNotifications) fetchNotifications();
+  }, [showNotifications, fetchNotifications]);
+
+  // Cerrar panel al hacer clic fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    if (showNotifications) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showNotifications]);
+
+  const handleMarkAllRead = async () => {
+    await inAppNotificationsApi.markAllRead();
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+  };
+
+  const handleMarkRead = async (id: string) => {
+    await inAppNotificationsApi.markRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
+  const severityColor: Record<string, string> = {
+    critical: '#dc2626',
+    high: '#ea580c',
+    medium: '#d97706',
+    low: '#6255A0',
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `hace ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs} h`;
+    return `hace ${Math.floor(hrs / 24)} días`;
+  };
 
   // Settings state (persisted in localStorage)
   const [emailNotifs, setEmailNotifs] = useState(() => localStorage.getItem('pref_email_notifs') !== 'false');
@@ -190,14 +265,83 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       <div className="topbar-right">
-        <button type="button" className="topbar-icon-btn" title="Ayuda" onClick={() => { setShowSettings(false); setShowHelp(!showHelp); }}>
+        {/* Campanita de notificaciones */}
+        <div className="notif-bell-wrap" ref={notifPanelRef}>
+          <button
+            type="button"
+            className="topbar-icon-btn notif-bell-btn"
+            title="Notificaciones"
+            onClick={() => {
+              setShowHelp(false);
+              setShowSettings(false);
+              setShowNotifications(prev => !prev);
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="notif-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+            )}
+          </button>
+
+          {/* Panel de notificaciones */}
+          {showNotifications && (
+            <div className="notif-panel">
+              <div className="notif-panel-header">
+                <span className="notif-panel-title">Notificaciones</span>
+                {unreadCount > 0 && (
+                  <button className="notif-mark-all" onClick={handleMarkAllRead}>
+                    Marcar todo leído
+                  </button>
+                )}
+              </div>
+
+              <div className="notif-panel-body">
+                {notifLoading && (
+                  <div className="notif-empty">Cargando...</div>
+                )}
+                {!notifLoading && notifications.length === 0 && (
+                  <div className="notif-empty">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3, marginBottom: '8px' }}>
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    Sin notificaciones
+                  </div>
+                )}
+                {!notifLoading && notifications.map(n => (
+                  <div
+                    key={n.id}
+                    className={`notif-item${n.is_read ? '' : ' notif-item--unread'}`}
+                    onClick={() => !n.is_read && handleMarkRead(n.id)}
+                  >
+                    <div
+                      className="notif-item-dot"
+                      style={{ background: severityColor[n.severity] || '#6255A0' }}
+                    />
+                    <div className="notif-item-body">
+                      <div className="notif-item-title">{n.title}</div>
+                      <div className="notif-item-msg">{n.message}</div>
+                      <div className="notif-item-time">{formatTimeAgo(n.created_at)}</div>
+                    </div>
+                    {!n.is_read && <div className="notif-item-unread-dot" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button type="button" className="topbar-icon-btn" title="Ayuda" onClick={() => { setShowSettings(false); setShowHelp(!showHelp); setShowNotifications(false); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         </button>
-        <button type="button" className="topbar-icon-btn" title="Configuración" onClick={() => { setShowHelp(false); setShowSettings(!showSettings); }}>
+        <button type="button" className="topbar-icon-btn" title="Configuración" onClick={() => { setShowHelp(false); setShowSettings(!showSettings); setShowNotifications(false); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
             <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1m17.66-6.34l-4.24 4.24m-6.84 6.84l-4.24 4.24m0-15.32l4.24 4.24m6.84 6.84l4.24 4.24" />

@@ -39,6 +39,19 @@ export interface Provider {
   city: string;
   department: string;
   status: string;
+  habilitacion_fecha_vencimiento?: string | null;
+}
+
+export interface InAppNotification {
+  id: string;
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  provider_id: string;
+  title: string;
+  message: string;
+  data: Record<string, any>;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface AdminUser {
@@ -960,6 +973,22 @@ export const notificationsApi = {
     variables?: Record<string, string>;
   }) =>
     post<{ id: string; status: string }>('/api/multichannel/email', payload),
+};
+
+export const inAppNotificationsApi = {
+  getAll: (unreadOnly = false) =>
+    get<{ notifications: InAppNotification[]; total: number }>(
+      `/api/notifications${unreadOnly ? '?unread=true' : ''}`
+    ),
+
+  getUnreadCount: () =>
+    get<{ count: number }>('/api/notifications/unread-count'),
+
+  markRead: (id: string) =>
+    request<{ success: boolean }>('PUT', `/api/notifications/${id}/read`, {}),
+
+  markAllRead: () =>
+    request<{ success: boolean }>('PUT', '/api/notifications/mark-all-read', {}),
 };
 
 // ─────────────────────────────────────────────
