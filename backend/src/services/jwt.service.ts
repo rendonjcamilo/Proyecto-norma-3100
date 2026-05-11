@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 
 // Token expiry times (in seconds)
-export const ACCESS_TOKEN_EXPIRY = 28800; // 8 horas (cubre una jornada laboral completa)
+export const ACCESS_TOKEN_EXPIRY = 1800; // 30 minutos — el frontend renueva silenciosamente via refresh token
 export const REFRESH_TOKEN_EXPIRY = 1209600; // 14 días
 
 // HS256 algorithm

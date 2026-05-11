@@ -91,6 +91,28 @@ export const webhookLimiter = rateLimit({
   },
 });
 
+// Strict limiter for password operations (forgot, reset, change): 3 attempts / hour
+export const passwordLimiter = process.env.DISABLE_RATE_LIMIT === 'true' ? noOpLimiter : rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  message: {
+    error: 'Too Many Password Attempts',
+    message: 'Demasiados intentos de recuperación de contraseña. Intenta de nuevo en 1 hora.',
+    retryAfter: '1 hour',
+  },
+  handler: (req: Request, res: Response, _next, options) => {
+    logger.warn({
+      msg: 'Password rate limit exceeded',
+      ip: req.ip,
+      path: req.path,
+    });
+    res.status(options.statusCode).json(options.message);
+  },
+});
+
 // Report generation limiter: 100 / 15 min (allows development/testing)
 export const reportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

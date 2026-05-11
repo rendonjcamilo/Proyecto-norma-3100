@@ -7,11 +7,13 @@ import {
   validateToken,
   decodeToken,
   isTokenExpired,
+  ACCESS_TOKEN_EXPIRY,
 } from '../services/jwt.service.js';
 import { validatePasswordPolicy, comparePassword, hashPassword } from '../services/password.service.js';
 import { UserService } from '../services/user.service.js';
 import { PasswordRecoveryService } from '../services/password-recovery.service.js';
 import { authMiddleware, revokeToken } from '../middleware/auth.middleware.js';
+import { passwordLimiter } from '../middleware/rate-limit.middleware.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -76,7 +78,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     // TODO: Send welcome email
 
-    logger.info({ user_id: user.id, email }, 'User registered successfully');
+    logger.info({ user_id: user.id }, 'User registered successfully');
 
     res.status(201).json({
       user_id: user.id,
@@ -135,7 +137,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const user = await userService.getUserByEmail(email);
     if (!user) {
       // Don't reveal if email exists
-      logger.warn({ email }, 'Login attempt with non-existent email');
+      logger.warn({ }, 'Login attempt with non-existent email');
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid email or password',
@@ -155,7 +157,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     // Compare password
     const passwordMatches = await comparePassword(password, user.password_hash);
     if (!passwordMatches) {
-      logger.warn({ email }, 'Login attempt with incorrect password');
+      logger.warn({ }, 'Login attempt with incorrect password');
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid email or password',
@@ -174,7 +176,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     // Si el usuario debe cambiar su contraseña, emitir token temporal (15 min, solo para /auth/change-password)
     if (user.must_change_password) {
       const tempToken = generateTempToken(user.id);
-      logger.info({ user_id: user.id, email }, 'Login requires password change');
+      logger.info({ user_id: user.id }, 'Login requires password change');
       res.status(200).json({
         requiresPasswordChange: true,
         temp_token: tempToken,
@@ -187,7 +189,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     const accessToken = generateAccessToken(user.id, apiRole, user.provider_id);
     const refreshToken = generateRefreshToken(user.id);
 
-    logger.info({ user_id: user.id, email }, 'User logged in successfully');
+    logger.info({ user_id: user.id }, 'User logged in successfully');
 
     // Refresh token en cookie HttpOnly — no expuesto a JavaScript del cliente
     const isProduction = process.env.NODE_ENV === 'production';
@@ -349,7 +351,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
     const user = req.user!;
 
     // Revocar el access token actual
-    const expiresAt = new Date((Date.now() / 1000 + 3600) * 1000); // TTL máximo del access token
+    const expiresAt = new Date((Date.now() / 1000 + ACCESS_TOKEN_EXPIRY) * 1000);
     await revokeToken(user.jti, user.user_id, expiresAt);
 
     // Limpiar cookie de refresh token
@@ -430,7 +432,7 @@ router.post('/dev-login', async (req: Request, res: Response): Promise<void> => 
  * Solicita recuperación de contraseña por email
  * Body: { email }
  */
-router.post('/forgot-password', async (req: Request, res: Response): Promise<void> => {
+router.post('/forgot-password', passwordLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
@@ -446,13 +448,13 @@ router.post('/forgot-password', async (req: Request, res: Response): Promise<voi
 
     const user = await userService.getUserByEmail(email);
     if (!user) {
-      logger.warn({ email }, 'forgot-password: email not found (silenced)');
+      logger.warn({ }, 'forgot-password: email not found (silenced)');
       res.status(200).json(genericResponse);
       return;
     }
 
     if (user.status !== 'active') {
-      logger.warn({ email }, 'forgot-password: inactive user (silenced)');
+      logger.warn({ }, 'forgot-password: inactive user (silenced)');
       res.status(200).json(genericResponse);
       return;
     }
@@ -501,7 +503,7 @@ router.post('/forgot-password', async (req: Request, res: Response): Promise<voi
  * Restablece la contraseña usando el token de recuperación
  * Body: { token, userId, newPassword }
  */
-router.post('/reset-password', async (req: Request, res: Response): Promise<void> => {
+router.post('/reset-password', passwordLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, userId, newPassword } = req.body;
 
@@ -559,7 +561,7 @@ router.post('/reset-password', async (req: Request, res: Response): Promise<void
  * Cambia la contraseña usando el token temporal emitido en el primer login.
  * Body: { temp_token, new_password, confirm_password }
  */
-router.post('/change-password', async (req: Request, res: Response): Promise<void> => {
+router.post('/change-password', passwordLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { temp_token, new_password, confirm_password } = req.body;
 

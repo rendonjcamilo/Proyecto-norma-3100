@@ -80,12 +80,18 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
           return res.status(400).json({ error: 'document_catalog_id es requerido' });
         }
 
+        // Sanitizar nombre de archivo: solo caracteres seguros, sin path traversal
+        const safeFilename = req.file.originalname
+          .replace(/[^a-zA-Z0-9._\-À-ɏ\s]/g, '_')
+          .replace(/\.{2,}/g, '_')
+          .substring(0, 255);
+
         const document = await service.uploadDocument({
           provider_id: req.params.providerId,
           document_catalog_id,
           location_id,
           file_buffer: req.file.buffer,
-          original_filename: req.file.originalname,
+          original_filename: safeFilename,
           mime_type: req.file.mimetype,
           issue_date: issue_date ? new Date(issue_date) : undefined,
           expiry_date: expiry_date ? new Date(expiry_date) : undefined,

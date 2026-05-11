@@ -12,7 +12,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles,
 }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  console.log('[ProtectedRoute] Rendering:', { isAuthenticated, isLoading, userRole: user?.role, requiredRoles });
 
   if (isLoading) {
     return (
@@ -34,11 +33,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
-    console.error('[ProtectedRoute] Permission denied', {
-      userRole: user.role,
-      requiredRoles,
-      user: { id: user.id, email: user.email, role: user.role }
-    });
     return (
       <div style={{
         display: 'flex',

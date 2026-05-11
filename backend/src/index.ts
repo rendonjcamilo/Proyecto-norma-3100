@@ -159,8 +159,6 @@ app.get('/health', async (_req: Request, res: Response) => {
     status: allHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: NODE_ENV,
     checks,
   });
 });
@@ -255,6 +253,12 @@ app.use((err: Error, _req: Request, res: Response) => {
 app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Environment: ${NODE_ENV}`);
+
+  // Advertir en arranque si el JWT_SECRET es el valor débil por defecto
+  const jwtSecret = process.env.JWT_SECRET || '';
+  if (jwtSecret.length < 48 || jwtSecret.includes('dev_jwt_secret') || jwtSecret.includes('change_in_production')) {
+    logger.warn('⚠️  SECURITY: JWT_SECRET is weak or uses default value. Rotate it immediately in production.');
+  }
 
   // Iniciar cron de alertas de habilitación (verifica vencimientos ≤30 días)
   const notificationService = new NotificationService(pool);
