@@ -205,8 +205,10 @@ export const ProvidersPage: React.FC = () => {
       setCreateError('Ciudad es obligatoria');
       return;
     }
-
-
+    if (!formData.habilitacion_fecha_vencimiento) {
+      setCreateError('La fecha de vencimiento de habilitación es obligatoria');
+      return;
+    }
 
     setCreating(true);
     setCreateError(null);
@@ -257,6 +259,10 @@ export const ProvidersPage: React.FC = () => {
   const handleEdit = async () => {
     if (!editingId || !formData.legal_name.trim() || !formData.city.trim()) {
       setCreateError('Por favor completa los campos obligatorios');
+      return;
+    }
+    if (!formData.habilitacion_fecha_vencimiento) {
+      setCreateError('La fecha de vencimiento de habilitación es obligatoria');
       return;
     }
 
@@ -679,7 +685,7 @@ export const ProvidersPage: React.FC = () => {
 
               <div className="dashboard-form-group">
                 <label htmlFor="habilitacion_fecha_vencimiento">
-                  Fecha de vencimiento de habilitación
+                  Fecha de vencimiento de habilitación <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   id="habilitacion_fecha_vencimiento"
@@ -687,9 +693,10 @@ export const ProvidersPage: React.FC = () => {
                   value={formData.habilitacion_fecha_vencimiento}
                   onChange={(e) => setFormData({ ...formData, habilitacion_fecha_vencimiento: e.target.value })}
                   disabled={creating}
+                  required
                 />
                 <small style={{ color: '#6b778c', marginTop: '4px' }}>
-                  Se enviará alerta automática 30 días antes del vencimiento
+                  Obligatorio. El sistema enviará alertas automáticas 30, 15 y 7 días antes del vencimiento, y el día en que vence.
                 </small>
               </div>
 

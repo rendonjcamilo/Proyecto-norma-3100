@@ -425,73 +425,108 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="panel-content">
               <div className="help-section">
                 <h3>🚀 Inicio Rápido</h3>
-                <p>Bienvenido a <strong>HabilitaPro</strong>. Plataforma de autoevaluación y auditoría bajo la Resolución 3100 del Ministerio de Salud de Colombia.</p>
+                <p><strong>HabilitaPro</strong> — Sistema de gestión de cumplimiento normativo bajo la Resolución 3100 de 2019 del Ministerio de Salud de Colombia. Permite a los prestadores de salud autoevaluarse frente a los 512 criterios de habilitación y a los auditores verificar el cumplimiento de forma estructurada y trazable.</p>
               </div>
 
               <div className="help-section">
-                <h3>📋 Evaluaciones</h3>
-                <p>Crea y gestiona evaluaciones de cumplimiento contra los 512 criterios transversales de la Norma 3100 (7 estándares).</p>
-                <strong>Flujo:</strong>
-                <ul>
-                  <li>Prestador crea y responde la evaluación</li>
-                  <li>Sistema genera hallazgos automáticamente</li>
-                  <li>Auditor valida hallazgos y propone acciones</li>
-                  <li>Prestador ejecuta el plan de mejora</li>
-                </ul>
+                <h3>📋 Autoevaluación del Prestador</h3>
+                <p>El prestador es el único responsable de iniciar, responder y someter su autoevaluación frente a los 512 criterios de la Norma 3100. Una vez sometida, queda bloqueada para edición.</p>
+                <strong>Flujo del prestador:</strong>
+                <ol>
+                  <li>Inicia la autoevaluación y responde los 512 criterios (7 estándares)</li>
+                  <li>El sistema calcula el % de cumplimiento y el semáforo en tiempo real</li>
+                  <li>Somete la autoevaluación al auditor</li>
+                  <li>Ejecuta el plan de mejora y carga evidencias de cierre</li>
+                </ol>
+              </div>
+
+              <div className="help-section">
+                <h3>🔎 Auditoría</h3>
+                <p>El auditor crea la auditoría formal, la responde a partir de la autoevaluación del prestador, valida hallazgos y genera el informe de auditoría.</p>
+                <strong>Flujo del auditor:</strong>
+                <ol>
+                  <li>Crea la auditoría y selecciona el prestador a verificar</li>
+                  <li>Revisa la autoevaluación y las evidencias cargadas</li>
+                  <li>Valida o rechaza cada hallazgo con observaciones</li>
+                  <li>Redacta acciones correctivas con plazos y responsables</li>
+                  <li>Genera y descarga el informe de auditoría (PDF / Excel)</li>
+                  <li>Cierra los hallazgos una vez verificadas las evidencias de mejora</li>
+                </ol>
               </div>
 
               <div className="help-section">
                 <h3>🔍 Hallazgos</h3>
-                <p>Registra y da seguimiento a inconformidades y oportunidades de mejora. Cada hallazgo incluye severidad, estado y fecha de vencimiento.</p>
-                <strong>Estados:</strong>
+                <p>Los hallazgos se generan automáticamente al someter la evaluación. Cada hallazgo corresponde a un criterio No Conforme e incluye severidad, estado y responsable.</p>
+                <strong>Ciclo de vida:</strong>
                 <ul>
-                  <li>Abierto → En Progreso → Resuelto</li>
+                  <li>Abierto → En Progreso → Resuelto → Cerrado</li>
+                </ul>
+                <strong>Severidades:</strong>
+                <ul>
+                  <li><strong>Crítica</strong> — Riesgo inmediato para el paciente o la habilitación</li>
+                  <li><strong>Alta</strong> — Corrección prioritaria requerida</li>
+                  <li><strong>Media</strong> — Corrección en plazo acordado</li>
+                  <li><strong>Baja</strong> — Oportunidad de mejora</li>
+                </ul>
+              </div>
+
+              <div className="help-section">
+                <h3>🔔 Alertas de Habilitación</h3>
+                <p>El sistema notifica automáticamente cuando la fecha de vencimiento de la habilitación de un prestador se aproxima. Cada alerta se emite una sola vez por hito:</p>
+                <ul>
+                  <li>30 días antes — Aviso preventivo</li>
+                  <li>15 días antes — Alerta prioritaria</li>
+                  <li>7 días antes — Alerta crítica</li>
+                  <li>Día de vencimiento — Alerta urgente</li>
                 </ul>
               </div>
 
               <div className="help-section">
                 <h3>📄 Documentos</h3>
-                <p>Carga y gestiona la documentación requerida por la Norma 3100. El sistema controla fechas de vencimiento.</p>
+                <p>Gestione la matriz documental requerida por la Norma 3100. El sistema controla vigencias y alerta ante documentos próximos a vencer.</p>
               </div>
 
               <div className="help-section">
                 <h3>📈 Reportes</h3>
-                <p>Descarga reportes ejecutivos en PDF o Excel con métricas de cumplimiento, hallazgos y estado del semáforo.</p>
-                <strong>Semáforo:</strong>
+                <p>Descargue reportes ejecutivos en PDF o Excel con métricas de cumplimiento por estándar, estado de hallazgos y semáforo de riesgo.</p>
+                <strong>Semáforo de cumplimiento:</strong>
                 <ul>
-                  <li>🟢 Verde: ≥ 80% cumplimiento</li>
-                  <li>🟡 Naranja: 50–79%</li>
-                  <li>🔴 Rojo: &lt; 50%</li>
+                  <li>🟢 Verde — ≥ 80% criterios conformes</li>
+                  <li>🟡 Naranja — 50 a 79%</li>
+                  <li>🔴 Rojo — menos del 50%</li>
                 </ul>
               </div>
 
               <div className="help-section">
-                <h3>🔐 Roles y Permisos</h3>
+                <h3>🔐 Roles y Accesos</h3>
                 <ul>
-                  <li><strong>Super Admin:</strong> Gestión total del sistema, usuarios y cuestionarios</li>
-                  <li><strong>Auditor:</strong> Verifica evaluaciones, valida hallazgos, genera reportes</li>
-                  <li><strong>Admin Prestador:</strong> Crea y responde evaluaciones de su prestador</li>
+                  <li><strong>Admin Prestador:</strong> Inicia y responde la autoevaluación de su propio prestador. Consulta hallazgos, carga evidencias y ejecuta el plan de mejora. No puede acceder a otros prestadores ni crear auditorías.</li>
+                  <li><strong>Auditor:</strong> Crea auditorías formales, las responde sobre la base de la autoevaluación del prestador, valida hallazgos y genera informes de auditoría. Tiene acceso a todos los prestadores.</li>
+                  <li><strong>Super Admin:</strong> Administración total del sistema: usuarios, cuestionarios, prestadores y configuración.</li>
                 </ul>
               </div>
 
               <div className="help-section">
-                <h3>⌨️ Atajos de teclado</h3>
+                <h3>⌨️ Atajos de Teclado</h3>
                 <ul>
-                  <li><kbd style={{ background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px', fontSize: '12px', border: '1px solid #e5e7eb' }}>{shortcutLabel}</kbd> — Abrir buscador rápido</li>
-                  <li><kbd style={{ background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px', fontSize: '12px', border: '1px solid #e5e7eb' }}>Esc</kbd> — Cerrar paneles</li>
+                  <li><kbd style={{ background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px', fontSize: '12px', border: '1px solid #e5e7eb' }}>{shortcutLabel}</kbd> — Buscador rápido de secciones</li>
+                  <li><kbd style={{ background: '#f3f4f6', padding: '1px 6px', borderRadius: '4px', fontSize: '12px', border: '1px solid #e5e7eb' }}>Esc</kbd> — Cerrar paneles y diálogos</li>
                 </ul>
               </div>
 
               <div className="help-section">
                 <h3>❓ Preguntas Frecuentes</h3>
-                <p><strong>¿Cómo inicio una evaluación?</strong><br />Ve a &quot;Evaluaciones&quot; y haz clic en &quot;Nueva Evaluación&quot;.</p>
-                <p><strong>¿Cuáles son los niveles de severidad de un hallazgo?</strong><br />Baja, Media, Alta y Crítica.</p>
-                <p><strong>¿Cómo descargo un reporte?</strong><br />Ve a &quot;Reportes&quot; y selecciona el formato PDF o Excel.</p>
+                <p><strong>¿Quién hace la autoevaluación?</strong><br />El Admin Prestador. Es una responsabilidad exclusiva del prestador según la Resolución 3100.</p>
+                <p><strong>¿Quién crea la auditoría?</strong><br />El Auditor. A partir de la autoevaluación sometida por el prestador, el auditor crea la auditoría formal, la responde y genera el informe oficial.</p>
+                <p><strong>¿Cuántos criterios tiene la autoevaluación?</strong><br />512 criterios distribuidos en 7 estándares transversales, aplicables a todos los servicios de salud.</p>
+                <p><strong>¿Qué ocurre al someter la autoevaluación?</strong><br />Queda bloqueada para edición. El sistema genera automáticamente los hallazgos por criterios No Conformes y los pone a disposición del auditor.</p>
+                <p><strong>¿Cómo genero el informe de auditoría?</strong><br />El auditor, desde el módulo de &quot;Evaluaciones&quot; o &quot;Reportes&quot;, genera y descarga el informe en PDF o Excel una vez finalizada la verificación.</p>
+                <p><strong>¿Cuáles son los niveles de severidad de un hallazgo?</strong><br />Crítica, Alta, Media y Baja. Se asignan automáticamente según el peso normativo del criterio No Conforme.</p>
               </div>
 
               <div className="help-section">
-                <h3>📞 Soporte</h3>
-                <p>Para más información contáctanos: <strong>soporte@habilitapro.co</strong></p>
+                <h3>📞 Soporte Técnico</h3>
+                <p>Para asistencia técnica o consultas normativas: <strong>soporte@habilitapro.co</strong></p>
               </div>
             </div>
           </div>
