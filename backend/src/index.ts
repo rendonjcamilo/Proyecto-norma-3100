@@ -25,6 +25,7 @@ import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js
 import { createInvimaRouter } from './routes/invima.routes.js';
 import { createRepsRouter } from './routes/reps.routes.js';
 import { createRepsAlertsRouter } from './routes/reps-alerts.routes.js';
+import { createAnexo4Router } from './routes/anexo4.routes.js';
 import { RepsAlertService } from './services/RepsAlertService.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
@@ -215,6 +216,9 @@ app.use('/api', apiLimiter, createRepsRouter(pool));
 // REPS Alert Triggers: cron de prospección semi-automática por vencimiento
 const repsAlertService = new RepsAlertService(pool);
 app.use('/api', apiLimiter, createRepsAlertsRouter(pool, repsAlertService));
+
+// Anexo 4: Verificación Estándar de Historia Clínica y Registros Asistenciales
+app.use('/api', apiLimiter, createAnexo4Router(pool));
 
 // Norma 3100 JSON-based assessments (no database required)
 app.use('/api', apiLimiter, createNorma3100Router());

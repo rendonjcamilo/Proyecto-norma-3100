@@ -1,0 +1,455 @@
+/* ── Anexo 4: Verificación Historia Clínica ─────────────────────────── */
+
+.a4-page {
+  padding: 24px 28px;
+  max-width: 100%;
+  min-height: 100vh;
+  background: var(--color-bg, #f8f9ff);
+  color: var(--color-text, #1e2a3b);
+}
+
+.a4-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.a4-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-primary, #1a237e);
+  margin: 0 0 4px;
+}
+
+.a4-sub {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.a4-back {
+  background: none;
+  border: none;
+  color: var(--color-primary, #1a237e);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0 0 6px;
+  display: block;
+}
+.a4-back:hover { text-decoration: underline; }
+
+/* ── Botones ─────────────────────────────────────────────────────────── */
+.a4-btn {
+  padding: 8px 18px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  border: none;
+  white-space: nowrap;
+}
+.a4-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.a4-btn--primary {
+  background: var(--color-primary, #1a237e);
+  color: #fff;
+}
+.a4-btn--primary:hover:not(:disabled) { background: #283593; }
+
+.a4-btn--ghost {
+  background: transparent;
+  border: 1.5px solid var(--color-border, #c5cae9);
+  color: var(--color-text, #1e2a3b);
+}
+.a4-btn--ghost:hover:not(:disabled) { background: #eef0ff; }
+
+.a4-btn--danger-ghost {
+  background: transparent;
+  border: 1.5px solid #fca5a5;
+  color: #dc2626;
+  padding: 8px 12px;
+}
+.a4-btn--danger-ghost:hover:not(:disabled) { background: #fee2e2; }
+
+/* ── Lista de verificaciones ─────────────────────────────────────────── */
+.a4-loading { padding: 40px; text-align: center; color: #888; }
+
+.a4-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
+.a4-empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+.a4-empty p   { margin-bottom: 20px; }
+
+.a4-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.a4-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-card, #fff);
+  border: 1px solid var(--color-border, #e8eaf0);
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: box-shadow 0.15s;
+}
+.a4-card:hover { box-shadow: 0 2px 10px rgba(26,35,126,.08); }
+
+.a4-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.a4-semaforo {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.a4-semaforo--verde   { background: #22c55e; }
+.a4-semaforo--naranja { background: #f59e0b; }
+.a4-semaforo--rojo    { background: #ef4444; }
+
+.a4-card-servicio {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-primary, #1a237e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.a4-card-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.a4-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Campos cabecera del formulario ──────────────────────────────────── */
+.a4-header-fields {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.a4-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 220px;
+}
+.a4-field--sm { flex: 0 0 180px; min-width: 140px; }
+
+.a4-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.a4-field input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--color-border, #c5cae9);
+  border-radius: 7px;
+  font-size: 0.9rem;
+  background: var(--color-card, #fff);
+  color: var(--color-text, #1e2a3b);
+}
+.a4-field input:focus {
+  outline: none;
+  border-color: var(--color-primary, #1a237e);
+}
+
+/* ── Resumen cumplimiento ─────────────────────────────────────────────── */
+.a4-resumen {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--color-card, #fff);
+  border: 1px solid var(--color-border, #e8eaf0);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+
+.a4-resumen-item { color: var(--color-text-muted, #6b7280); }
+.a4-resumen-c  { color: #15803d; font-weight: 600; }
+.a4-resumen-nc { color: #b91c1c; font-weight: 600; }
+
+.a4-resumen-pct {
+  margin-left: auto;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px 14px;
+  border-radius: 99px;
+}
+.a4-resumen-pct--verde   { background: #dcfce7; color: #15803d; }
+.a4-resumen-pct--naranja { background: #fef9c3; color: #92400e; }
+.a4-resumen-pct--rojo    { background: #fee2e2; color: #b91c1c; }
+
+/* ── Tabla ───────────────────────────────────────────────────────────── */
+.a4-table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, #c5cae9);
+  margin-bottom: 20px;
+  background: var(--color-card, #fff);
+}
+
+.a4-table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.82rem;
+}
+
+/* Encabezados de criterios */
+.a4-th-crit {
+  background: var(--color-primary, #1a237e);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 10px 14px;
+  text-align: left;
+  min-width: 210px;
+  max-width: 240px;
+  vertical-align: middle;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+/* Encabezados de cada H.C. */
+.a4-th-hc {
+  background: var(--color-primary, #1a237e);
+  color: #fff;
+  text-align: center;
+  padding: 6px 4px;
+  border-left: 1px solid rgba(255,255,255,0.2);
+  min-width: 100px;
+}
+
+.a4-hc-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.a4-hc-num { font-size: 0.78rem; font-weight: 700; }
+
+.a4-hc-remove {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.a4-hc-remove:hover { background: rgba(255,100,100,0.5); }
+
+/* Inputs dentro del encabezado */
+.a4-th-inputs {
+  background: #283593;
+  padding: 6px 4px;
+  border-left: 1px solid rgba(255,255,255,0.2);
+}
+
+.a4-input-hc {
+  display: block;
+  width: 100%;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 3px 6px;
+  margin-bottom: 3px;
+  box-sizing: border-box;
+}
+.a4-input-hc::placeholder { color: rgba(255,255,255,0.5); }
+.a4-input-hc:focus { outline: none; border-color: rgba(255,255,255,0.6); }
+
+/* Sub-encabezado C / NC */
+.a4-tr-cnc { }
+.a4-th-c {
+  background: #c5cae9;
+  color: #1a237e;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 5px 2px;
+  min-width: 36px;
+  border-left: 1px solid rgba(26,35,126,0.15);
+}
+.a4-th-nc {
+  background: #ffcdd2;
+  color: #b71c1c;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 5px 2px;
+  min-width: 36px;
+  border-left: 1px solid rgba(183,28,28,0.15);
+}
+
+/* Botón agregar H.C. */
+.a4-th-add {
+  background: var(--color-primary, #1a237e);
+  border-left: 1px solid rgba(255,255,255,0.2);
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px;
+}
+.a4-btn-add-hc {
+  background: rgba(255,255,255,0.2);
+  border: 1.5px dashed rgba(255,255,255,0.5);
+  color: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.a4-btn-add-hc:hover { background: rgba(255,255,255,0.35); }
+
+/* Filas de criterios */
+.a4-td-crit {
+  padding: 7px 14px;
+  color: var(--color-text, #1e2a3b);
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--color-border, #e8eaf0);
+  background: var(--color-card, #fff);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+.a4-tr-alt .a4-td-crit { background: #f3f4f6; }
+
+/* Celdas C / NC */
+.a4-td-toggle {
+  text-align: center;
+  padding: 7px 4px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border, #e8eaf0);
+  border-left: 1px solid var(--color-border, #e8eaf0);
+  transition: background 0.12s;
+  min-width: 36px;
+}
+
+.a4-td-c:hover:not(.a4-td--active-c) {
+  background: #f0fdf4;
+}
+.a4-td-nc:hover:not(.a4-td--active-nc) {
+  background: #fff1f2;
+}
+
+.a4-td--active-c  { background: #dcfce7; }
+.a4-td--active-nc { background: #fee2e2; }
+
+.a4-check { color: #15803d; font-size: 1rem; font-weight: 700; }
+.a4-cross  { color: #b91c1c; font-size: 1rem; font-weight: 700; }
+
+/* ── Observaciones ───────────────────────────────────────────────────── */
+.a4-obs {
+  margin-bottom: 20px;
+}
+.a4-obs label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.a4-obs textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border, #c5cae9);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: var(--color-card, #fff);
+  color: var(--color-text, #1e2a3b);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.a4-obs textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #1a237e);
+}
+
+/* ── Acciones del formulario ─────────────────────────────────────────── */
+.a4-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Leyenda ──────────────────────────────────────────────────────────── */
+.a4-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 0.76rem;
+  color: var(--color-text-muted, #6b7280);
+  flex-wrap: wrap;
+}
+.a4-legend-c  { color: #15803d; }
+.a4-legend-nc { color: #b91c1c; }
+
+/* ── Mensajes ─────────────────────────────────────────────────────────── */
+.a4-msg {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 14px;
+}
+.a4-msg--error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.a4-msg--ok    { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+/* ── Dark mode ───────────────────────────────────────────────────────── */
+.dark .a4-page          { background: var(--color-bg, #0f172a); }
+.dark .a4-card          { background: var(--color-card, #1e293b); border-color: #334155; }
+.dark .a4-table-wrapper { background: var(--color-card, #1e293b); border-color: #334155; }
+.dark .a4-td-crit       { background: var(--color-card, #1e293b); border-color: #334155; }
+.dark .a4-tr-alt .a4-td-crit { background: #1a2540; }
+.dark .a4-td-toggle     { border-color: #334155; }
+.dark .a4-td--active-c  { background: #14532d; }
+.dark .a4-td--active-nc { background: #7f1d1d; }
+.dark .a4-field input,
+.dark .a4-obs textarea  { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+.dark .a4-resumen       { background: #1e293b; border-color: #334155; }

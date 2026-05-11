@@ -44,6 +44,7 @@ const navigation: NavSection[] = [
     items: [
       { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
       { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
+      { to: '/anexo4', icon: 'hc', label: 'Verificación H.C.', roles: ['auditor', 'super_admin'] },
     ],
   },
   {
@@ -141,6 +142,15 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         <path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+    hc: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" />
+        <line x1="9" y1="7" x2="15" y2="7" />
+        <line x1="9" y1="11" x2="15" y2="11" />
+        <line x1="9" y1="15" x2="12" y2="15" />
+        <path d="M15 17l1.5 1.5L19 16" />
       </svg>
     ),
     reps: (

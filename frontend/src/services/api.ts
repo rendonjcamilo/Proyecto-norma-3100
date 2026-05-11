@@ -230,6 +230,50 @@ function getToken(): string | null {
   return localStorage.getItem('auth_token');
 }
 
+// ─── Auto-refresh de sesión ───────────────────────────────────────────────────
+// Cuando el access token (1h) expira, se intenta renovar silenciosamente usando
+// la cookie HttpOnly `refresh_token` (14 días). Si falla, se muestra un aviso
+// claro y se redirige al login. Si hay múltiples peticiones simultáneas con 401,
+// solo se hace una llamada de refresh y las demás esperan en cola.
+let _isRefreshing = false;
+let _refreshQueue: Array<(token: string | null) => void> = [];
+
+async function tryRefreshToken(): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include', // envía la cookie HttpOnly refresh_token
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newToken: string = data.access_token;
+    localStorage.setItem('auth_token', newToken);
+    if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
+    return newToken;
+  } catch {
+    return null;
+  }
+}
+
+function handleSessionExpired(): void {
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_user');
+  // Evitar múltiples banners si ya se está redirigiendo
+  if (document.getElementById('_session-expired-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = '_session-expired-banner';
+  banner.setAttribute('style', [
+    'position:fixed;top:0;left:0;right:0;z-index:99999',
+    'background:#dc2626;color:#fff;text-align:center',
+    'padding:14px 16px;font-size:14px;font-family:sans-serif',
+    'box-shadow:0 2px 8px rgba(0,0,0,.3)',
+  ].join(';'));
+  banner.textContent = '⚠ Tu sesión expiró. Redirigiendo al inicio de sesión...';
+  document.body.appendChild(banner);
+  setTimeout(() => { window.location.href = '/login'; }, 1800);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function request<T>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
@@ -243,20 +287,62 @@ async function request<T>(
     ...(!options.blob && !options.formData ? { 'Content-Type': 'application/json' } : {}),
   };
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const fetchOptions: RequestInit = {
     method,
     headers,
     signal: options.signal,
     ...(body !== undefined ? { body: options.formData ? (body as FormData) : JSON.stringify(body) } : {}),
-  });
+  };
+
+  const res = await fetch(`${BASE_URL}${path}`, fetchOptions);
 
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      window.location.href = '/login';
-      throw new Error('Sesión expirada');
+      // Si ya hay un refresh en curso, encolar y esperar su resultado
+      if (_isRefreshing) {
+        return new Promise<T>((resolve, reject) => {
+          _refreshQueue.push((newToken) => {
+            if (!newToken) { reject(new Error('Sesión expirada')); return; }
+            const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+            fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers: retryHeaders })
+              .then((r) => {
+                if (!r.ok) { reject(new Error(`Error ${r.status}`)); return; }
+                if (options.blob) resolve(r.blob() as unknown as T);
+                else if (r.status === 204) resolve(undefined as unknown as T);
+                else r.json().then(resolve).catch(reject);
+              })
+              .catch(reject);
+          });
+        });
+      }
+
+      // Primer 401: intentar refresh
+      _isRefreshing = true;
+      const newToken = await tryRefreshToken();
+      _isRefreshing = false;
+      _refreshQueue.forEach((cb) => cb(newToken));
+      _refreshQueue = [];
+
+      if (!newToken) {
+        handleSessionExpired();
+        throw new Error('Sesión expirada');
+      }
+
+      // Reintentar la petición original con el nuevo token
+      const retryRes = await fetch(`${BASE_URL}${path}`, {
+        ...fetchOptions,
+        headers: { ...headers, Authorization: `Bearer ${newToken}` },
+      });
+      if (!retryRes.ok) {
+        let msg = `Error ${retryRes.status}`;
+        try { const e = await retryRes.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      if (options.blob) return retryRes.blob() as unknown as T;
+      if (retryRes.status === 204) return undefined as unknown as T;
+      return retryRes.json();
     }
+
     let msg = `Error ${res.status}`;
     try { const e = await res.json(); msg = e.error || e.message || msg; } catch { /* ignore */ }
     throw new Error(msg);
@@ -1051,6 +1137,50 @@ export const inAppNotificationsApi = {
 
   markAllRead: () =>
     request<{ success: boolean }>('PUT', '/api/notifications/mark-all-read', {}),
+};
+
+// ─────────────────────────────────────────────
+// ANEXO 4 — Verificación Historia Clínica
+// ─────────────────────────────────────────────
+
+export type EstadoCriterio = 'C' | 'NC' | null;
+
+export interface HCRegistro {
+  numero_hc: string;
+  nombre_usuario: string;
+  criterios: Record<string, EstadoCriterio>;
+}
+
+export interface Anexo4Verificacion {
+  id: string;
+  servicio: string;
+  fecha: string;
+  auditor_id: string | null;
+  auditor_nombre?: string | null;
+  registros: HCRegistro[];
+  observaciones: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const anexo4Api = {
+  list: () =>
+    get<{ data: Anexo4Verificacion[] }>('/api/anexo4'),
+
+  getById: (id: string) =>
+    get<{ data: Anexo4Verificacion }>(`/api/anexo4/${id}`),
+
+  create: (body: { servicio: string; fecha: string; registros: HCRegistro[]; observaciones?: string }) =>
+    post<{ data: Anexo4Verificacion }>('/api/anexo4', body),
+
+  update: (id: string, body: { servicio?: string; fecha?: string; registros?: HCRegistro[]; observaciones?: string }) =>
+    put<{ data: Anexo4Verificacion }>(`/api/anexo4/${id}`, body),
+
+  delete: (id: string) =>
+    del<void>(`/api/anexo4/${id}`),
+
+  downloadPdf: (id: string) =>
+    blob(`/api/anexo4/${id}/pdf`),
 };
 
 // ─────────────────────────────────────────────

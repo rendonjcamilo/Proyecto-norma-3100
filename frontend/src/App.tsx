@@ -17,6 +17,7 @@ import { UsersPage } from "./pages/UsersPage";
 import { QuestionnairesPage } from "./pages/QuestionnairesPage";
 import { InvimaPage } from "./pages/InvimaPage";
 import { RepsPage } from "./pages/RepsPage";
+import { AnexoCuatroPage } from "./pages/AnexoCuatroPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ChangePasswordPage } from "./pages/ChangePasswordPage";
@@ -297,6 +298,12 @@ function AppContent(): JSX.Element {
             <Route
               path="/reps"
               element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
+            />
+
+            {/* Anexo 4 — Verificación Historia Clínica */}
+            <Route
+              path="/anexo4"
+              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AnexoCuatroPage /></ProtectedRoute>}
             />
 
             {/* Catch-all */}

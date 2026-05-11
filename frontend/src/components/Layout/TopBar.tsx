@@ -425,29 +425,30 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div className="panel-content">
               <div className="help-section">
                 <h3>🚀 Inicio Rápido</h3>
-                <p><strong>HabilitaPro</strong> — Sistema de gestión de cumplimiento normativo bajo la Resolución 3100 de 2019 del Ministerio de Salud de Colombia. Permite a los prestadores de salud autoevaluarse frente a los 512 criterios de habilitación y a los auditores verificar el cumplimiento de forma estructurada y trazable.</p>
+                <p><strong>HabilitaPro</strong> — Sistema de gestión de cumplimiento normativo bajo la Resolución 3100 de 2019 del Ministerio de Salud de Colombia. El auditor evalúa a los prestadores de salud frente a los 512 criterios de habilitación de forma estructurada y trazable. El prestador consulta los resultados y realiza el seguimiento a los planes de mejora.</p>
               </div>
 
               <div className="help-section">
-                <h3>📋 Autoevaluación del Prestador</h3>
-                <p>El prestador es el único responsable de iniciar, responder y someter su autoevaluación frente a los 512 criterios de la Norma 3100. Una vez sometida, queda bloqueada para edición.</p>
-                <strong>Flujo del prestador:</strong>
+                <h3>📋 Rol del Prestador</h3>
+                <p>El prestador no realiza la evaluación. Su rol es consultar los resultados registrados por el auditor, cargar evidencias de cumplimiento y ejecutar el plan de mejora cuando se le asignen acciones correctivas.</p>
+                <strong>Lo que puede hacer el prestador:</strong>
                 <ol>
-                  <li>Inicia la autoevaluación y responde los 512 criterios (7 estándares)</li>
-                  <li>El sistema calcula el % de cumplimiento y el semáforo en tiempo real</li>
-                  <li>Somete la autoevaluación al auditor</li>
-                  <li>Ejecuta el plan de mejora y carga evidencias de cierre</li>
+                  <li>Consultar las evaluaciones realizadas por el auditor sobre su institución</li>
+                  <li>Ver el % de cumplimiento y el semáforo de cada estándar</li>
+                  <li>Revisar los hallazgos y las acciones correctivas asignadas</li>
+                  <li>Cargar evidencias de cierre y ejecutar el plan de mejora</li>
                 </ol>
               </div>
 
               <div className="help-section">
-                <h3>🔎 Auditoría</h3>
-                <p>El auditor crea la auditoría formal, la responde a partir de la autoevaluación del prestador, valida hallazgos y genera el informe de auditoría.</p>
+                <h3>🔎 Evaluación y Auditoría</h3>
+                <p>El auditor es quien crea, responde y gestiona todas las evaluaciones. Evalúa al prestador frente a los 512 criterios de la Norma 3100, valida hallazgos y genera los informes oficiales.</p>
                 <strong>Flujo del auditor:</strong>
                 <ol>
-                  <li>Crea la auditoría y selecciona el prestador a verificar</li>
-                  <li>Revisa la autoevaluación y las evidencias cargadas</li>
-                  <li>Valida o rechaza cada hallazgo con observaciones</li>
+                  <li>Crea la evaluación y selecciona el prestador a verificar</li>
+                  <li>Responde los 512 criterios (7 estándares) según la verificación realizada</li>
+                  <li>El sistema calcula el % de cumplimiento y el semáforo en tiempo real</li>
+                  <li>Valida o rechaza hallazgos con observaciones técnicas</li>
                   <li>Redacta acciones correctivas con plazos y responsables</li>
                   <li>Genera y descarga el informe de auditoría (PDF / Excel)</li>
                   <li>Cierra los hallazgos una vez verificadas las evidencias de mejora</li>
@@ -500,8 +501,8 @@ export const TopBar: React.FC<TopBarProps> = ({
               <div className="help-section">
                 <h3>🔐 Roles y Accesos</h3>
                 <ul>
-                  <li><strong>Admin Prestador:</strong> Inicia y responde la autoevaluación de su propio prestador. Consulta hallazgos, carga evidencias y ejecuta el plan de mejora. No puede acceder a otros prestadores ni crear auditorías.</li>
-                  <li><strong>Auditor:</strong> Crea auditorías formales, las responde sobre la base de la autoevaluación del prestador, valida hallazgos y genera informes de auditoría. Tiene acceso a todos los prestadores.</li>
+                  <li><strong>Admin Prestador:</strong> Consulta las evaluaciones realizadas por el auditor sobre su institución, revisa hallazgos, carga evidencias y ejecuta el plan de mejora. No realiza evaluaciones ni tiene acceso a otros prestadores.</li>
+                  <li><strong>Auditor:</strong> Crea y responde evaluaciones, valida hallazgos, redacta acciones correctivas y genera informes de auditoría. Tiene acceso a todos los prestadores.</li>
                   <li><strong>Super Admin:</strong> Administración total del sistema: usuarios, cuestionarios, prestadores y configuración.</li>
                 </ul>
               </div>
@@ -516,10 +517,10 @@ export const TopBar: React.FC<TopBarProps> = ({
 
               <div className="help-section">
                 <h3>❓ Preguntas Frecuentes</h3>
-                <p><strong>¿Quién hace la autoevaluación?</strong><br />El Admin Prestador. Es una responsabilidad exclusiva del prestador según la Resolución 3100.</p>
-                <p><strong>¿Quién crea la auditoría?</strong><br />El Auditor. A partir de la autoevaluación sometida por el prestador, el auditor crea la auditoría formal, la responde y genera el informe oficial.</p>
-                <p><strong>¿Cuántos criterios tiene la autoevaluación?</strong><br />512 criterios distribuidos en 7 estándares transversales, aplicables a todos los servicios de salud.</p>
-                <p><strong>¿Qué ocurre al someter la autoevaluación?</strong><br />Queda bloqueada para edición. El sistema genera automáticamente los hallazgos por criterios No Conformes y los pone a disposición del auditor.</p>
+                <p><strong>¿Quién realiza la evaluación?</strong><br />El Auditor. Es el responsable de crear, responder y gestionar todas las evaluaciones frente a los 512 criterios de la Norma 3100.</p>
+                <p><strong>¿Qué hace el prestador?</strong><br />El prestador solo consulta los resultados de las evaluaciones realizadas por el auditor, revisa sus hallazgos y ejecuta el plan de mejora cargando evidencias de cierre.</p>
+                <p><strong>¿Cuántos criterios tiene la evaluación?</strong><br />512 criterios distribuidos en 7 estándares transversales, aplicables a todos los servicios de salud.</p>
+                <p><strong>¿Qué ocurre al finalizar una evaluación?</strong><br />El sistema genera automáticamente los hallazgos por criterios No Conformes, los cuales quedan disponibles para revisión y seguimiento.</p>
                 <p><strong>¿Cómo genero el informe de auditoría?</strong><br />El auditor, desde el módulo de &quot;Evaluaciones&quot; o &quot;Reportes&quot;, genera y descarga el informe en PDF o Excel una vez finalizada la verificación.</p>
                 <p><strong>¿Cuáles son los niveles de severidad de un hallazgo?</strong><br />Crítica, Alta, Media y Baja. Se asignan automáticamente según el peso normativo del criterio No Conforme.</p>
               </div>
