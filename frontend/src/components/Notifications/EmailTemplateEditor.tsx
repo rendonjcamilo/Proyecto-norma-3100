@@ -7,6 +7,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './EmailTemplateEditor.css';
 
+const authHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+});
+
 interface EmailTemplate {
   id?: string;
   name?: string;
@@ -70,7 +74,7 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     try {
       setLoading(true);
       const response = await axios.get(`/api/multichannel/email/templates`, {
-        headers: { 'x-user-id': userId },
+        headers: authHeaders(),
       });
       const templates = (response.data.templates || []).map((t: any) => ({
         ...t,
@@ -92,7 +96,7 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
       const response = await axios.get(
         `/api/multichannel/email/templates/${id}`,
         {
-          headers: { 'x-user-id': userId },
+          headers: authHeaders(),
         }
       );
       setTemplate(response.data.template);
@@ -121,7 +125,7 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
         method,
         url,
         data: template,
-        headers: { 'x-user-id': userId },
+        headers: authHeaders(),
       });
 
       setMessage('✅ Plantilla guardada correctamente');
@@ -147,7 +151,7 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
 
     try {
       await axios.delete(`/api/multichannel/email/templates/${id}`, {
-        headers: { 'x-user-id': userId },
+        headers: authHeaders(),
       });
       setMessage('✅ Plantilla eliminada correctamente');
       setTimeout(() => {

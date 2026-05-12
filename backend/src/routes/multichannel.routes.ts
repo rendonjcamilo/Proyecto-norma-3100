@@ -412,6 +412,73 @@ export function createMultiChannelRouter(pool: Pool): Router {
   });
 
   /**
+   * POST /api/multichannel/email/templates
+   * Create email template (frontend-friendly: accepts name/subject/body)
+   */
+  router.post('/email/templates', async (req: Request, res: Response) => {
+    try {
+      const { name, subject, body, variables } = req.body;
+      if (!name || !subject || !body) {
+        return res.status(400).json({ error: 'Missing required fields: name, subject, body' });
+      }
+      const { randomUUID } = await import('crypto');
+      const id = randomUUID();
+      await emailService.createTemplate({
+        id,
+        templateName: name,
+        subject,
+        htmlBody: body,
+        textBody: undefined,
+        variables: variables || [],
+        language: 'es',
+        isActive: true,
+      } as any);
+      res.json({ success: true, template: { id, template_name: name, name, subject, html_body: body, body } });
+    } catch (error) {
+      logger.error('Failed to create email template', { error: (error as Error).message });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
+   * PUT /api/multichannel/email/templates/:id
+   * Update email template
+   */
+  router.put('/email/templates/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { name, subject, body, variables } = req.body;
+      if (!name || !subject || !body) {
+        return res.status(400).json({ error: 'Missing required fields: name, subject, body' });
+      }
+      await pool.query(
+        `UPDATE email_templates SET template_name=$1, subject=$2, html_body=$3, variables=$4, updated_at=NOW()
+         WHERE id=$5`,
+        [name, subject, body, JSON.stringify(variables || []), id]
+      );
+      res.json({ success: true, template: { id, template_name: name, name, subject, html_body: body, body } });
+    } catch (error) {
+      logger.error('Failed to update email template', { error: (error as Error).message });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
+   * DELETE /api/multichannel/email/templates/:id
+   * Soft-delete email template
+   */
+  router.delete('/email/templates/:id', async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await pool.query('UPDATE email_templates SET is_active=false, updated_at=NOW() WHERE id=$1', [id]);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Failed to delete email template', { error: (error as Error).message });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
    * GET /api/multichannel/sms/templates
    * Get active SMS templates
    */
