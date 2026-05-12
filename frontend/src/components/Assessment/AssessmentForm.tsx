@@ -116,13 +116,13 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     }
   }, [responses, onSave, readOnly]);
 
-  // Auto-save every 30 seconds
+  // Auto-save every 60 seconds
   useEffect(() => {
     const autoSaveInterval = setInterval(async () => {
       if (responses.size > 0 && !readOnly) {
         await handleSave();
       }
-    }, 60000); // 60 seconds
+    }, 60000);
 
     return () => clearInterval(autoSaveInterval);
   }, [responses, readOnly, handleSave]);
