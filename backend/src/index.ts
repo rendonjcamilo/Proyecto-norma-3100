@@ -72,6 +72,16 @@ async function runStartupMigrations(): Promise<void> {
       `ALTER TABLE providers ADD COLUMN IF NOT EXISTS nombre_sede VARCHAR(255)`,
       `ALTER TABLE providers ADD COLUMN IF NOT EXISTS codigo_habilitacion VARCHAR(50)`,
       `ALTER TABLE providers ADD COLUMN IF NOT EXISTS habilitacion_fecha_vencimiento DATE`,
+      `CREATE TABLE IF NOT EXISTS auditor_providers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        auditor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider_id UUID NOT NULL REFERENCES providers(id) ON DELETE CASCADE,
+        assigned_at TIMESTAMPTZ DEFAULT now(),
+        assigned_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        UNIQUE(auditor_id, provider_id)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_auditor_providers_auditor_id ON auditor_providers(auditor_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_auditor_providers_provider_id ON auditor_providers(provider_id)`,
     ];
     for (const sql of statements) {
       await client.query(sql);

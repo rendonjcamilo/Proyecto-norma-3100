@@ -6,6 +6,7 @@
 import './dashboards.css';
 import './SuperAdminDashboard.css';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { reportsApi } from '@services/api';
 import { useAuth } from '@context/AuthContext';
 
@@ -19,6 +20,7 @@ interface GlobalSummary {
 
 export function SuperAdminDashboard(): JSX.Element {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<GlobalSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export function SuperAdminDashboard(): JSX.Element {
       <div className="sad-kpi-strip">
 
         {/* Prestadores */}
-        <div className="sad-kpi-card sad-kpi-indigo">
+        <div className="sad-kpi-card sad-kpi-indigo sad-kpi-clickable" onClick={() => navigate('/providers')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/providers')}>
           <div className="sad-kpi-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -103,7 +105,7 @@ export function SuperAdminDashboard(): JSX.Element {
         </div>
 
         {/* Auditores */}
-        <div className="sad-kpi-card sad-kpi-cyan">
+        <div className="sad-kpi-card sad-kpi-cyan sad-kpi-clickable" onClick={() => navigate('/users')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/users')}>
           <div className="sad-kpi-icon-wrap">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

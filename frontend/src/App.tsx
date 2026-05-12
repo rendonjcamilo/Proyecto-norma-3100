@@ -235,7 +235,7 @@ function AppContent(): JSX.Element {
             {/* Providers */}
             <Route
               path="/providers"
-              element={<ProtectedRoute requiredRoles={["auditor"]}><ProvidersPage /></ProtectedRoute>}
+              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><ProvidersPage /></ProtectedRoute>}
             />
 
             {/* Users */}

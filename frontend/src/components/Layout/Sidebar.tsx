@@ -44,15 +44,7 @@ const navigation: NavSection[] = [
     items: [
       { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
       { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
-      { to: '/anexo4', icon: 'hc', label: 'Verificación H.C.', roles: ['auditor', 'super_admin'] },
-    ],
-  },
-  {
-    title: 'Comunicación',
-    roles: ['auditor', 'super_admin'],
-    items: [
-      { to: '/notifications/auditor-send', icon: 'email', label: 'Enviar Notificación', roles: ['auditor', 'super_admin'] },
-      { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['super_admin', 'auditor'] },
+      { to: '/anexo4', icon: 'hc', label: 'Verificación H.C.', roles: ['auditor'] },
     ],
   },
   {
@@ -62,6 +54,14 @@ const navigation: NavSection[] = [
       { to: '/users', icon: 'users', label: 'Usuarios', roles: ['super_admin'] },
       { to: '/questionnaires', icon: 'questionnaires', label: 'Cuestionarios', roles: ['super_admin'] },
       { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['super_admin'] },
+    ],
+  },
+  {
+    title: 'Comunicación',
+    roles: ['auditor', 'super_admin'],
+    items: [
+      { to: '/notifications/auditor-send', icon: 'email', label: 'Enviar Notificación', roles: ['auditor', 'super_admin'] },
+      { to: '/notifications/email-templates', icon: 'email', label: 'Plantillas Email', roles: ['auditor'] },
     ],
   },
 ];
