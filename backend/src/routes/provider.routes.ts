@@ -847,9 +847,20 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(404).json({ error: 'Auditor not found' });
         }
 
-        // Get all providers assigned to this auditor
+        // Get all providers assigned to this auditor with compliance and finding metrics
         const result = await pool.query(
-          `SELECT p.id, p.legal_name, p.rut, p.city, p.department, p.status, ap.assigned_at, ap.assigned_by
+          `SELECT p.id, p.legal_name, p.rut, p.city, p.department, p.status, ap.assigned_at, ap.assigned_by,
+                  (SELECT ROUND(a.compliance_pct)::int
+                   FROM assessments a
+                   WHERE a.provider_id = p.id
+                     AND a.compliance_pct IS NOT NULL
+                     AND a.status IN ('submitted', 'completed')
+                   ORDER BY a.created_at DESC
+                   LIMIT 1) AS compliance_rate,
+                  (SELECT COUNT(*)::int
+                   FROM findings f
+                   WHERE f.provider_id = p.id
+                     AND f.status = 'abierta') AS pending_validations
            FROM providers p
            INNER JOIN auditor_providers ap ON p.id = ap.provider_id
            WHERE ap.auditor_id = $1 AND p.status != 'revoked'

@@ -229,7 +229,7 @@ export function AuditorDashboard(): JSX.Element {
 
                 <div className="adb-provider-info">
                   <div className="adb-info-row">
-                    <span className="adb-info-label">RUT</span>
+                    <span className="adb-info-label">Identificación</span>
                     <span className="adb-info-value">{provider.rut}</span>
                   </div>
                   <div className="adb-info-row">
