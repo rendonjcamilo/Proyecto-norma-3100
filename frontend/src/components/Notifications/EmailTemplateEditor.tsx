@@ -8,7 +8,7 @@ import axios from 'axios';
 import './EmailTemplateEditor.css';
 
 const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+  Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
 });
 
 interface EmailTemplate {
@@ -168,10 +168,11 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
     const textarea = document.getElementById('template-body') as HTMLTextAreaElement;
     if (textarea) {
       const cursorPos = textarea.selectionStart;
+      const body = template.body || '';
       const newBody =
-        template.body.substring(0, cursorPos) +
+        body.substring(0, cursorPos) +
         variable +
-        template.body.substring(cursorPos);
+        body.substring(cursorPos);
       setTemplate({ ...template, body: newBody });
     }
   };
@@ -257,7 +258,7 @@ export const EmailTemplateEditor: React.FC<EmailTemplateEditorProps> = ({
                 <div key={tpl.id} className="template-card">
                   <h3>{tpl.name}</h3>
                   <p className="template-subject">Asunto: {tpl.subject}</p>
-                  <p className="template-preview">{tpl.body.substring(0, 80)}...</p>
+                  <p className="template-preview">{(tpl.body || '').substring(0, 80)}...</p>
                   {tpl.variables && tpl.variables.length > 0 && (
                     <div className="template-variables">
                       {tpl.variables.slice(0, 3).map((v, i) => (
