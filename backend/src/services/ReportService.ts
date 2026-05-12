@@ -459,6 +459,17 @@ export class ReportService {
       semaforo: 'verde' | 'naranja' | 'rojo' | 'na';
       hallazgos: Array<{ criterio: string; descripcion: string; tipo: string; severidad: string }>;
     }>;
+    estandaresServicio: Array<{
+      codigo: string;
+      nombre: string;
+      totalCriterios: number;
+      cumple: number;
+      noCumple: number;
+      noAplica: number;
+      porcentajeCumplimiento: number;
+      semaforo: 'verde' | 'naranja' | 'rojo' | 'na';
+      hallazgos: Array<{ criterio: string; descripcion: string; tipo: string; severidad: string }>;
+    }>;
     resumenCondiciones: {
       condicion1CumpleTecnicoAdministrativa: boolean | null;
       condicion2CumpleSuficienciaPatrimonial: boolean | null;
@@ -621,11 +632,99 @@ export class ReportService {
         ? 'habilitado_condicionado'
         : 'no_habilitado';
 
+    // Estándares específicos del servicio (solo cuando el assessment tiene service_id)
+    const estandaresServicio: typeof estandares = [];
+    if (assessmentId && servicio) {
+      const svcEstResult = await this.pool.query<{ id: string; code: string; name: string }>(
+        `SELECT es.id, es.code, es.name
+         FROM evaluation_standards es
+         WHERE es.is_transversal = FALSE
+           AND EXISTS (
+             SELECT 1 FROM evaluation_criteria ec
+             WHERE ec.standard_id = es.id
+               AND ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
+           )
+         ORDER BY es.name`,
+        [assessmentId]
+      ).catch(() => ({ rows: [] as { id: string; code: string; name: string }[] }));
+
+      for (const est of svcEstResult.rows) {
+        const mResult = await this.pool.query<{
+          cumple: string; no_cumple: string; no_aplica: string; total: string;
+        }>(
+          `SELECT
+            COUNT(*) FILTER (WHERE acr.response_status = 'C')::text AS cumple,
+            COUNT(*) FILTER (WHERE acr.response_status = 'NC')::text AS no_cumple,
+            COUNT(*) FILTER (WHERE acr.response_status = 'NA')::text AS no_aplica,
+            COUNT(*)::text AS total
+           FROM assessment_responses_detailed acr
+           JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
+           WHERE acr.assessment_id = $1 AND ec.standard_id = $2`,
+          [assessmentId, est.id]
+        ).catch(() => ({ rows: [] }));
+
+        const m = mResult.rows.length > 0 ? {
+          cumple: parseInt(mResult.rows[0].cumple) || 0,
+          noCumple: parseInt(mResult.rows[0].no_cumple) || 0,
+          noAplica: parseInt(mResult.rows[0].no_aplica) || 0,
+          total: parseInt(mResult.rows[0].total) || 0,
+        } : { cumple: 0, noCumple: 0, noAplica: 0, total: 0 };
+
+        const aplicablesSvc = m.cumple + m.noCumple;
+        const pctSvc = aplicablesSvc > 0 ? Math.round((m.cumple / aplicablesSvc) * 100) : -1;
+        const semaforoSvc: 'verde' | 'naranja' | 'rojo' | 'na' =
+          pctSvc === -1 ? 'na' : pctSvc >= 80 ? 'verde' : pctSvc >= 50 ? 'naranja' : 'rojo';
+
+        const hResult = await this.pool.query<{
+          title: string; criterion_code: string; severity: string; status: string;
+        }>(
+          `SELECT
+                  COALESCE(
+                    NULLIF(acr.description, ''),
+                    NULLIF(ec.nc_hint, ''),
+                    CASE WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.name
+                         ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
+                    END
+                  ) AS title,
+                  COALESCE(ec.code, '') AS criterion_code,
+                  f.severity, f.status
+           FROM findings f
+           LEFT JOIN evaluation_criteria ec ON ec.id = f.criterion_id
+           LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
+           LEFT JOIN assessment_responses_detailed acr ON acr.id = f.assessment_response_id
+           WHERE f.provider_id = $1
+             AND es.id = $2
+             AND f.status NOT IN ('cerrada', 'closed')
+           ORDER BY f.severity DESC, ec.code
+           LIMIT 20`,
+          [providerId, est.id]
+        ).catch(() => ({ rows: [] }));
+
+        estandaresServicio.push({
+          codigo: est.code,
+          nombre: est.name,
+          totalCriterios: m.total,
+          cumple: m.cumple,
+          noCumple: m.noCumple,
+          noAplica: m.noAplica,
+          porcentajeCumplimiento: pctSvc,
+          semaforo: semaforoSvc,
+          hallazgos: hResult.rows.map(h => ({
+            criterio: h.criterion_code,
+            descripcion: h.title.replace(/^\d+(\.\d+)*\.\s*/, ''),
+            tipo: 'no_conformidad',
+            severidad: h.severity || 'media',
+          })),
+        });
+      }
+    }
+
     return {
       provider,
       servicio,
       fechaInforme: new Date(),
       estandares,
+      estandaresServicio,
       resumenCondiciones: {
         condicion1CumpleTecnicoAdministrativa: null, // Requires manual verification
         condicion2CumpleSuficienciaPatrimonial: condicion2Cumple,
@@ -1015,6 +1114,31 @@ export class ReportService {
         return paras;
       }),
 
+      // ── ESTÁNDARES ESPECÍFICOS DEL SERVICIO ─────────────────────
+      ...(data.estandaresServicio.length > 0 ? [
+        p(`ESTÁNDARES ESPECÍFICOS — ${data.servicio?.nombre?.toUpperCase() ?? ''} (${data.servicio?.codigo ?? ''})`, { bold: true, spaceBefore: 200, spaceAfter: 100 }),
+        ...data.estandaresServicio.flatMap((est) => {
+          const paras: any[] = [
+            p(`ESTÁNDAR DE ${est.nombre.toUpperCase()}:`, { bold: true, spaceBefore: 160, spaceAfter: 100 }),
+          ];
+          if (est.hallazgos.length > 0) {
+            paras.push(p('Hallazgos:', { bold: true, spaceAfter: 80 }));
+            est.hallazgos.forEach((h) => {
+              paras.push(
+                new Paragraph({
+                  bullet: { level: 0 },
+                  spacing: { before: 0, after: 100 },
+                  children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24, color: '000000' })],
+                })
+              );
+            });
+          } else {
+            paras.push(p('Todo se cumple en este estándar.', { spaceAfter: 100 }));
+          }
+          return paras;
+        }),
+      ] : []),
+
       p('', { spaceAfter: 200 }),
 
       // ── TABLA DE RESULTADOS POR ESTÁNDAR ────────────────────────
@@ -1062,6 +1186,54 @@ export class ReportService {
           })(),
         ],
       }),
+
+      // ── TABLA DE RESULTADOS ESPECÍFICOS POR SERVICIO ────────────
+      ...(data.estandaresServicio.length > 0 ? [
+        p('', { spaceAfter: 120 }),
+        p(`RESULTADOS POR ESTÁNDAR — ${data.servicio?.nombre?.toUpperCase() ?? ''} (${data.servicio?.codigo ?? ''})`, { bold: true, spaceBefore: 200, spaceAfter: 160 }),
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Estándar', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'C', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'NC', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: '% Cumpl.', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Semáforo', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+              ],
+            }),
+            ...data.estandaresServicio.map((est) =>
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 24, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
+                ],
+              })
+            ),
+            (() => {
+              const totalC = data.estandaresServicio.reduce((s, e) => s + e.cumple, 0);
+              const totalNC = data.estandaresServicio.reduce((s, e) => s + e.noCumple, 0);
+              const totalApl = totalC + totalNC;
+              const pct = totalApl > 0 ? Math.round((totalC / totalApl) * 100) : 0;
+              const semaforoColor = pct >= 80 ? '007000' : pct >= 50 ? 'E06000' : 'CC0000';
+              const semaforoLabel = pct >= 80 ? 'VERDE' : pct >= 50 ? 'NARANJA' : 'ROJO';
+              return new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TOTAL GENERAL', font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalNC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${pct}%`, font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: semaforoLabel, font: 'Arial', size: 24, bold: true, color: semaforoColor })] })] }),
+                ],
+              });
+            })(),
+          ],
+        }),
+      ] : []),
 
       p('', { spaceAfter: 200 }),
 
