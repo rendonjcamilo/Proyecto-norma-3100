@@ -90,7 +90,7 @@ export class AssessmentService {
   async createAssessment(
     providerId: string,
     locationId: string | null,
-    serviceId: string,
+    serviceIds: string[],
     assessmentVersion: 'initial' | 'year4' | 'annual' | 'pre-novelty',
     userId: string,
     title?: string
@@ -112,39 +112,42 @@ export class AssessmentService {
       }
       const masterQuestionnaire = masterResult.rows[0] as { id: string; total_criteria: number };
 
-      // Cuestionario específico del servicio (si aplica)
-      let serviceQuestionnaire: { id: string; total_criteria: number } | null = null;
-      if (serviceId) {
+      // Cuestionarios específicos de cada servicio seleccionado
+      const serviceQuestionnaires: { id: string; total_criteria: number }[] = [];
+      for (const svcId of serviceIds) {
         const svcResult = await client.query(
           `SELECT id, total_criteria FROM questionnaires
            WHERE version_type = $1 AND status = 'published' AND service_id = $2
            LIMIT 1`,
-          [assessmentVersion, serviceId]
+          [assessmentVersion, svcId]
         );
         if (svcResult.rows.length > 0) {
-          serviceQuestionnaire = svcResult.rows[0] as { id: string; total_criteria: number };
+          serviceQuestionnaires.push(svcResult.rows[0] as { id: string; total_criteria: number });
         }
       }
 
-      // questionnaire_id apunta al maestro; total = 512 + criterios del servicio
       const questionnaireId = masterQuestionnaire.id;
-      const totalCriteria = masterQuestionnaire.total_criteria + (serviceQuestionnaire?.total_criteria ?? 0);
+      const extraCriteria = serviceQuestionnaires.reduce((sum, q) => sum + q.total_criteria, 0);
+      const totalCriteria = masterQuestionnaire.total_criteria + extraCriteria;
+
+      // service_id = primer servicio seleccionado (compatibilidad hacia atrás)
+      const primaryServiceId = serviceIds.length > 0 ? serviceIds[0] : null;
 
       // 2. Create assessment instance
-      // Note: version is determined by questionnaire.version_type, not stored here
       const assessmentQuery = `
         INSERT INTO assessments
-          (provider_id, location_id, service_id, questionnaire_id, status, created_by, title, assessment_version)
-        VALUES ($1, $2, $3, $4, 'draft', $5, $6, $7)
+          (provider_id, location_id, service_id, service_ids, questionnaire_id, status, created_by, title, assessment_version)
+        VALUES ($1, $2, $3, $4::jsonb, $5, 'draft', $6, $7, $8)
         RETURNING
-          id, provider_id, location_id, service_id, questionnaire_id, version,
+          id, provider_id, location_id, service_id, service_ids, questionnaire_id, version,
           status, created_by, compliance_pct, created_at, title, assessment_version
       `;
 
       const aResult = await client.query(assessmentQuery, [
         providerId,
         locationId,
-        serviceId,
+        primaryServiceId,
+        JSON.stringify(serviceIds),
         questionnaireId,
         userId,
         title || null,
@@ -172,8 +175,8 @@ export class AssessmentService {
         ON CONFLICT DO NOTHING
       `, [assessment.id, masterQuestionnaire.id, userId]);
 
-      // Agregar criterios específicos del servicio (si hay cuestionario específico)
-      if (serviceQuestionnaire) {
+      // Agregar criterios específicos de cada servicio seleccionado
+      for (const svcQ of serviceQuestionnaires) {
         await client.query(`
           INSERT INTO assessment_responses_detailed
             (assessment_id, criterion_id, response_status, description, comments, responded_by)
@@ -181,7 +184,7 @@ export class AssessmentService {
           FROM questionnaire_criteria qc
           WHERE qc.questionnaire_id = $2
           ON CONFLICT DO NOTHING
-        `, [assessment.id, serviceQuestionnaire.id, userId]);
+        `, [assessment.id, svcQ.id, userId]);
       }
 
       // 5. Actualizar métricas iniciales: todos en NA
@@ -203,7 +206,7 @@ export class AssessmentService {
       logger.info({
         msg: 'Assessment created',
         assessment_id: assessment.id,
-        service_id: serviceId,
+        service_ids: serviceIds,
         assessment_version: assessmentVersion,
         total_criteria: totalCriteria,
       });

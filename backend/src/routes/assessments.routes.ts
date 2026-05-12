@@ -36,11 +36,18 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     providerAccessMiddleware(pool, ['providerId']),
     async (req: Request, res: Response) => {
       try {
-        const { providerId, locationId, serviceId, assessmentVersion, title } = req.body;
+        const { providerId, locationId, serviceId, serviceIds, assessmentVersion, title } = req.body;
         const userId = req.user?.user_id;
         const userRole = req.user?.role;
 
-        // Validation — serviceId is optional (null → transversal assessment with master questionnaire)
+        // Normalizar a array (acepta serviceIds[] o serviceId string para compatibilidad)
+        const normalizedServiceIds: string[] = Array.isArray(serviceIds)
+          ? serviceIds
+          : serviceId
+          ? [serviceId]
+          : [];
+
+        // Validation — serviceIds is optional ([] → transversal assessment with master questionnaire)
         if (!assessmentVersion) {
           return res.status(400).json({
             error: 'assessmentVersion es requerido',
@@ -71,7 +78,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         const assessment = await assessmentService.createAssessment(
           providerId,
           locationId || null,
-          serviceId,
+          normalizedServiceIds,
           assessmentVersion,
           userId,
           title || null
@@ -80,7 +87,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         logger.info({
           msg: 'Assessment created',
           assessment_id: assessment.id,
-          service_id: serviceId,
+          service_ids: normalizedServiceIds,
         });
 
         res.status(201).json({

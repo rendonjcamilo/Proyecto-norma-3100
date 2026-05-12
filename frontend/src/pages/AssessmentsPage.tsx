@@ -601,15 +601,16 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 const baseTitle = formData.title.trim();
                 let firstAssessmentId: string | null = null;
 
-                // Siempre 1 solo assessment: transversal puro o transversal + servicio específico
-                const [svcId] = selectedServiceIds;
-                const svc = svcId ? evaluableServices.find(s => s.id === svcId) : null;
+                // Un solo assessment: transversal + todos los servicios específicos seleccionados
+                const svcIds = [...selectedServiceIds];
+                const svcs = svcIds.map(id => evaluableServices.find(s => s.id === id)).filter(Boolean);
+                const serviceLabel = svcs.length > 0 ? ` — ${svcs.map(s => s!.name).join(', ')}` : '';
                 const res = await assessmentsApi.create({
                   providerId: finalProviderId,
-                  serviceId: svcId || undefined as unknown as string,
+                  serviceIds: svcIds,
                   questionnaireId: '',
                   assessmentVersion: formData.type,
-                  title: svc ? `${baseTitle} — ${svc.name}` : baseTitle,
+                  title: `${baseTitle}${serviceLabel}`,
                 });
                 firstAssessmentId = res.data?.id || null;
 
@@ -726,10 +727,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 {/* Evaluaciones de servicio específico */}
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
                   <div style={{ padding: '8px 12px', background: '#f9fafb', fontSize: '13px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
-                    Servicio específico a evaluar (opcional — máximo 1)
+                    Servicios específicos a evaluar (opcional)
                     {selectedServiceIds.size > 0 && (
                       <span style={{ marginLeft: '8px', background: '#2563eb', color: 'white', borderRadius: '10px', padding: '1px 8px', fontSize: '11px' }}>
-                        {evaluableServices.find(s => selectedServiceIds.has(s.id))?.name ?? '1 seleccionado'}
+                        {selectedServiceIds.size} seleccionado{selectedServiceIds.size > 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
@@ -752,13 +753,15 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                               borderBottom: '1px solid #f3f4f6',
                             }}>
                               <input
-                                type="radio"
-                                name="serviceSelection"
+                                type="checkbox"
                                 checked={selectedServiceIds.has(svc.id)}
                                 onChange={() => {
-                                  setSelectedServiceIds(prev =>
-                                    prev.has(svc.id) ? new Set() : new Set([svc.id])
-                                  );
+                                  setSelectedServiceIds(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(svc.id)) next.delete(svc.id);
+                                    else next.add(svc.id);
+                                    return next;
+                                  });
                                 }}
                                 style={{ marginTop: '2px', accentColor: '#2563eb' }}
                               />

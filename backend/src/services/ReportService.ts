@@ -484,17 +484,26 @@ export class ReportService {
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
 
-    // Obtener servicio asociado al assessment
+    // Obtener servicios asociados al assessment (soporta multi-servicio)
     let servicio: { codigo: string; nombre: string } | null = null;
+    let serviciosMultiple: { codigo: string; nombre: string }[] = [];
     if (assessmentId) {
       const svcResult = await this.pool.query<{ code: string; name: string }>(
-        `SELECT s.code, s.name FROM assessments a
-         JOIN services s ON s.id = a.service_id
-         WHERE a.id = $1 AND a.service_id IS NOT NULL`,
+        `SELECT s.code, s.name FROM services s
+         WHERE s.id = ANY(
+           SELECT jsonb_array_elements_text(
+             CASE WHEN a.service_ids IS NOT NULL AND jsonb_array_length(a.service_ids) > 0
+               THEN a.service_ids
+               ELSE CASE WHEN a.service_id IS NOT NULL THEN jsonb_build_array(a.service_id::text) ELSE '[]'::jsonb END
+             END
+           ) FROM assessments a WHERE a.id = $1
+         )
+         ORDER BY s.name`,
         [assessmentId]
       ).catch(() => ({ rows: [] as { code: string; name: string }[] }));
       if (svcResult.rows.length > 0) {
-        servicio = { codigo: svcResult.rows[0].code, nombre: svcResult.rows[0].name };
+        serviciosMultiple = svcResult.rows.map(r => ({ codigo: r.code, nombre: r.name }));
+        servicio = serviciosMultiple[0];
       }
     }
 
@@ -632,17 +641,24 @@ export class ReportService {
         ? 'habilitado_condicionado'
         : 'no_habilitado';
 
-    // Estándares específicos del servicio (solo cuando el assessment tiene service_id)
+    // Estándares específicos de todos los servicios del assessment
     const estandaresServicio: typeof estandares = [];
-    if (assessmentId && servicio) {
+    if (assessmentId && serviciosMultiple.length > 0) {
       const svcEstResult = await this.pool.query<{ id: string; code: string; name: string }>(
-        `SELECT es.id, es.code, es.name
+        `SELECT DISTINCT es.id, es.code, es.name
          FROM evaluation_standards es
          WHERE es.is_transversal = FALSE
            AND EXISTS (
              SELECT 1 FROM evaluation_criteria ec
              WHERE ec.standard_id = es.id
-               AND ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
+               AND ec.service_id = ANY(
+                 SELECT jsonb_array_elements_text(
+                   CASE WHEN a.service_ids IS NOT NULL AND jsonb_array_length(a.service_ids) > 0
+                     THEN a.service_ids
+                     ELSE CASE WHEN a.service_id IS NOT NULL THEN jsonb_build_array(a.service_id::text) ELSE '[]'::jsonb END
+                   END
+                 )::uuid FROM assessments a WHERE a.id = $1
+               )
            )
          ORDER BY CASE SPLIT_PART(es.code, '_', 2)
            WHEN 'TH'  THEN 1
