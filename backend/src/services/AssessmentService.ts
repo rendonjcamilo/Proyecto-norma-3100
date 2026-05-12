@@ -785,6 +785,7 @@ export class AssessmentService {
       submitted_date: row.submitted_at,
       compliance_percent: parseFloat(row.compliance_pct) || 0,
       semaforo: row.semaforo_color,
+      title: row.title ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     }));

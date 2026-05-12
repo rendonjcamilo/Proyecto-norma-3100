@@ -418,10 +418,12 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         </div>
 
                         {/* Title */}
-                        <div className="prov-card-name assm-title">{getServiceName(a.service_id)}</div>
-                        {a.title && (
-                          <div style={{ fontSize: '12px', color: '#6b778c', marginTop: '-4px', marginBottom: '4px', fontStyle: 'italic' }}>
-                            {a.title}
+                        <div className="prov-card-name assm-title">
+                          {a.title || getServiceName(a.service_id) || '—'}
+                        </div>
+                        {a.title && getServiceName(a.service_id) && (
+                          <div style={{ fontSize: '11px', color: '#6b778c', marginTop: '-4px', marginBottom: '4px' }}>
+                            {getServiceName(a.service_id)}
                           </div>
                         )}
 
