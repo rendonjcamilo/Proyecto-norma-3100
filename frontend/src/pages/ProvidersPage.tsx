@@ -934,10 +934,8 @@ export const ProvidersPage: React.FC = () => {
                 )}
               </div>
 
-            </div>
-
-            {/* Sección: Crear usuario administrador del prestador */}
-            {!editingId && (
+              {/* Sección: Crear usuario administrador del prestador */}
+              {!editingId && (
               <div style={{ borderTop: '1px solid #e0e0e0', marginTop: '24px', paddingTop: '20px' }}>
                 {/* Toggle header */}
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
@@ -1033,7 +1031,9 @@ export const ProvidersPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
+              )}
+
+            </div>{/* fin modal-body */}
 
             <div className="modal-footer">
               <button
