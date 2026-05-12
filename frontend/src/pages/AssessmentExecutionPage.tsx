@@ -86,8 +86,14 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
       });
     }
     // Usar 'name' y 'description' del backend; si no existen (flujo mock), usar 'text' como fallback
-    const name = (c as any).name || (c as any).text || 'Sin nombre';
-    const description = (c as any).description || (c as any).text || '';
+    const rawName = (c as any).name || (c as any).text || 'Sin nombre';
+    const rawDesc = (c as any).description || (c as any).text || '';
+    // Si description es extensión del name truncado (o viceversa), usar el más largo como name
+    const nameNorm = rawName.trim();
+    const descNorm = rawDesc.trim();
+    const isRedundant = descNorm.startsWith(nameNorm) || nameNorm.startsWith(descNorm);
+    const name = isRedundant ? (descNorm.length >= nameNorm.length ? descNorm : nameNorm) : rawName;
+    const description = isRedundant ? '' : rawDesc;
 
     standardMap.get(c.standard_id)!.criteria.push({
       id: c.id,
