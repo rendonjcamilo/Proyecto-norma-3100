@@ -3,7 +3,7 @@
  * Represents healthcare organizations in the Norma 3100 compliance system
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult } from 'pg';
 
 export interface Provider {
   id: string;
@@ -93,8 +93,8 @@ export class ProviderModel {
       query += ` AND created_by = $${params.length + 1}`;
       params.push(user_id);
     } else if (role === 'auditor') {
-      // Auditors see assigned providers (via user provider_id)
-      query += ` AND id IN (SELECT provider_id FROM users WHERE id = $${params.length + 1})`;
+      // Auditores ven solo prestadores asignados en auditor_providers
+      query += ` AND id IN (SELECT provider_id FROM auditor_providers WHERE auditor_id = $${params.length + 1})`;
       params.push(user_id);
     }
     // super_admin sees todos excepto los eliminados (revoked)
@@ -155,15 +155,16 @@ export class ProviderModel {
 
   /**
    * Create a new provider
+   * Accepts an optional PoolClient to participate in an existing transaction
    */
-  async createProvider(data: Omit<Provider, 'id' | 'created_at' | 'updated_at'>): Promise<Provider> {
+  async createProvider(data: Omit<Provider, 'id' | 'created_at' | 'updated_at'>, client?: PoolClient): Promise<Provider> {
     const query = `
       INSERT INTO providers (rut, legal_name, trade_name, legal_entity_type, address, city, department, country, email, phone, nombre_sede, codigo_habilitacion, habilitacion_fecha_vencimiento, status, created_by, updated_by)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `;
-
-    const result = await this.pool.query(query, [
+    const db = client ?? this.pool;
+    const result = await db.query(query, [
       data.rut,
       data.legal_name,
       data.trade_name || null,

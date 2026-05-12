@@ -113,7 +113,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         try {
           await client.query('BEGIN');
 
-          // 1. Create provider
+          // 1. Create provider (dentro de la transacción con client)
           const provider = await providerModel.createProvider({
             rut,
             legal_name,
@@ -130,7 +130,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             habilitacion_fecha_vencimiento: habilitacion_fecha_vencimiento || null,
             status: status || 'active',
             created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
-          });
+          }, client);
 
           // 2. Create admin user for the provider (optional)
           let adminUserId: string | null = null;
