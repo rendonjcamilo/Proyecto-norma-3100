@@ -27,6 +27,7 @@ COPY backend/package*.json ./
 RUN npm install --omit=dev && npm install tsx
 
 COPY --from=builder /app/dist ./dist
+COPY backend/src/assets ./dist/assets
 COPY backend/db ./db
 COPY backend/scripts ./scripts
 COPY docs/norma3100-model.json ./docs/norma3100-model.json
