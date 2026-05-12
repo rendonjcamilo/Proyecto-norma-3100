@@ -40,7 +40,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
   router.post(
     '/providers',
     authMiddleware,
-    rbacMiddleware(['auditor']),
+    rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const {
@@ -56,6 +56,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           phone,
           nombre_sede,
           codigo_habilitacion,
+          habilitacion_fecha_vencimiento,
           status,
           admin_email,
           admin_password,
@@ -126,6 +127,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             phone: phone || null,
             nombre_sede: nombre_sede || null,
             codigo_habilitacion: codigo_habilitacion || null,
+            habilitacion_fecha_vencimiento: habilitacion_fecha_vencimiento || null,
             status: status || 'active',
             created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
           });
@@ -166,13 +168,15 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             );
           }
 
-          // 3. Auto-assign auditor to the provider they just created
-          await client.query(
-            `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (auditor_id, provider_id) DO NOTHING`,
-            [user?.user_id, provider.id, user?.user_id]
-          );
+          // 3. Auto-assign auditor to the provider they just created (solo aplica a auditores)
+          if (user?.role === 'auditor') {
+            await client.query(
+              `INSERT INTO auditor_providers (auditor_id, provider_id, assigned_by)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (auditor_id, provider_id) DO NOTHING`,
+              [user?.user_id, provider.id, user?.user_id]
+            );
+          }
 
           // 4. Assign services if provided
           if (Array.isArray(serviceIds) && serviceIds.length > 0) {
