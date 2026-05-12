@@ -145,45 +145,47 @@ export class FindingModel {
     created_before?: Date;
     search?: string;
   }): Promise<Finding[]> {
-    let query = 'SELECT * FROM findings WHERE 1=1';
+    let query = `SELECT f.* FROM findings f
+      JOIN providers p ON p.id = f.provider_id
+      WHERE p.status != 'revoked'`;
     const params: any[] = [];
 
     if (filters?.provider_id) {
-      query += ` AND provider_id = $${params.length + 1}`;
+      query += ` AND f.provider_id = $${params.length + 1}`;
       params.push(filters.provider_id);
     }
 
     if (filters?.severity) {
-      query += ` AND severity = $${params.length + 1}`;
+      query += ` AND f.severity = $${params.length + 1}`;
       params.push(filters.severity);
     }
 
     if (filters?.status) {
-      query += ` AND status = $${params.length + 1}`;
+      query += ` AND f.status = $${params.length + 1}`;
       params.push(filters.status);
     }
 
     if (filters?.category_id) {
-      query += ` AND category_id = $${params.length + 1}`;
+      query += ` AND f.category_id = $${params.length + 1}`;
       params.push(filters.category_id);
     }
 
     if (filters?.created_after) {
-      query += ` AND created_at >= $${params.length + 1}`;
+      query += ` AND f.created_at >= $${params.length + 1}`;
       params.push(filters.created_after);
     }
 
     if (filters?.created_before) {
-      query += ` AND created_at <= $${params.length + 1}`;
+      query += ` AND f.created_at <= $${params.length + 1}`;
       params.push(filters.created_before);
     }
 
     if (filters?.search) {
-      query += ` AND (title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`;
+      query += ` AND (f.title ILIKE $${params.length + 1} OR f.description ILIKE $${params.length + 1})`;
       params.push(`%${filters.search}%`, `%${filters.search}%`);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY f.created_at DESC';
 
     const result = await this.pool.query(query, params);
     return result.rows;

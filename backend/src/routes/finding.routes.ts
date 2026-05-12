@@ -109,10 +109,12 @@ export function createFindingRouter(pool: Pool, eventStore: EventStore): Router 
           provider_id = userResult.rows[0].provider_id;
         }
 
-        // RBAC: auditor can only see assigned providers
+        // RBAC: auditor can only see assigned providers (excluye prestadores revocados)
         if (userRole === 'auditor') {
           const assignedResult = await pool.query(
-            'SELECT provider_id FROM auditor_providers WHERE auditor_id = $1',
+            `SELECT ap.provider_id FROM auditor_providers ap
+             JOIN providers p ON p.id = ap.provider_id
+             WHERE ap.auditor_id = $1 AND p.status != 'revoked'`,
             [userId]
           );
 
