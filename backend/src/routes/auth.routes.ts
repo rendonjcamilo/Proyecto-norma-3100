@@ -485,24 +485,39 @@ router.post('/forgot-password', passwordLimiter, async (req: Request, res: Respo
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetLink = `${frontendUrl}/reset-password?token=${token}&uid=${user.id}`;
 
-    // Intentar enviar email si el proveedor está configurado
-    const emailProvider = process.env.EMAIL_PROVIDER;
-    if (emailProvider && emailProvider !== 'none') {
+    // Enviar email de recuperación directamente vía Resend
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
       try {
         const firstName = user.first_name || user.email.split('@')[0];
-        const result = await dbPool.query(
-          `SELECT id FROM email_templates WHERE name = 'password-reset' AND is_active = true LIMIT 1`
+        const tplResult = await dbPool.query(
+          `SELECT subject, html_body, text_body FROM email_templates WHERE template_name = 'password-reset' AND is_active = true LIMIT 1`
         );
-        if (result.rows.length > 0) {
-          // Insertar entrega de email en cola (patrón multichannel existente)
-          await dbPool.query(
-            `INSERT INTO email_deliveries (id, recipient_email, recipient_name, template_name, variables, status, created_at, updated_at)
-             VALUES (gen_random_uuid(), $1, $2, 'password-reset', $3::jsonb, 'pending', NOW(), NOW())`,
-            [user.email, firstName, JSON.stringify({ name: firstName, reset_link: resetLink, expiry_minutes: '60' })]
-          );
+        if (tplResult.rows.length > 0) {
+          const tpl = tplResult.rows[0];
+          const html = tpl.html_body
+            .replace(/{{name}}/g, firstName)
+            .replace(/{{reset_link}}/g, resetLink)
+            .replace(/{{expiry_minutes}}/g, '60');
+          const text = tpl.text_body
+            ?.replace(/{{name}}/g, firstName)
+            .replace(/{{reset_link}}/g, resetLink)
+            .replace(/{{expiry_minutes}}/g, '60');
+          const { Resend } = await import('resend');
+          const resend = new Resend(resendApiKey);
+          await resend.emails.send({
+            from: process.env.EMAIL_FROM || 'noreply@habilitapro.com',
+            to: user.email,
+            subject: tpl.subject,
+            html,
+            ...(text ? { text } : {}),
+          });
+          logger.info({ email: user.email }, 'Password reset email sent');
+        } else {
+          logger.warn('password-reset template not found in email_templates');
         }
       } catch (emailErr) {
-        logger.error({ error: emailErr instanceof Error ? emailErr.message : emailErr }, 'Error al encolar email de recuperación');
+        logger.error({ error: emailErr instanceof Error ? emailErr.message : emailErr }, 'Error al enviar email de recuperación');
       }
     }
 
