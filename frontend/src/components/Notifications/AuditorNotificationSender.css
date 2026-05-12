@@ -400,6 +400,164 @@
   font-style: italic;
 }
 
+/* ── Email input type ────────────────────────────────────────── */
+.ans-form-group input[type="email"] {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: #fff;
+  color: #0f172a;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ans-form-group input[type="email"]:focus {
+  outline: none;
+  border-color: #6255A0;
+  box-shadow: 0 0 0 3px rgba(98,85,160,0.1);
+}
+
+/* ── Compose textarea ────────────────────────────────────────── */
+.ans-compose-textarea {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: #fff;
+  color: #0f172a;
+  resize: vertical;
+  min-height: 140px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.6;
+}
+
+.ans-compose-textarea:focus {
+  outline: none;
+  border-color: #6255A0;
+  box-shadow: 0 0 0 3px rgba(98,85,160,0.1);
+}
+
+/* ── Char count / hint inline ────────────────────────────────── */
+.ans-char-count {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.ans-form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ans-hint-inline {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+/* ── Adjuntar archivo ────────────────────────────────────────── */
+.ans-file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #f8fafc;
+  border: 1.5px dashed #6255A0;
+  border-radius: 8px;
+  color: #6255A0;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: fit-content;
+}
+
+.ans-file-btn:hover {
+  background: #eef2ff;
+  border-style: solid;
+}
+
+/* ── Lista de adjuntos ───────────────────────────────────────── */
+.ans-attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.ans-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8rem;
+}
+
+.ans-attachment-name {
+  flex: 1;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ans-attachment-size {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.ans-attachment-remove {
+  background: none;
+  border: none;
+  color: #f43f5e;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.ans-attachment-remove:hover {
+  opacity: 0.7;
+}
+
+/* ── Preview compose ─────────────────────────────────────────── */
+.ans-compose-preview {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ans-preview-attachments {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.ans-preview-att-chip {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .ans-header {

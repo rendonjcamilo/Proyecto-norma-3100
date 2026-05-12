@@ -105,6 +105,71 @@ export function createMultiChannelRouter(pool: Pool): Router {
   });
 
   /**
+   * POST /api/multichannel/email/compose
+   * Envía email de redacción libre (sin plantilla) con adjuntos opcionales (base64)
+   */
+  router.post('/email/compose', async (req: Request, res: Response) => {
+    try {
+      const { to, subject, html, text, attachments, userId, providerId } = req.body;
+
+      if (!to || !subject || !html || !userId) {
+        return res.status(400).json({
+          error: 'Campos requeridos: to, subject, html, userId',
+        });
+      }
+
+      if (!emailConfig.apiKey) {
+        return res.status(503).json({ error: 'Proveedor de email no configurado' });
+      }
+
+      const { Resend } = await import('resend');
+      const resend = new Resend(emailConfig.apiKey);
+
+      const emailPayload: any = {
+        from: `${emailConfig.fromName} <${emailConfig.fromEmail}>`,
+        to,
+        subject,
+        html,
+        ...(text ? { text } : {}),
+      };
+
+      if (attachments && attachments.length > 0) {
+        emailPayload.attachments = attachments.map((att: { filename: string; content: string }) => ({
+          filename: att.filename,
+          content: Buffer.from(att.content, 'base64'),
+        }));
+      }
+
+      const { data, error } = await resend.emails.send(emailPayload);
+
+      if (error) {
+        logger.error('Resend compose error', { message: error.message });
+        return res.status(500).json({ error: error.message });
+      }
+
+      // Registrar en email_deliveries
+      try {
+        await pool.query(
+          `INSERT INTO email_deliveries
+             (id, user_id, provider_id, email, subject, template_name, status, email_provider,
+              delivery_attempts, max_attempts, provider_message_id, sent_at, created_at, updated_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, 'compose', 'sent', 'resend',
+                   1, 1, $5, NOW(), NOW(), NOW())`,
+          [userId, providerId || null, Array.isArray(to) ? to[0] : to, subject, data?.id || null]
+        );
+      } catch (dbErr) {
+        logger.warn('No se pudo registrar el email en BD', { error: (dbErr as Error).message });
+      }
+
+      logger.info('Compose email sent', { to, subject, userId, messageId: data?.id });
+      res.json({ id: data?.id, status: 'sent' });
+    } catch (error) {
+      logger.error('Failed to send compose email', { error: (error as Error).message });
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+
+  /**
    * POST /api/multichannel/sms
    * Send SMS notification
    */

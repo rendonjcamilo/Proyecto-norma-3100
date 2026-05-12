@@ -1121,6 +1121,17 @@ export const notificationsApi = {
     variables?: Record<string, string>;
   }) =>
     post<{ id: string; status: string }>('/api/multichannel/email', payload),
+
+  composeEmail: (payload: {
+    to: string;
+    subject: string;
+    html: string;
+    text?: string;
+    userId: string;
+    providerId?: string;
+    attachments?: Array<{ filename: string; content: string; contentType: string }>;
+  }) =>
+    post<{ id: string; status: string }>('/api/multichannel/email/compose', payload),
 };
 
 export const inAppNotificationsApi = {
