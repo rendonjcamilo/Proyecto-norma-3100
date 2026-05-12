@@ -34,8 +34,8 @@ export function createMultiChannelRouter(pool: Pool): Router {
     provider: emailProvider,
     apiKey: emailApiKey,
     apiSecret: process.env.EMAIL_API_SECRET,
-    fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@norma3100.com',
-    fromName: process.env.EMAIL_FROM_NAME || 'Norma 3100',
+    fromEmail: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_FROM || 'noreply@habilitapro.com',
+    fromName: process.env.EMAIL_FROM_NAME || 'HabilitaPro',
     maxRetries: parseInt(process.env.EMAIL_MAX_RETRIES || '3'),
     retryDelayMs: parseInt(process.env.EMAIL_RETRY_DELAY || '1000'),
   };
