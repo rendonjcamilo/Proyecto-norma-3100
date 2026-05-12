@@ -304,7 +304,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           {can('assessments', 'create') && (
             <button className="aud-hero-btn" onClick={async () => {
               setFormData((prev) => ({ ...prev, providerId: providerId || prev.providerId, serviceId: '' }));
-              setSelectedServiceIds(new Set());
+              // Pre-seleccionar los servicios ya registrados del prestador
+              setSelectedServiceIds(services.length > 0 ? new Set(services.map(s => s.id)) : new Set());
               setShowCreateModal(true);
               // Cargar servicios evaluables al abrir el modal
               if (evaluableServices.length === 0) {
@@ -419,11 +420,11 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
                         {/* Title */}
                         <div className="prov-card-name assm-title">
-                          {a.title || getServiceName(a.service_id) || '—'}
+                          {a.title || a.service_name || getServiceName(a.service_id) || '—'}
                         </div>
-                        {a.title && getServiceName(a.service_id) && (
+                        {a.title && (a.service_name || getServiceName(a.service_id) !== '—') && (
                           <div style={{ fontSize: '11px', color: '#6b778c', marginTop: '-4px', marginBottom: '4px' }}>
-                            {getServiceName(a.service_id)}
+                            {a.service_name || getServiceName(a.service_id)}
                           </div>
                         )}
 
@@ -446,7 +447,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                           </div>
                           <div className="prov-info-row">
                             <span className="prov-info-label">Servicio</span>
-                            <span className="prov-info-value assm-truncate">{getServiceName(a.service_id)}</span>
+                            <span className="prov-info-value assm-truncate">{a.service_name || getServiceName(a.service_id)}</span>
                           </div>
                           <div className="prov-info-row">
                             <span className="prov-info-label">Tipo</span>
