@@ -887,9 +887,11 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           return res.status(403).json({ error: 'Acceso denegado' });
         }
 
-        // IDs de prestadores asignados al auditor
+        // IDs de prestadores asignados al auditor (excluye los archivados)
         const providerIds = await pool.query<{ provider_id: string }>(
-          `SELECT provider_id FROM auditor_providers WHERE auditor_id = $1`,
+          `SELECT ap.provider_id FROM auditor_providers ap
+           JOIN providers p ON p.id = ap.provider_id
+           WHERE ap.auditor_id = $1 AND p.status != 'revoked'`,
           [auditorId]
         );
 
