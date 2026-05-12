@@ -644,7 +644,16 @@ export class ReportService {
              WHERE ec.standard_id = es.id
                AND ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
            )
-         ORDER BY es.name`,
+         ORDER BY CASE SPLIT_PART(es.code, '_', 2)
+           WHEN 'TH'  THEN 1
+           WHEN 'INF' THEN 2
+           WHEN 'DOT' THEN 3
+           WHEN 'MD'  THEN 4
+           WHEN 'PP'  THEN 5
+           WHEN 'HCR' THEN 6
+           WHEN 'INT' THEN 7
+           ELSE 99
+         END`,
         [assessmentId]
       ).catch(() => ({ rows: [] as { id: string; code: string; name: string }[] }));
 
