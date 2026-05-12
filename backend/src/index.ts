@@ -57,6 +57,33 @@ pool.on('error', (err) => {
   logger.error({ msg: 'Unexpected error on idle client', error: err.message });
 });
 
+// Aplica migraciones de columnas al arrancar — idempotente con IF NOT EXISTS
+async function runStartupMigrations(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`CREATE TABLE IF NOT EXISTS migrations (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) UNIQUE NOT NULL,
+      executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+    const statements = [
+      `ALTER TABLE providers ADD COLUMN IF NOT EXISTS email VARCHAR(255)`,
+      `ALTER TABLE providers ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`,
+      `ALTER TABLE providers ADD COLUMN IF NOT EXISTS nombre_sede VARCHAR(255)`,
+      `ALTER TABLE providers ADD COLUMN IF NOT EXISTS codigo_habilitacion VARCHAR(50)`,
+      `ALTER TABLE providers ADD COLUMN IF NOT EXISTS habilitacion_fecha_vencimiento DATE`,
+    ];
+    for (const sql of statements) {
+      await client.query(sql);
+    }
+    logger.info({ msg: 'Startup migrations applied' });
+  } catch (err) {
+    logger.error({ msg: 'Startup migrations error', error: err instanceof Error ? err.message : String(err) });
+  } finally {
+    client.release();
+  }
+}
+
 // Initialize event store
 const eventStore = new EventStore(pool);
 
@@ -250,7 +277,7 @@ app.use((err: Error, _req: Request, res: Response) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+runStartupMigrations().then(() => app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Environment: ${NODE_ENV}`);
 
@@ -267,6 +294,4 @@ app.listen(PORT, () => {
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   repsAlertService.initAllActiveSchedulers();
-});
-
-export default app;
+}));
