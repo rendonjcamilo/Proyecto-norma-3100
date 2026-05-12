@@ -123,7 +123,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
  */
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, cf_turnstile_response } = req.body;
 
     if (!email || !password) {
       res.status(400).json({
@@ -131,6 +131,25 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         message: 'Email and password are required',
       });
       return;
+    }
+
+    // Verificar Turnstile CAPTCHA si la clave está configurada en el entorno
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+    if (turnstileSecret) {
+      if (!cf_turnstile_response) {
+        res.status(400).json({ error: 'Bad Request', message: 'CAPTCHA requerido' });
+        return;
+      }
+      const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: turnstileSecret, response: cf_turnstile_response }),
+      });
+      const verifyData = await verifyRes.json() as { success: boolean };
+      if (!verifyData.success) {
+        res.status(400).json({ error: 'Bad Request', message: 'Verificación CAPTCHA fallida' });
+        return;
+      }
     }
 
     // Get user by email

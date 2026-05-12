@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
   loginWithMock: (email: string, role: User['role']) => Promise<void>;
   loginWithToken: (accessToken: string, userData: User) => void;
   logout: () => void;
@@ -46,14 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken?: string) => {
     setIsLoading(true);
     try {
       const response = await fetch('/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // necesario para recibir la cookie HttpOnly de refresh token
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, cf_turnstile_response: captchaToken }),
       });
 
       if (!response.ok) {

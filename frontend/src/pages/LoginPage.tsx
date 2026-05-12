@@ -1,7 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, PasswordChangeRequired } from '../context/AuthContext';
 import './LoginPage.css';
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: HTMLElement, options: {
+        sitekey: string;
+        callback: (token: string) => void;
+        'expired-callback': () => void;
+        'error-callback': () => void;
+      }) => string;
+    };
+  }
+}
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAADN7RBqQn8RqKL5x';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +25,26 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.onload = () => {
+      if (turnstileRef.current && window.turnstile) {
+        window.turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token: string) => setCaptchaToken(token),
+          'expired-callback': () => setCaptchaToken(''),
+          'error-callback': () => setCaptchaToken(''),
+        });
+      }
+    };
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +55,13 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    if (!captchaToken) {
+      setError('Por favor completa la verificación de seguridad.');
+      return;
+    }
+
     try {
-      await login(email, password);
+      await login(email, password, captchaToken);
       navigate('/');
     } catch (err) {
       if (err instanceof PasswordChangeRequired) {
@@ -120,9 +160,11 @@ export const LoginPage: React.FC = () => {
               />
             </div>
 
+            <div ref={turnstileRef} style={{ margin: '8px 0' }} />
+
             {error && <div className="lp-error">{error}</div>}
 
-            <button type="submit" disabled={isLoading} className="lp-submit-btn">
+            <button type="submit" disabled={isLoading || !captchaToken} className="lp-submit-btn">
               {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
 
