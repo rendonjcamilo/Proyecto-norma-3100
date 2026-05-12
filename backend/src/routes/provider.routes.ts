@@ -907,11 +907,11 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
         const ids = providerIds.rows.map(r => r.provider_id);
         const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
 
-        // Evaluaciones pendientes (in_progress o submitted)
+        // Auditorías realizadas (sometidas o completadas por el prestador)
         const pendingRes = await pool.query<{ count: string }>(
           `SELECT COUNT(*)::text AS count FROM assessments
            WHERE provider_id IN (${placeholders})
-             AND status IN ('in_progress', 'submitted')`,
+             AND status IN ('submitted', 'completed', 'archived')`,
           ids
         );
 
