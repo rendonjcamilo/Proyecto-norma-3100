@@ -67,6 +67,10 @@ interface FormData {
   tipo_prestador: string;
   auditor_id: string;
   habilitacion_fecha_vencimiento: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  admin_email: string;
+  admin_password: string;
 }
 
 const INITIAL_FORM: FormData = {
@@ -82,6 +86,10 @@ const INITIAL_FORM: FormData = {
   tipo_prestador: '',
   auditor_id: '',
   habilitacion_fecha_vencimiento: '',
+  admin_first_name: '',
+  admin_last_name: '',
+  admin_email: '',
+  admin_password: '',
 };
 
 interface Department {
@@ -142,6 +150,8 @@ export const ProvidersPage: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [createAdminUser, setCreateAdminUser] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [repsSearchCode, setRepsSearchCode] = useState('');
   const [repsSearching, setRepsSearching] = useState(false);
   const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; servicios_count: number; servicios_matched: number } | null>(null);
@@ -210,6 +220,16 @@ export const ProvidersPage: React.FC = () => {
       return;
     }
 
+    // Validar campos del usuario administrador si se eligió crearlo
+    if (createAdminUser) {
+      if (!formData.admin_first_name.trim()) { setCreateError('El nombre del administrador es obligatorio'); return; }
+      if (!formData.admin_last_name.trim()) { setCreateError('El apellido del administrador es obligatorio'); return; }
+      if (!formData.admin_email.trim()) { setCreateError('El correo del administrador es obligatorio'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.admin_email.trim())) { setCreateError('El correo del administrador no es válido'); return; }
+      if (!formData.admin_password) { setCreateError('La contraseña del administrador es obligatoria'); return; }
+      if (formData.admin_password.length < 8) { setCreateError('La contraseña debe tener al menos 8 caracteres'); return; }
+    }
+
     setCreating(true);
     setCreateError(null);
 
@@ -228,6 +248,12 @@ export const ProvidersPage: React.FC = () => {
         legal_entity_type: formData.tipo_prestador.trim() || undefined,
         habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || undefined,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
+        ...(createAdminUser ? {
+          admin_email: formData.admin_email.trim(),
+          admin_password: formData.admin_password,
+          admin_first_name: formData.admin_first_name.trim(),
+          admin_last_name: formData.admin_last_name.trim(),
+        } : {}),
       } as any);
 
       const newProviderId = (createRes.data as any).provider.id;
@@ -244,10 +270,13 @@ export const ProvidersPage: React.FC = () => {
       // Cerrar modal y limpiar form
       setShowModal(false);
       setFormData(INITIAL_FORM);
+      setCreateAdminUser(false);
+      setShowAdminPassword(false);
 
       // Mensaje de éxito
-      setSuccessMessage('Prestador creado exitosamente');
-      setTimeout(() => setSuccessMessage(null), 4000);
+      const adminMsg = createAdminUser ? ` Usuario administrador (${formData.admin_email.trim()}) creado.` : '';
+      setSuccessMessage(`Prestador creado exitosamente.${adminMsg}`);
+      setTimeout(() => setSuccessMessage(null), 6000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear prestador';
       setCreateError(message);
@@ -448,6 +477,8 @@ export const ProvidersPage: React.FC = () => {
               setEditingId(null);
               setFormData(INITIAL_FORM);
               setCreateError(null);
+              setCreateAdminUser(false);
+              setShowAdminPassword(false);
               setRepsSearchCode('');
               setRepsFound(null);
               setRepsError(null);
@@ -904,6 +935,105 @@ export const ProvidersPage: React.FC = () => {
               </div>
 
             </div>
+
+            {/* Sección: Crear usuario administrador del prestador */}
+            {!editingId && (
+              <div style={{ borderTop: '1px solid #e0e0e0', marginTop: '24px', paddingTop: '20px' }}>
+                {/* Toggle header */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={createAdminUser}
+                    onChange={(e) => { setCreateAdminUser(e.target.checked); setShowAdminPassword(false); }}
+                    disabled={creating}
+                    style={{ width: '16px', height: '16px', accentColor: '#7C3AED', flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#333', fontSize: '14px' }}>Crear usuario administrador del prestador</div>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                      El prestador podrá acceder al sistema y ver sus auditorías con este usuario
+                    </div>
+                  </div>
+                </label>
+
+                {/* Campos del admin — solo visibles si el toggle está activo */}
+                {createAdminUser && (
+                  <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="dashboard-form-group" style={{ margin: 0 }}>
+                        <label htmlFor="admin_first_name">Nombre *</label>
+                        <input
+                          id="admin_first_name"
+                          type="text"
+                          placeholder="Ej: María"
+                          value={formData.admin_first_name}
+                          onChange={(e) => setFormData({ ...formData, admin_first_name: e.target.value })}
+                          disabled={creating}
+                        />
+                      </div>
+                      <div className="dashboard-form-group" style={{ margin: 0 }}>
+                        <label htmlFor="admin_last_name">Apellido *</label>
+                        <input
+                          id="admin_last_name"
+                          type="text"
+                          placeholder="Ej: García"
+                          value={formData.admin_last_name}
+                          onChange={(e) => setFormData({ ...formData, admin_last_name: e.target.value })}
+                          disabled={creating}
+                        />
+                      </div>
+                    </div>
+                    <div className="dashboard-form-group" style={{ margin: 0 }}>
+                      <label htmlFor="admin_email">Correo electrónico *</label>
+                      <input
+                        id="admin_email"
+                        type="email"
+                        placeholder="Ej: admin@prestador.com"
+                        value={formData.admin_email}
+                        onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
+                        disabled={creating}
+                      />
+                    </div>
+                    <div className="dashboard-form-group" style={{ margin: 0 }}>
+                      <label htmlFor="admin_password">Contraseña *</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          id="admin_password"
+                          type={showAdminPassword ? 'text' : 'password'}
+                          placeholder="Mínimo 8 caracteres"
+                          value={formData.admin_password}
+                          onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
+                          disabled={creating}
+                          style={{ paddingRight: '44px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPassword(p => !p)}
+                          style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#888', padding: '2px' }}
+                          tabIndex={-1}
+                        >
+                          {showAdminPassword ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                              <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                              <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e' }}>
+                      💡 Comparte estas credenciales con el prestador para que pueda iniciar sesión y revisar sus auditorías.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="modal-footer">
               <button
