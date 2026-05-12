@@ -601,35 +601,17 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 const baseTitle = formData.title.trim();
                 let firstAssessmentId: string | null = null;
 
-                if (selectedServiceIds.size === 0) {
-                  // Sin servicio específico: evaluación transversal pura (512 criterios)
-                  const res = await assessmentsApi.create({
-                    providerId: finalProviderId,
-                    serviceId: undefined as unknown as string,
-                    questionnaireId: '',
-                    assessmentVersion: formData.type,
-                    title: baseTitle,
-                  });
-                  firstAssessmentId = res.data?.id || null;
-                } else {
-                  // Un assessment combinado por cada servicio seleccionado
-                  // (transversal 512 + criterios específicos del servicio)
-                  for (const svcId of selectedServiceIds) {
-                    const svc = evaluableServices.find(s => s.id === svcId);
-                    try {
-                      const res = await assessmentsApi.create({
-                        providerId: finalProviderId,
-                        serviceId: svcId,
-                        questionnaireId: '',
-                        assessmentVersion: formData.type,
-                        title: `${baseTitle} — ${svc?.name || svcId}`,
-                      });
-                      if (!firstAssessmentId) firstAssessmentId = res.data?.id || null;
-                    } catch (err) {
-                      console.warn(`No se pudo crear evaluación para servicio ${svcId}:`, err);
-                    }
-                  }
-                }
+                // Siempre 1 solo assessment: transversal puro o transversal + servicio específico
+                const [svcId] = selectedServiceIds;
+                const svc = svcId ? evaluableServices.find(s => s.id === svcId) : null;
+                const res = await assessmentsApi.create({
+                  providerId: finalProviderId,
+                  serviceId: svcId || undefined as unknown as string,
+                  questionnaireId: '',
+                  assessmentVersion: formData.type,
+                  title: svc ? `${baseTitle} — ${svc.name}` : baseTitle,
+                });
+                firstAssessmentId = res.data?.id || null;
 
                 setShowCreateModal(false);
                 setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '' });
@@ -744,10 +726,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 {/* Evaluaciones de servicio específico */}
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: '6px', overflow: 'hidden' }}>
                   <div style={{ padding: '8px 12px', background: '#f9fafb', fontSize: '13px', fontWeight: 500, color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
-                    Evaluaciones específicas por servicio (opcional)
+                    Servicio específico a evaluar (opcional — máximo 1)
                     {selectedServiceIds.size > 0 && (
                       <span style={{ marginLeft: '8px', background: '#2563eb', color: 'white', borderRadius: '10px', padding: '1px 8px', fontSize: '11px' }}>
-                        {selectedServiceIds.size} seleccionada{selectedServiceIds.size !== 1 ? 's' : ''}
+                        {evaluableServices.find(s => selectedServiceIds.has(s.id))?.name ?? '1 seleccionado'}
                       </span>
                     )}
                   </div>
@@ -770,15 +752,13 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                               borderBottom: '1px solid #f3f4f6',
                             }}>
                               <input
-                                type="checkbox"
+                                type="radio"
+                                name="serviceSelection"
                                 checked={selectedServiceIds.has(svc.id)}
                                 onChange={() => {
-                                  setSelectedServiceIds(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(svc.id)) next.delete(svc.id);
-                                    else next.add(svc.id);
-                                    return next;
-                                  });
+                                  setSelectedServiceIds(prev =>
+                                    prev.has(svc.id) ? new Set() : new Set([svc.id])
+                                  );
                                 }}
                                 style={{ marginTop: '2px', accentColor: '#2563eb' }}
                               />
