@@ -525,10 +525,6 @@ export class ReportService {
     const estandares = [];
 
     for (const est of estandaresResult.rows) {
-      // Sufijo del código de estándar: 'TH' de 'TSTH', 'INF' de 'TSINF', etc.
-      // Permite combinar criterios transversales (TSTH) + específicos del mismo tipo (DVX_TH)
-      const stdSuffix = est.code.split('_').pop()!;
-
       // Métricas por estándar (si hay assessment)
       let metricas = { cumple: 0, noCumple: 0, noAplica: 0, total: 0 };
 
@@ -543,11 +539,10 @@ export class ReportService {
             COUNT(*)::text AS total
            FROM assessment_responses_detailed acr
            JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
-           JOIN evaluation_standards es ON es.id = ec.standard_id
            WHERE acr.assessment_id = $1
-             AND SPLIT_PART(es.code, '_', 2) = $2
+             AND ec.standard_id = $2
              AND ec.is_section_header = false`,
-          [assessmentId, stdSuffix]
+          [assessmentId, est.id]
         ).catch(() => ({ rows: [] }));
 
         if (mResult.rows.length > 0) {
@@ -595,11 +590,11 @@ export class ReportService {
          LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
          LEFT JOIN assessment_responses_detailed acr ON acr.id = f.assessment_response_id
          WHERE f.provider_id = $1
-           AND SPLIT_PART(es.code, '_', 2) = $2
+           AND es.code = $2
            AND f.status NOT IN ('cerrada', 'closed')
          ORDER BY f.severity DESC, ec.code
          LIMIT 20`,
-        [providerId, stdSuffix]
+        [providerId, est.code]
       ).catch(() => ({ rows: [] }));
 
       estandares.push({
@@ -684,7 +679,8 @@ export class ReportService {
             COUNT(*)::text AS total
            FROM assessment_responses_detailed acr
            JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
-           WHERE acr.assessment_id = $1 AND ec.standard_id = $2`,
+           WHERE acr.assessment_id = $1 AND ec.standard_id = $2
+             AND ec.is_section_header = false`,
           [assessmentId, est.id]
         ).catch(() => ({ rows: [] }));
 
@@ -903,6 +899,45 @@ export class ReportService {
           y += 24;
         });
 
+        // ── TABLA SERVICIO ESPECÍFICO (solo si hay criterios de servicio) ──
+        if (data.estandaresServicio.length > 0) {
+          y += 20;
+          if (y > 650) { doc.addPage(); y = 50; }
+
+          const svcLabel = data.servicio
+            ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
+            : 'SERVICIO ESPECÍFICO';
+          doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
+            .text(`RESULTADOS POR ESTÁNDAR — ${svcLabel}`, 50, y);
+          y += 25;
+
+          doc.rect(50, y, W, 20).fill(COLORS.primary);
+          doc.fillColor('#fff').fontSize(9).font('Helvetica-Bold');
+          doc.text('Estándar', 58, y + 6, { width: 200 });
+          doc.text('C', 268, y + 6, { width: 30, align: 'center' });
+          doc.text('NC', 305, y + 6, { width: 30, align: 'center' });
+          doc.text('% Cumpl.', 348, y + 6, { width: 60, align: 'center' });
+          doc.text('Semáforo', 414, y + 6, { width: 70, align: 'center' });
+          y += 20;
+
+          data.estandaresServicio.forEach((est, idx) => {
+            if (y > 700) { doc.addPage(); y = 50; }
+            const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
+            doc.rect(50, y, W, 24).fill(bg);
+            const esNA = est.semaforo === 'na';
+            const semColor = est.semaforo === 'verde' ? COLORS.success :
+              est.semaforo === 'naranja' ? COLORS.warning :
+              est.semaforo === 'na' ? COLORS.muted : COLORS.danger;
+            doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
+              .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
+            doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
+            doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
+            doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 348, y + 7, { width: 60, align: 'center' });
+            doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 414, y + 7, { width: 70, align: 'center' });
+            y += 24;
+          });
+        }
+
         // ── HALLAZGOS POR ESTÁNDAR ───────────────────────────────
         doc.addPage();
         y = 50;
@@ -933,6 +968,43 @@ export class ReportService {
 
           y += 8;
         });
+
+        // ── HALLAZGOS SERVICIO ESPECÍFICO (solo si hay hallazgos) ────────
+        if (data.estandaresServicio.some(e => e.hallazgos.length > 0)) {
+          y += 20;
+          if (y > 650) { doc.addPage(); y = 50; }
+
+          const svcLabel2 = data.servicio
+            ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
+            : 'SERVICIO ESPECÍFICO';
+          doc.fillColor(COLORS.primary).fontSize(13).font('Helvetica-Bold')
+            .text(`HALLAZGOS — ${svcLabel2}`, 50, y);
+          y += 20;
+
+          data.estandaresServicio.forEach((est) => {
+            if (est.hallazgos.length === 0) {return;}
+            if (y > 650) { doc.addPage(); y = 50; }
+
+            doc.fillColor(COLORS.text).fontSize(11).font('Helvetica-Bold')
+              .text(`${est.codigo} — ${est.nombre}`, 50, y);
+            y += 16;
+
+            est.hallazgos.forEach((h, i) => {
+              if (y > 700) { doc.addPage(); y = 50; }
+              const sevColor = h.severidad === 'critica' || h.severidad === 'critical' ? COLORS.danger :
+                h.severidad === 'alta' || h.severidad === 'high' ? COLORS.warning : COLORS.muted;
+
+              doc.fontSize(9).font('Helvetica').fillColor(COLORS.muted)
+                .text(`${i + 1}.`, 58, y);
+              doc.fillColor(COLORS.text).text(h.descripcion, 72, y, { width: W - 130 });
+              doc.fillColor(sevColor).font('Helvetica-Bold')
+                .text(h.severidad.toUpperCase(), W - 40, y, { width: 80, align: 'right' });
+              y += 16;
+            });
+
+            y += 8;
+          });
+        }
 
         // ── FIRMAS ───────────────────────────────────────────────
         if (y > 650) { doc.addPage(); y = 50; }
