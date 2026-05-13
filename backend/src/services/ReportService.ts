@@ -525,6 +525,10 @@ export class ReportService {
     const estandares = [];
 
     for (const est of estandaresResult.rows) {
+      // Sufijo del código de estándar: 'TH' de 'TSTH', 'INF' de 'TSINF', etc.
+      // Permite combinar criterios transversales (TSTH) + específicos del mismo tipo (DVX_TH)
+      const stdSuffix = est.code.split('_').pop()!;
+
       // Métricas por estándar (si hay assessment)
       let metricas = { cumple: 0, noCumple: 0, noAplica: 0, total: 0 };
 
@@ -539,8 +543,11 @@ export class ReportService {
             COUNT(*)::text AS total
            FROM assessment_responses_detailed acr
            JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
-           WHERE acr.assessment_id = $1 AND ec.standard_id = $2`,
-          [assessmentId, est.id]
+           JOIN evaluation_standards es ON es.id = ec.standard_id
+           WHERE acr.assessment_id = $1
+             AND SPLIT_PART(es.code, '_', 2) = $2
+             AND ec.is_section_header = false`,
+          [assessmentId, stdSuffix]
         ).catch(() => ({ rows: [] }));
 
         if (mResult.rows.length > 0) {
@@ -588,11 +595,11 @@ export class ReportService {
          LEFT JOIN evaluation_standards es ON es.id = ec.standard_id
          LEFT JOIN assessment_responses_detailed acr ON acr.id = f.assessment_response_id
          WHERE f.provider_id = $1
-           AND es.code = $2
+           AND SPLIT_PART(es.code, '_', 2) = $2
            AND f.status NOT IN ('cerrada', 'closed')
          ORDER BY f.severity DESC, ec.code
          LIMIT 20`,
-        [providerId, est.code]
+        [providerId, stdSuffix]
       ).catch(() => ({ rows: [] }));
 
       estandares.push({
