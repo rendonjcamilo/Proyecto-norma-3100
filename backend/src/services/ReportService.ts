@@ -640,7 +640,7 @@ export class ReportService {
     const estandaresServicio: typeof estandares = [];
     if (assessmentId && serviciosMultiple.length > 0) {
       const svcEstResult = await this.pool.query<{ id: string; code: string; name: string }>(
-        `SELECT DISTINCT es.id, es.code, es.name
+        `SELECT es.id, es.code, es.name
          FROM evaluation_standards es
          WHERE es.is_transversal = FALSE
            AND EXISTS (
