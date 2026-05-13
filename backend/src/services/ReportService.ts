@@ -734,8 +734,6 @@ export class ReportService {
       }
     }
 
-    logger.info({ msg: 'gatherAuditReportData result', assessmentId, estandaresCount: estandares.length, estandaresServicioCount: estandaresServicio.length, serviciosMultipleCount: serviciosMultiple.length, servicio: servicio?.codigo });
-
     return {
       provider,
       servicio,
