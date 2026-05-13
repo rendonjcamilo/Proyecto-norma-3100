@@ -645,15 +645,9 @@ export class ReportService {
          WHERE es.is_transversal = FALSE
            AND EXISTS (
              SELECT 1 FROM evaluation_criteria ec
+             JOIN assessments a ON ec.service_id = a.service_id
              WHERE ec.standard_id = es.id
-               AND ec.service_id = ANY(
-                 SELECT jsonb_array_elements_text(
-                   CASE WHEN a.service_ids IS NOT NULL AND jsonb_array_length(a.service_ids) > 0
-                     THEN a.service_ids
-                     ELSE CASE WHEN a.service_id IS NOT NULL THEN jsonb_build_array(a.service_id::text) ELSE '[]'::jsonb END
-                   END
-                 )::uuid FROM assessments a WHERE a.id = $1
-               )
+               AND a.id = $1
            )
          ORDER BY CASE SPLIT_PART(es.code, '_', 2)
            WHEN 'TH'  THEN 1
@@ -666,7 +660,7 @@ export class ReportService {
            ELSE 99
          END`,
         [assessmentId]
-      ).catch(() => ({ rows: [] as { id: string; code: string; name: string }[] }));
+      ).catch((e) => { logger.error({ msg: 'svcEstResult query error', error: String(e) }); return { rows: [] as { id: string; code: string; name: string }[] }; });
 
       for (const est of svcEstResult.rows) {
         const mResult = await this.pool.query<{
