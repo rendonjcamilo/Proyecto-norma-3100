@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { providersApi, usersApi, repsApi, servicesApi, providerServicesApi, User, HealthService } from '../services/api';
+import { formatDate } from '@/utils/dateFormat';
 import './Pages.css';
 
 /**
@@ -567,7 +568,7 @@ export const ProvidersPage: React.FC = () => {
                 <div className="prov-info-row">
                   <span className="prov-info-label">Registro</span>
                   <span className="prov-info-value">
-                    {new Date(p.created_at).toLocaleDateString('es-CO')}
+                    {formatDate(p.created_at)}
                   </span>
                 </div>
               </div>
