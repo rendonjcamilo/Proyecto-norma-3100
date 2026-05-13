@@ -299,6 +299,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
         }
 
         const result = await pool.query(`
+          -- Criterios evaluables: vienen de las respuestas del assessment
           SELECT
             ec.id,
             ec.code,
@@ -318,7 +319,33 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
           JOIN evaluation_standards es ON es.id = ec.standard_id
           WHERE ard.assessment_id = $1
-          ORDER BY es.is_transversal DESC, es.id, ec.code
+
+          UNION
+
+          -- Encabezados de sección: vienen del cuestionario (no tienen fila en assessment_responses_detailed)
+          SELECT
+            ec.id,
+            ec.code,
+            COALESCE(ec.number, '') AS number,
+            ec.name,
+            COALESCE(ec.description, '') AS description,
+            COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
+            COALESCE(ec.complexity, 'medium') AS complexity,
+            ec.nc_hint,
+            COALESCE(ec.is_mandatory, false) AS is_mandatory,
+            true AS is_section_header,
+            es.id AS standard_id,
+            es.code AS standard_code,
+            es.name AS standard_name,
+            es.is_transversal
+          FROM assessments a
+          JOIN questionnaire_criteria qc ON qc.questionnaire_id = a.questionnaire_id
+          JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
+          JOIN evaluation_standards es ON es.id = ec.standard_id
+          WHERE a.id = $1
+            AND ec.is_section_header = true
+
+          ORDER BY is_transversal DESC, standard_id, code
         `, [id]);
 
         const criteria = result.rows.map(row => ({

@@ -199,7 +199,10 @@ export class QuestionnaireService {
         WHEN 'TSHCR' THEN 6
         WHEN 'TSINT' THEN 7
         ELSE 8
-      END, ec.code
+      END,
+      CASE WHEN es.code ~ '^IDX_NI_' THEN 1 ELSE 0 END,
+      es.code,
+      ec.code
     `;
 
     const criteriaResult = await this.pool.query(criteriaQuery, [questionnaireId]);
@@ -488,7 +491,9 @@ export class QuestionnaireService {
         WHEN 'TSHCR' THEN 6
         WHEN 'TSINT' THEN 7
         ELSE 8
-      END
+      END,
+      CASE WHEN es.code ~ '^IDX_NI_' THEN 1 ELSE 0 END,
+      es.code
     `;
 
     const standardsResult = await this.pool.query(standardsQuery, [serviceId]);
