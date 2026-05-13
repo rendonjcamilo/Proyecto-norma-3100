@@ -485,6 +485,7 @@ export const ProvidersPage: React.FC = () => {
               setRepsError(null);
               setRepsServiciosCodigos(new Set());
               setServicesSearch('');
+              setSelectedServiceIds([]);
               loadServices();
               setShowModal(true);
             }}
