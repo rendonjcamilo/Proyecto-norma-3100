@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@context/AuthContext';
 import { usersApi, providersApi, User, Provider, UserRole } from '@services/api';
+import { formatDate } from '@/utils/dateFormat';
 import styles from './UsersPage.module.css';
 
 const VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
@@ -320,7 +321,7 @@ export function UsersPage(): JSX.Element {
                       : '—'}
                   </td>
                   <td><span style={{ display: 'inline-block', padding: '4px 12px', fontSize: '11px', fontWeight: '700', borderRadius: '9999px', letterSpacing: '0.06em', textTransform: 'uppercase', background: user.status === 'active' ? '#dcfce7' : '#fee2e2', color: user.status === 'active' ? '#166534' : '#991b1b' }}>{getStatusLabel(user.status)}</span></td>
-                  <td>{new Date(user.created_at).toLocaleDateString('es-CO')}</td>
+                  <td>{formatDate(user.created_at)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap' }}>
                       <button

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { formatDate } from '@/utils/dateFormat';
 import './ActionProgressDashboard.css';
 
 interface DashboardMetrics {
@@ -289,7 +290,7 @@ export const ActionProgressDashboard: React.FC = () => {
                     {action.days_overdue} día(s) vencida
                   </span>
                   <span className="deadline">
-                    Plazo: {new Date(action.deadline).toLocaleDateString('es-CO')}
+                    Plazo: {formatDate(action.deadline)}
                   </span>
                 </div>
               </div>

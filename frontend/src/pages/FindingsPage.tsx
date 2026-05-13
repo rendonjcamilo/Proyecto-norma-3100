@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { findingsApi, type Finding } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useProvider } from '../context/ProviderContext';
+import { formatDate } from '@/utils/dateFormat';
 import './Pages.css';
 
 interface FindingsPageProps {
@@ -348,7 +349,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
               {f.due_date && (
                 <div className="prov-info-row">
                   <span className="prov-info-label">Vence</span>
-                  <span className="prov-info-value">{new Date(f.due_date).toLocaleDateString('es-CO')}</span>
+                  <span className="prov-info-value">{formatDate(f.due_date)}</span>
                 </div>
               )}
               <p style={{ margin: '6px 0 0', fontSize: '0.78rem', color: '#94a3b8', lineHeight: 1.45 }}>
@@ -438,7 +439,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
                   <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '12px' }}>
                     <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Vencimiento</p>
                     <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                      {new Date(selectedFinding.due_date).toLocaleDateString('es-CO')}
+                      {formatDate(selectedFinding.due_date)}
                     </p>
                   </div>
                 )}
@@ -469,7 +470,7 @@ export const FindingsPage: React.FC<FindingsPageProps> = ({ providerId }) => {
                         <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#0f172a' }}>{action.title}</p>
                         <p style={{ margin: '0 0 4px', color: '#64748b' }}>{action.description}</p>
                         {action.due_date && (
-                          <span style={{ color: '#94a3b8', fontSize: '12px' }}>Vence: {new Date(action.due_date).toLocaleDateString('es-CO')}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '12px' }}>Vence: {formatDate(action.due_date)}</span>
                         )}
                       </div>
                     ))}

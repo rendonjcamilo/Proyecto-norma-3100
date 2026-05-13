@@ -8,6 +8,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { assessmentsApi, servicesApi, providerServicesApi, providersApi, type Assessment, type HealthService, type EvaluableService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '@/utils/dateFormat';
 import './Pages.css';
 
 interface AssessmentsPageProps {
@@ -455,7 +456,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                           </div>
                           <div className="prov-info-row">
                             <span className="prov-info-label">Actualizado</span>
-                            <span className="prov-info-value">{new Date(a.updated_at).toLocaleDateString('es-CO')}</span>
+                            <span className="prov-info-value">{formatDate(a.updated_at)}</span>
                           </div>
                         </div>
 

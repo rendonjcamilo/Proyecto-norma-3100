@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { Notification } from '../../hooks/useNotifications';
+import { formatTimeAgo } from '@/utils/dateFormat';
 
 interface NotificationPanelProps {
   notifications: Notification[];
@@ -68,25 +69,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     }
   };
 
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-
-      if (diffMins < 1) return 'Hace unos segundos';
-      if (diffMins < 60) return `Hace ${diffMins}m`;
-      if (diffHours < 24) return `Hace ${diffHours}h`;
-      if (diffDays < 7) return `Hace ${diffDays}d`;
-
-      return date.toLocaleDateString('es-CO');
-    } catch {
-      return 'Fecha desconocida';
-    }
-  };
 
   return (
     <div className="notification-panel" role="dialog" aria-label="Panel de notificaciones">
@@ -167,7 +149,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 <div className="notification-item-title">{notification.title}</div>
                 <div className="notification-item-message">{notification.message}</div>
                 <div className="notification-item-meta">
-                  <span className="notification-time">{formatDate(notification.createdAt)}</span>
+                  <span className="notification-time">{formatTimeAgo(notification.createdAt)}</span>
                   <span className="notification-severity-label">
                     {getSeverityLabel(notification.severity)}
                   </span>

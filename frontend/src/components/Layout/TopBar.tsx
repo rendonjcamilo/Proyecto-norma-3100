@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ProviderSelector } from './ProviderSelector';
 import { Provider } from '../../context/ProviderContext';
 import { inAppNotificationsApi, InAppNotification } from '../../services/api';
+import { formatTimeAgo } from '@/utils/dateFormat';
 import './TopBar.css';
 
 interface TopBarProps {
@@ -135,14 +136,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     low: '#6255A0',
   };
 
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `hace ${mins} min`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `hace ${hrs} h`;
-    return `hace ${Math.floor(hrs / 24)} días`;
-  };
 
   // Settings state (persisted in localStorage)
   const [emailNotifs, setEmailNotifs] = useState(() => localStorage.getItem('pref_email_notifs') !== 'false');

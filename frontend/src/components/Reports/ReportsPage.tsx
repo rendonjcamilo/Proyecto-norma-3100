@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { reportsApi, assessmentsApi, downloadBlob, Assessment, providersApi, Provider } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { formatDate, formatDateLong } from '@/utils/dateFormat';
 import './ReportsPage.css';
 import '../../pages/Pages.css';
 
@@ -200,7 +201,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               <option value="">-- Selecciona prestador --</option>
               {providers.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.legal_name || p.legalName} (CC/NIT: {p.rut})
+                  {p.legal_name} (CC/NIT: {p.rut})
                 </option>
               ))}
             </select>
@@ -255,11 +256,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
           <div className="preview-header">
             <h2>Vista Previa</h2>
             <span className="preview-date">
-              Datos al {new Date(summary.generatedAt).toLocaleDateString('es-CO', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              Datos al {formatDateLong(summary.generatedAt)}
             </span>
           </div>
 
@@ -454,7 +451,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
                     <option value="">-- Selecciona evaluación --</option>
                     {completedAssessments.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.title || VERSION_LABELS[a.assessment_version] || 'Evaluación'} — {new Date(a.created_at).toLocaleDateString('es-CO')} (
+                        {a.title || VERSION_LABELS[a.assessment_version] || 'Evaluación'} — {formatDate(a.created_at)} (
                         {a.compliance_percent || a.compliance_percentage || 0}%)
                       </option>
                     ))}

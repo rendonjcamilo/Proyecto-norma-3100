@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi, providersApi, Provider, EmailTemplate } from '../../services/api';
+import { formatDate } from '@/utils/dateFormat';
 import './AuditorNotificationSender.css';
 
 interface PreviewData {
@@ -108,7 +109,7 @@ export const AuditorNotificationSender: React.FC = () => {
     const providerName = selectedProv ? selectedProv.legal_name : (providers.length > 0 ? providers[0].legal_name : 'Prestador');
     const auditorName = user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : 'Auditor';
 
-    const defaultVars: PreviewData = { providerName, date: new Date().toLocaleDateString('es-CO'), auditorName };
+    const defaultVars: PreviewData = { providerName, date: formatDate(new Date().toISOString()), auditorName };
     let text = template.html_body;
     Object.entries({ ...defaultVars, ...variables }).forEach(([key, value]) => {
       text = text.replace(new RegExp(`{{${key}}}`, 'g'), value);

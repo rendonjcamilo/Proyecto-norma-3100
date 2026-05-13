@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatDate, formatTime } from '@/utils/dateFormat';
 import './NotificationAnalyticsDashboard.css';
 
 interface ChannelStats {
@@ -244,7 +245,7 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
             ) : (
               stats.map((stat, index) => (
                 <tr key={index}>
-                  <td>{new Date(stat.date).toLocaleDateString('es-CO')}</td>
+                  <td>{formatDate(stat.date)}</td>
                   <td>
                     <span className="channel-badge">
                       {getChannelIcon(stat.channel)} {stat.channel}
@@ -271,7 +272,7 @@ export const NotificationAnalyticsDashboard: React.FC<NotificationAnalyticsDashb
         <button className="btn-dashboard btn-dashboard-primary" onClick={fetchAnalytics}>
           🔄 Actualizar
         </button>
-        <small>Última actualización: {new Date().toLocaleTimeString('es-CO')}</small>
+        <small>Última actualización: {formatTime(new Date())}</small>
       </div>
     </div>
   );

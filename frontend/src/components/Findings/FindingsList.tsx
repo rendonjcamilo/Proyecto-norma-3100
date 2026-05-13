@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { formatDate } from '@/utils/dateFormat';
 import './FindingsList.css';
 
 interface Finding {
@@ -273,7 +274,7 @@ export const FindingsList: React.FC<FindingsListProps> = ({
                     </td>
                     <td className="col-assigned">{finding.assigned_to || '—'}</td>
                     <td className="col-date">
-                      {new Date(finding.created_date).toLocaleDateString('es-CO')}
+                      {formatDate(finding.created_date)}
                     </td>
                     <td className="col-actions">
                       <div className="action-buttons">

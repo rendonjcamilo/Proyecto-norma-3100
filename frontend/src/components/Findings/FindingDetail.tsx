@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { formatDate, formatDateTime } from '@/utils/dateFormat';
 import './FindingDetail.css';
 
 interface Finding {
@@ -246,12 +247,12 @@ export const FindingDetail: React.FC<FindingDetailProps> = ({
               <div className="detail-grid">
                 <div className="detail-item">
                   <label>Fecha de Creación</label>
-                  <p>{new Date(finding.created_date).toLocaleDateString('es-CO')}</p>
+                  <p>{formatDate(finding.created_date)}</p>
                 </div>
                 {finding.closed_date && (
                   <div className="detail-item">
                     <label>Fecha de Cierre</label>
-                    <p>{new Date(finding.closed_date).toLocaleDateString('es-CO')}</p>
+                    <p>{formatDate(finding.closed_date)}</p>
                   </div>
                 )}
               </div>
@@ -301,7 +302,7 @@ export const FindingDetail: React.FC<FindingDetailProps> = ({
                       </div>
                       <div className="meta-item">
                         <label>Plazo</label>
-                        <span>{new Date(action.deadline).toLocaleDateString('es-CO')}</span>
+                        <span>{formatDate(action.deadline)}</span>
                       </div>
                     </div>
                   </div>
@@ -325,7 +326,7 @@ export const FindingDetail: React.FC<FindingDetailProps> = ({
                     <div className="timeline-content">
                       <h4>{getEventLabel(event.event_type)}</h4>
                       <p className="event-time">
-                        {new Date(event.created_at).toLocaleString('es-CO')}
+                        {formatDateTime(event.created_at)}
                       </p>
                       {Object.keys(event.data).length > 0 && (
                         <pre className="event-data">{JSON.stringify(event.data, null, 2)}</pre>

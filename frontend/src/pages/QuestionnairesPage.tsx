@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { questionnairesApi, servicesApi, Questionnaire, HealthService } from '@services/api';
+import { formatDate } from '@/utils/dateFormat';
 import styles from './QuestionnairesPage.module.css';
 
 type VersionType = 'initial' | 'year4' | 'annual' | 'pre-novelty';
@@ -204,7 +205,7 @@ export function QuestionnairesPage(): JSX.Element {
                   <td>{q.name || '—'}</td>
                   <td><span className={styles.badge}>{q.total_criteria}</span></td>
                   <td><span className={`${styles.statusBadge} ${styles[`status-${q.status}`]}`}>{q.status}</span></td>
-                  <td>{new Date(q.created_at).toLocaleDateString('es-CO')}</td>
+                  <td>{formatDate(q.created_at)}</td>
                   <td className={styles.actions}>
                     <button
                       onClick={() => handleDeleteQuestionnaire(q.id)}

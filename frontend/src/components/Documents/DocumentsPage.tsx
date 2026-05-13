@@ -6,6 +6,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentsApi, downloadBlob } from '../../services/api';
 import { useRolePermission } from '../../hooks/useRolePermission';
+import { formatDate } from '@/utils/dateFormat';
 import './DocumentsPage.css';
 import '../../pages/Pages.css';
 
@@ -73,14 +74,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 
-function formatDate(iso?: string): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName }) => {
   const [catalog, setCatalog] = useState<DocumentCatalogItem[]>([]);

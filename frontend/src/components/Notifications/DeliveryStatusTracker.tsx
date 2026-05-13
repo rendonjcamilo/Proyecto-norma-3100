@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatDateTime } from '@/utils/dateFormat';
 import './DeliveryStatusTracker.css';
 
 interface NotificationDelivery {
@@ -295,7 +296,7 @@ export const DeliveryStatusTracker: React.FC<DeliveryStatusTrackerProps> = ({
                         {getStatusLabel(delivery.status)}
                       </span>
                       <span className="timestamp">
-                        {new Date(delivery.createdAt).toLocaleString('es-CO')}
+                        {formatDateTime(delivery.createdAt)}
                       </span>
                     </div>
                   </div>
@@ -337,13 +338,13 @@ export const DeliveryStatusTracker: React.FC<DeliveryStatusTrackerProps> = ({
                     <div className="detail-row">
                       <span className="detail-label">Creado:</span>
                       <span className="detail-value">
-                        {new Date(delivery.createdAt).toLocaleString('es-CO')}
+                        {formatDateTime(delivery.createdAt)}
                       </span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Actualizado:</span>
                       <span className="detail-value">
-                        {new Date(delivery.updatedAt).toLocaleString('es-CO')}
+                        {formatDateTime(delivery.updatedAt)}
                       </span>
                     </div>
 
@@ -365,7 +366,7 @@ export const DeliveryStatusTracker: React.FC<DeliveryStatusTrackerProps> = ({
                       <div className="detail-row">
                         <span className="detail-label">Próximo Reintento:</span>
                         <span className="detail-value">
-                          {new Date(delivery.nextRetry).toLocaleString('es-CO')}
+                          {formatDateTime(delivery.nextRetry)}
                         </span>
                       </div>
                     )}

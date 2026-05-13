@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { formatDateTime } from '@/utils/dateFormat';
 import './ComplianceDashboard.css';
 
 interface ComplianceMetrics {
@@ -591,7 +592,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
       <footer className="dashboard-footer">
         <div className="footer-meta">
           <span className="footer-dot" />
-          <span>Última actualización: {new Date().toLocaleString('es-CO')}</span>
+          <span>Última actualización: {formatDateTime(new Date().toISOString())}</span>
         </div>
         <p className="footer-help">
           Las métricas se actualizan automáticamente cada 5 minutos. Activa &quot;Auto-actualizar&quot; para ver datos en tiempo real.

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { anexo4Api, Anexo4Verificacion, HCRegistro, EstadoCriterio, downloadBlob } from '../services/api';
 import { DeleteConfirmationModal } from '../components/Assessment/DeleteConfirmationModal';
+import { formatDateLong } from '@/utils/dateFormat';
 import './AnexoCuatroPage.css';
 
 // ─── Criterios ────────────────────────────────────────────────────────────────
@@ -260,7 +261,7 @@ export const AnexoCuatroPage: React.FC = () => {
                       <div className="a4-card-meta">
                         {(() => {
                           const [y2, m, d] = String(v.fecha).substring(0, 10).split('-');
-                          return new Date(Number(y2), Number(m) - 1, Number(d)).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+                          return formatDateLong(new Date(Number(y2), Number(m) - 1, Number(d)).toISOString());
                         })()}
                         {' · '}
                         {v.registros.length} H.C.

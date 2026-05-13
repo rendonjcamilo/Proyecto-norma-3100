@@ -14,6 +14,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { formatTime } from '@/utils/dateFormat';
 import './AssessmentForm.css';
 import CriterionInput from './CriterionInput';
 import ProgressBar from './ProgressBar';
@@ -236,7 +237,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
         {lastSaved && !readOnly && (
           <div className="save-status">
             <span className="save-indicator">
-              Auto-guardado a las {lastSaved.toLocaleTimeString('es-CO')}
+              Auto-guardado a las {formatTime(lastSaved)}
             </span>
           </div>
         )}

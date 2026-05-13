@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { formatDate } from '@/utils/dateFormat';
 import './LocationComplianceCard.css';
 
 interface PerStandardMetric {
@@ -115,7 +116,7 @@ export const LocationComplianceCard: React.FC<LocationComplianceCardProps> = ({
 
       {compliance.lastAssessmentDate && (
         <div className="assessment-date">
-          Evaluación: {new Date(compliance.lastAssessmentDate).toLocaleDateString('es-CO')}
+          Evaluación: {formatDate(compliance.lastAssessmentDate)}
         </div>
       )}
 
