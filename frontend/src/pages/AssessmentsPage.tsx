@@ -305,8 +305,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
           {can('assessments', 'create') && (
             <button className="aud-hero-btn" onClick={async () => {
               setFormData((prev) => ({ ...prev, providerId: providerId || prev.providerId, serviceId: '' }));
-              // Pre-seleccionar los servicios ya registrados del prestador
-              setSelectedServiceIds(services.length > 0 ? new Set(services.map(s => s.id)) : new Set());
+              setSelectedServiceIds(new Set());
               setShowCreateModal(true);
               // Cargar servicios evaluables al abrir el modal
               if (evaluableServices.length === 0) {
