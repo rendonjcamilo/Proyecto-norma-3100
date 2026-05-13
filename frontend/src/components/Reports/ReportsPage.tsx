@@ -200,7 +200,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
               <option value="">-- Selecciona prestador --</option>
               {providers.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.legal_name || p.legalName} (RUT: {p.rut})
+                  {p.legal_name || p.legalName} (CC/NIT: {p.rut})
                 </option>
               ))}
             </select>

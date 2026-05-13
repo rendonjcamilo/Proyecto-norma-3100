@@ -200,7 +200,7 @@ export const ProvidersPage: React.FC = () => {
   const handleCreate = async () => {
     // Validar campos obligatorios del prestador
     if (!formData.rut.trim()) {
-      setCreateError('RUT es obligatorio');
+      setCreateError('CC/NIT es obligatorio');
       return;
     }
     if (!formData.legal_name.trim()) {
@@ -507,7 +507,7 @@ export const ProvidersPage: React.FC = () => {
           </svg>
           <input
             type="text"
-            placeholder="Buscar por nombre, RUT o ciudad..."
+            placeholder="Buscar por nombre, CC/NIT o ciudad..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="page-search"
@@ -553,7 +553,7 @@ export const ProvidersPage: React.FC = () => {
               {/* Info rows */}
               <div className="prov-card-info">
                 <div className="prov-info-row">
-                  <span className="prov-info-label">RUT</span>
+                  <span className="prov-info-label">CC/NIT</span>
                   <span className="prov-info-value prov-mono">{p.rut}</span>
                 </div>
                 <div className="prov-info-row">

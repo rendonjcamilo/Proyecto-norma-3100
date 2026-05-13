@@ -67,7 +67,7 @@ export function ProviderDashboard(): JSX.Element {
           </span>
           <h1 className="pdb-hero-title">{selectedProvider.legalName}</h1>
           <p className="pdb-hero-subtitle">
-            RUT: {selectedProvider.rut} · {selectedProvider.city}, {selectedProvider.department}
+            CC/NIT: {selectedProvider.rut} · {selectedProvider.city}, {selectedProvider.department}
           </p>
         </div>
 
