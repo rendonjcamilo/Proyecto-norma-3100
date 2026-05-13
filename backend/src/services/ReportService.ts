@@ -1120,6 +1120,7 @@ export class ReportService {
             paras.push(
               new Paragraph({
                 bullet: { level: 0 },
+                alignment: AlignmentType.BOTH,
                 spacing: { before: 0, after: 100 },
                 children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24, color: '000000' })],
               })
@@ -1145,6 +1146,7 @@ export class ReportService {
               paras.push(
                 new Paragraph({
                   bullet: { level: 0 },
+                  alignment: AlignmentType.BOTH,
                   spacing: { before: 0, after: 100 },
                   children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24, color: '000000' })],
                 })
