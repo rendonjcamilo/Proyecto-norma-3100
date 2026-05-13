@@ -490,15 +490,8 @@ export class ReportService {
     if (assessmentId) {
       const svcResult = await this.pool.query<{ code: string; name: string }>(
         `SELECT s.code, s.name FROM services s
-         WHERE s.id = ANY(
-           SELECT jsonb_array_elements_text(
-             CASE WHEN a.service_ids IS NOT NULL AND jsonb_array_length(a.service_ids) > 0
-               THEN a.service_ids
-               ELSE CASE WHEN a.service_id IS NOT NULL THEN jsonb_build_array(a.service_id::text) ELSE '[]'::jsonb END
-             END
-           ) FROM assessments a WHERE a.id = $1
-         )
-         ORDER BY s.name`,
+         JOIN assessments a ON a.service_id = s.id
+         WHERE a.id = $1`,
         [assessmentId]
       ).catch(() => ({ rows: [] as { code: string; name: string }[] }));
       if (svcResult.rows.length > 0) {
