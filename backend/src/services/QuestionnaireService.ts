@@ -501,7 +501,7 @@ export class QuestionnaireService {
             ec.id, ec.code, ec.number, ec.name, ec.description,
             ec.evidence_requirement, ec.complexity, ec.standard_id,
             es.name as standard_name, es.is_transversal, ec.is_mandatory,
-            ec.nc_hint
+            ec.nc_hint, ec.is_section_header
           FROM evaluation_criteria ec
           INNER JOIN evaluation_standards es ON ec.standard_id = es.id
           WHERE ec.standard_id = $1 AND ec.service_id = $2 AND ec.status = 'active'
