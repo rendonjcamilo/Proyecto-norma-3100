@@ -71,6 +71,15 @@ export interface ComplianceReportData {
     status: string;
     daysOverdue: number;
   }>;
+  standardsBreakdown?: Array<{
+    codigo: string;
+    nombre: string;
+    totalCriterios: number;
+    cumple: number;
+    noCumple: number;
+    noAplica: number;
+    porcentajeCumplimiento: number;
+  }>;
 }
 
 const COLORS = {
@@ -141,6 +150,51 @@ export class ReportService {
     ).catch(() => ({ rows: [{ compliance_pct: '0' }] }));
     const compliancePercentage = parseFloat(assessmentPctResult.rows[0]?.compliance_pct) || 0;
 
+    // Per-standard breakdown from most recent non-draft assessment
+    const standardsResult = await this.pool.query<{
+      code: string; name: string;
+      cumple: string; no_cumple: string; no_aplica: string; total: string;
+    }>(
+      `SELECT es.code, es.name,
+        COUNT(*) FILTER (WHERE acr.response_status = 'C')::text AS cumple,
+        COUNT(*) FILTER (WHERE acr.response_status = 'NC')::text AS no_cumple,
+        COUNT(*) FILTER (WHERE acr.response_status = 'NA')::text AS no_aplica,
+        COUNT(*)::text AS total
+       FROM assessment_responses_detailed acr
+       JOIN evaluation_criteria ec ON ec.id = acr.criterion_id
+       JOIN evaluation_standards es ON es.id = ec.standard_id
+       WHERE acr.assessment_id = (
+         SELECT id FROM assessments
+         WHERE provider_id = $1 AND status NOT IN ('draft')
+         ORDER BY updated_at DESC LIMIT 1
+       )
+       AND ec.is_section_header = false
+       AND es.is_transversal = TRUE
+       GROUP BY es.id, es.code, es.name
+       ORDER BY CASE es.code
+         WHEN 'TSTH'  THEN 1 WHEN 'TSINF' THEN 2 WHEN 'TSDOT' THEN 3
+         WHEN 'TSMD'  THEN 4 WHEN 'TSPP'  THEN 5 WHEN 'TSHCR' THEN 6
+         WHEN 'TSINT' THEN 7 ELSE 8 END`,
+      [providerId]
+    ).catch(() => ({ rows: [] as { code: string; name: string; cumple: string; no_cumple: string; no_aplica: string; total: string; }[] }));
+
+    const standardsBreakdown = standardsResult.rows.map(r => {
+      const c = parseInt(r.cumple) || 0;
+      const nc = parseInt(r.no_cumple) || 0;
+      const na = parseInt(r.no_aplica) || 0;
+      const total = parseInt(r.total) || 0;
+      const aplicables = c + nc;
+      return {
+        codigo: r.code,
+        nombre: r.name,
+        totalCriterios: total,
+        cumple: c,
+        noCumple: nc,
+        noAplica: na,
+        porcentajeCumplimiento: aplicables > 0 ? Math.round((c / aplicables) * 100) : 0,
+      };
+    });
+
     // Top findings
     const topResult = await this.pool.query<{
       title: string;
@@ -201,6 +255,7 @@ export class ReportService {
         status: r.status,
         daysOverdue: parseInt(r.days_overdue) || 0,
       })),
+      standardsBreakdown,
     };
   }
 
@@ -258,6 +313,203 @@ export class ReportService {
     return map[s.toLowerCase()] ?? s;
   }
 
+  private drawStandardsTable(
+    doc: PDFKit.PDFDocument,
+    x: number,
+    startY: number,
+    tableW: number,
+    standards: NonNullable<ComplianceReportData['standardsBreakdown']>,
+  ): number {
+    const SHORT_NOMBRES: Record<string, string> = {
+      'TSTH':  'Talento Humano',
+      'TSINF': 'Infraestructura',
+      'TSDOT': 'Dotación',
+      'TSMD':  'Medicamentos e Insumos',
+      'TSPP':  'Procesos Prioritarios',
+      'TSHCR': 'Historia Clínica',
+      'TSINT': 'Interdependencia',
+    };
+
+    const COL_NOMBRE_W = 120;
+    const COL_NUM_W   = 28;
+    const COL_PCT_W   = tableW - COL_NOMBRE_W - COL_NUM_W * 4; // remaining for %
+    const COL = {
+      nombre: x,
+      total:  x + COL_NOMBRE_W,
+      c:      x + COL_NOMBRE_W + COL_NUM_W,
+      nc:     x + COL_NOMBRE_W + COL_NUM_W * 2,
+      na:     x + COL_NOMBRE_W + COL_NUM_W * 3,
+      pct:    x + COL_NOMBRE_W + COL_NUM_W * 4,
+    };
+    const ROW_H = 19;
+    let y = startY;
+
+    // Título de la tabla
+    doc.rect(x, y, tableW, ROW_H + 1).fill('#2c5f8a');
+    doc.fillColor('#ffffff').fontSize(7.5).font('Helvetica-Bold')
+      .text('Estándares y criterios aplicables a todos los servicios', x + 4, y + 6, { width: tableW - 8 });
+    y += ROW_H + 1;
+
+    // Encabezados de columna
+    doc.rect(x, y, tableW, ROW_H).fill('#4a7eb5');
+    doc.fillColor('#ffffff').fontSize(7).font('Helvetica-Bold');
+    doc.text('Estándar',    COL.nombre + 4, y + 6, { width: COL_NOMBRE_W - 4 });
+    doc.text('Total',       COL.total,      y + 6, { width: COL_NUM_W,  align: 'center' });
+    doc.text('C',           COL.c,          y + 6, { width: COL_NUM_W,  align: 'center' });
+    doc.text('NC',          COL.nc,         y + 6, { width: COL_NUM_W,  align: 'center' });
+    doc.text('NA',          COL.na,         y + 6, { width: COL_NUM_W,  align: 'center' });
+    doc.text('Cumplimiento', COL.pct,       y + 6, { width: COL_PCT_W,  align: 'center' });
+    y += ROW_H;
+
+    // Filas de datos
+    standards.forEach((std, idx) => {
+      const bg = idx % 2 === 0 ? '#ffffff' : '#f2f5f9';
+      doc.rect(x, y, tableW, ROW_H).fill(bg);
+
+      const pctColor = std.porcentajeCumplimiento >= 80 ? COLORS.success
+        : std.porcentajeCumplimiento >= 50 ? COLORS.warning
+        : COLORS.danger;
+      const displayName = SHORT_NOMBRES[std.codigo] ?? (std.nombre.length > 22 ? std.nombre.substring(0, 21) + '…' : std.nombre);
+
+      doc.fillColor(COLORS.text).fontSize(7).font('Helvetica')
+        .text(displayName, COL.nombre + 4, y + 6, { width: COL_NOMBRE_W - 4 });
+      doc.fillColor(COLORS.muted)
+        .text(std.totalCriterios.toString(), COL.total, y + 6, { width: COL_NUM_W, align: 'center' });
+      doc.fillColor(COLORS.success)
+        .text(std.cumple.toString(), COL.c, y + 6, { width: COL_NUM_W, align: 'center' });
+      doc.fillColor(COLORS.danger)
+        .text(std.noCumple.toString(), COL.nc, y + 6, { width: COL_NUM_W, align: 'center' });
+      doc.fillColor(COLORS.muted)
+        .text(std.noAplica.toString(), COL.na, y + 6, { width: COL_NUM_W, align: 'center' });
+      doc.fillColor(pctColor).font('Helvetica-Bold')
+        .text(`${std.porcentajeCumplimiento}%`, COL.pct, y + 6, { width: COL_PCT_W, align: 'center' });
+      y += ROW_H;
+    });
+
+    // Fila de totales
+    const totalC   = standards.reduce((s, e) => s + e.cumple, 0);
+    const totalNC  = standards.reduce((s, e) => s + e.noCumple, 0);
+    const totalNA  = standards.reduce((s, e) => s + e.noAplica, 0);
+    const totalT   = standards.reduce((s, e) => s + e.totalCriterios, 0);
+    const totalApl = totalC + totalNC;
+    const totalPct = totalApl > 0 ? Math.round((totalC / totalApl) * 100) : 0;
+    const totalPctColor = totalPct >= 80 ? COLORS.success : totalPct >= 50 ? COLORS.warning : COLORS.danger;
+
+    doc.rect(x, y, tableW, ROW_H).fill('#dce6f0');
+    doc.fillColor(COLORS.text).fontSize(7).font('Helvetica-Bold')
+      .text('TOTAL', COL.nombre + 4, y + 6, { width: COL_NOMBRE_W - 4 });
+    doc.fillColor(COLORS.muted)
+      .text(totalT.toString(), COL.total, y + 6, { width: COL_NUM_W, align: 'center' });
+    doc.fillColor(COLORS.success)
+      .text(totalC.toString(), COL.c, y + 6, { width: COL_NUM_W, align: 'center' });
+    doc.fillColor(COLORS.danger)
+      .text(totalNC.toString(), COL.nc, y + 6, { width: COL_NUM_W, align: 'center' });
+    doc.fillColor(COLORS.muted)
+      .text(totalNA.toString(), COL.na, y + 6, { width: COL_NUM_W, align: 'center' });
+    doc.fillColor(totalPctColor).font('Helvetica-Bold')
+      .text(`${totalPct}%`, COL.pct, y + 6, { width: COL_PCT_W, align: 'center' });
+    y += ROW_H;
+
+    // Borde exterior de la tabla
+    doc.strokeColor('#aabbcc').lineWidth(0.6).rect(x, startY, tableW, y - startY).stroke();
+
+    return y;
+  }
+
+  private drawRadarChart(
+    doc: PDFKit.PDFDocument,
+    cx: number,
+    cy: number,
+    R: number,
+    standards: NonNullable<ComplianceReportData['standardsBreakdown']>,
+  ): void {
+    const N = standards.length;
+    if (N === 0) return;
+
+    const angle = (i: number) => (2 * Math.PI / N) * i - Math.PI / 2;
+    const ptX = (i: number, r: number) => cx + r * Math.cos(angle(i));
+    const ptY = (i: number, r: number) => cy + r * Math.sin(angle(i));
+
+    // Anillos de referencia (20%, 40%, 60%, 80%, 100%)
+    [0.2, 0.4, 0.6, 0.8, 1.0].forEach(frac => {
+      for (let i = 0; i < N; i++) {
+        doc
+          .moveTo(ptX(i, R * frac), ptY(i, R * frac))
+          .lineTo(ptX((i + 1) % N, R * frac), ptY((i + 1) % N, R * frac))
+          .strokeColor(frac === 1.0 ? '#999999' : '#dddddd')
+          .lineWidth(frac === 1.0 ? 0.8 : 0.4)
+          .stroke();
+      }
+    });
+
+    // Ejes radiales
+    for (let i = 0; i < N; i++) {
+      doc
+        .moveTo(cx, cy)
+        .lineTo(ptX(i, R), ptY(i, R))
+        .strokeColor('#cccccc')
+        .lineWidth(0.4)
+        .stroke();
+    }
+
+    // Puntos del polígono de datos
+    const dataPoints = standards.map((s, i) => {
+      const r = R * Math.max(0, Math.min(100, s.porcentajeCumplimiento)) / 100;
+      return { x: ptX(i, r), y: ptY(i, r) };
+    });
+
+    // Relleno del polígono (opacidad reducida)
+    if (dataPoints.length > 0) {
+      doc.save();
+      doc.moveTo(dataPoints[0].x, dataPoints[0].y);
+      dataPoints.slice(1).forEach(pt => doc.lineTo(pt.x, pt.y));
+      doc.closePath();
+      doc.fillOpacity(0.28).fillColor('#4a90d9').fill();
+      doc.restore();
+
+      // Contorno del polígono
+      doc.save();
+      doc.moveTo(dataPoints[0].x, dataPoints[0].y);
+      dataPoints.slice(1).forEach(pt => doc.lineTo(pt.x, pt.y));
+      doc.closePath();
+      doc.strokeColor('#0052cc').lineWidth(1.4).stroke();
+      doc.restore();
+
+      // Puntos de datos
+      doc.save();
+      dataPoints.forEach(pt => {
+        doc.circle(pt.x, pt.y, 2.5).fillOpacity(1).fillColor('#0052cc').fill();
+      });
+      doc.restore();
+    }
+
+    // Etiquetas de los ejes
+    const SHORT_LABELS: Record<string, string> = {
+      'TSTH':  'Talento\nHumano',
+      'TSINF': 'Infraestructura',
+      'TSDOT': 'Dotación',
+      'TSMD':  'Medicamentos',
+      'TSPP':  'Procesos\nPrioritarios',
+      'TSHCR': 'Historia\nClínica',
+      'TSINT': 'Interdependencia',
+    };
+
+    const LABEL_R = R + 21;
+    doc.save();
+    standards.forEach((s, i) => {
+      const lx = ptX(i, LABEL_R);
+      const ly = ptY(i, LABEL_R);
+      const label = SHORT_LABELS[s.codigo] ?? s.nombre;
+      doc
+        .fillColor('#333333')
+        .fillOpacity(1)
+        .fontSize(6)
+        .font('Helvetica')
+        .text(label, lx - 24, ly - 7, { width: 48, align: 'center' });
+    });
+    doc.restore();
+  }
+
   private renderPdfContent(doc: PDFKit.PDFDocument, data: ComplianceReportData): void {
     const pageWidth = doc.page.width - 100;
 
@@ -302,6 +554,33 @@ export class ReportService {
     y += 15;
     doc.text('Generado por: HabilitaPro', 50, y);
     y += 30;
+
+    // === TABLA POR ESTÁNDAR + GRÁFICO DE RADAR ===
+    if (data.standardsBreakdown && data.standardsBreakdown.length > 0) {
+      doc.fillColor(COLORS.text).fontSize(12).font('Helvetica-Bold')
+        .text('Consolidado por Estándar', 50, y);
+      y += 18;
+
+      const TABLE_W = 300;
+      const tableStartY = y;
+      const tableEndY = this.drawStandardsTable(doc, 50, tableStartY, TABLE_W, data.standardsBreakdown);
+
+      // Radar chart a la derecha de la tabla
+      const chartAreaX = 50 + TABLE_W + 10;
+      const chartAreaW = pageWidth - TABLE_W - 10;
+      const chartH = tableEndY - tableStartY;
+      const chartCX = chartAreaX + chartAreaW / 2;
+      const chartCY = tableStartY + chartH / 2;
+      const chartR = Math.min(chartAreaW / 2 - 30, chartH / 2 - 28);
+
+      // Título del gráfico
+      doc.fillColor(COLORS.text).fontSize(8).font('Helvetica-Bold')
+        .text('Todos los servicios', chartAreaX, tableStartY, { width: chartAreaW, align: 'center' });
+
+      this.drawRadarChart(doc, chartCX, chartCY + 6, Math.max(chartR, 30), data.standardsBreakdown);
+
+      y = tableEndY + 20;
+    }
 
     // === COMPLIANCE METRICS ===
     doc.fillColor(COLORS.text).fontSize(14).font('Helvetica-Bold').text('Métricas de Cumplimiento', 50, y);
