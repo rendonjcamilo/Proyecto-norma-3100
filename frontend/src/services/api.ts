@@ -1200,6 +1200,37 @@ export const anexo4Api = {
 };
 
 // ─────────────────────────────────────────────
+// WHATSAPP AUTOMÁTICO (Evolution API / Baileys)
+// ─────────────────────────────────────────────
+
+export interface WaStatus {
+  state: 'open' | 'connecting' | 'close' | 'qr' | 'unknown';
+  connected: boolean;
+}
+
+export interface WaQR {
+  qrcode?: string;
+  pairingCode?: string;
+  state: string;
+}
+
+export interface WaSendResult {
+  messageId?: string;
+  status: 'sent' | 'error';
+}
+
+export const whatsappApi = {
+  getStatus: () =>
+    get<{ data: WaStatus }>('/api/whatsapp/status'),
+
+  getQR: () =>
+    get<{ data: WaQR }>('/api/whatsapp/qr'),
+
+  send: (phone: string, message: string) =>
+    post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', { phone, message }),
+};
+
+// ─────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────
 

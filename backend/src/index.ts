@@ -25,6 +25,7 @@ import { createHistoriaClinicaRouter } from './routes/historia-clinica.routes.js
 import { createInvimaRouter } from './routes/invima.routes.js';
 import { createRepsRouter } from './routes/reps.routes.js';
 import { createRepsAlertsRouter } from './routes/reps-alerts.routes.js';
+import { createWhatsAppRouter } from './routes/whatsapp.routes.js';
 import { createAnexo4Router } from './routes/anexo4.routes.js';
 import { RepsAlertService } from './services/RepsAlertService.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
@@ -263,6 +264,9 @@ app.use('/api', apiLimiter, createLocationsRouter(pool));
 
 // In-app Notifications
 app.use('/api/notifications', apiLimiter, createNotificationsRouter(pool));
+
+// WhatsApp automático vía Evolution API (Baileys)
+app.use('/api', apiLimiter, createWhatsAppRouter());
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

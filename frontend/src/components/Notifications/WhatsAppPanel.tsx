@@ -4,8 +4,9 @@
  * scrapeadas del portal MINSALUD para filtrar prestadores próximos a vencer.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
-import { repsApi, RepsProspecto, RepsEnrichResult } from '../../services/api';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { repsApi, whatsappApi, RepsProspecto, RepsEnrichResult, WaStatus } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { MUNICIPIOS_POR_DEPARTAMENTO } from '../../data/municipiosColombia';
 import { RepsAlertTrigger } from './RepsAlertTrigger';
 import './WhatsAppPanel.css';
@@ -93,6 +94,21 @@ function diasBadgeClass(dias: number | null): string {
 }
 
 export const WhatsAppPanel: React.FC = () => {
+  const { user } = useAuth();
+  const canConfigureWa = user?.role === 'auditor' || user?.role === 'super_admin';
+
+  // Estado de conexión Evolution API
+  const [waStatus, setWaStatus] = useState<WaStatus | null>(null);
+  const [waStatusLoading, setWaStatusLoading] = useState(true);
+  const [waQR, setWaQR] = useState<{ qrcode?: string; state: string } | null>(null);
+  const [waQRLoading, setWaQRLoading] = useState(false);
+  const [waQRModal, setWaQRModal] = useState(false);
+
+  // Estado de envío automático
+  const [autoSending, setAutoSending] = useState(false);
+  const [autoSendResult, setAutoSendResult] = useState<'success' | 'error' | null>(null);
+  const [autoSendError, setAutoSendError] = useState('');
+
   const [prospectos, setProspectos] = useState<RepsProspecto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -109,7 +125,9 @@ export const WhatsAppPanel: React.FC = () => {
   const [selected, setSelected] = useState<RepsProspecto | null>(null);
   const [plantilla, setPlantilla] = useState(PLANTILLA_DEFAULT);
   const [manualPhone, setManualPhone] = useState('');
-  const [copiado, setCopiado] = useState(false);
+
+  // Estado de error del QR
+  const [waQRError, setWaQRError] = useState('');
 
   // Estado de enriquecimiento
   const [enrichStatus, setEnrichStatus] = useState<EnrichStatus>('idle');
@@ -126,6 +144,61 @@ export const WhatsAppPanel: React.FC = () => {
   const [tablePage, setTablePage] = useState(0);
   const [sortCol, setSortCol] = useState<'dias' | 'nombre' | 'municipio'>('dias');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  // Cargar estado de conexión al montar
+  useEffect(() => {
+    whatsappApi.getStatus()
+      .then((res) => setWaStatus(res.data))
+      .catch(() => setWaStatus({ state: 'unknown', connected: false }))
+      .finally(() => setWaStatusLoading(false));
+  }, []);
+
+  const loadQR = async () => {
+    setWaQRLoading(true);
+    setWaQRError('');
+    setWaQRModal(true);
+    try {
+      const res = await whatsappApi.getQR();
+      setWaQR(res.data);
+    } catch (err) {
+      setWaQR(null);
+      setWaQRError(err instanceof Error ? err.message : 'No se pudo obtener el código QR');
+    } finally {
+      setWaQRLoading(false);
+    }
+  };
+
+  const refreshStatus = async () => {
+    setWaStatusLoading(true);
+    try {
+      const res = await whatsappApi.getStatus();
+      setWaStatus(res.data);
+      if (res.data.connected) setWaQRModal(false);
+    } catch {
+      setWaStatus({ state: 'unknown', connected: false });
+    } finally {
+      setWaStatusLoading(false);
+    }
+  };
+
+  const handleEnviarAutomatico = async () => {
+    if (!selected) return;
+    const phone = manualPhone || (selected.celular ? toWaPhone(selected.celular) : '');
+    if (!phone) return;
+    setAutoSending(true);
+    setAutoSendResult(null);
+    setAutoSendError('');
+    try {
+      await whatsappApi.send(phone, buildMensaje(plantilla, selected));
+      setAutoSendResult('success');
+    } catch (err) {
+      setAutoSendResult('error');
+      setAutoSendError(err instanceof Error ? err.message : 'Error al enviar');
+    } finally {
+      setAutoSending(false);
+      setTimeout(() => setAutoSendResult(null), 5000);
+    }
+  };
 
   const canSearch = departamento.trim() !== '' || municipio.trim() !== '';
 
@@ -282,28 +355,7 @@ export const WhatsAppPanel: React.FC = () => {
     if (!selected) return;
     const phone = manualPhone || (selected.celular ? toWaPhone(selected.celular) : '');
     if (!phone) return;
-    // Codificación mínima: solo caracteres ASCII problemáticos en URLs.
-    // Emoji y caracteres Unicode se dejan crudos — el navegador los envía como UTF-8,
-    // evitando que WhatsApp malinterprete las secuencias %Fx%... de encodeURIComponent.
-    const texto = Array.from(buildMensaje(plantilla, selected))
-      .map(c => {
-        const cp = c.codePointAt(0)!;
-        if (cp > 0x7E) return c;           // no-ASCII: dejar crudo (emoji, tildes, ñ…)
-        if (c === '\n') return '%0A';
-        if (c === '\r') return '';
-        if (c === ' ')  return '%20';
-        if ('&=+#%'.includes(c)) return encodeURIComponent(c);
-        return c;
-      })
-      .join('');
-    window.open(`https://wa.me/${phone}?text=${texto}`, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleCopiarTexto = async () => {
-    if (!selected) return;
-    await navigator.clipboard.writeText(buildMensaje(plantilla, selected));
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2500);
+    window.open(`https://wa.me/${phone}`, '_blank', 'noopener,noreferrer');
   };
 
   const phoneValido = manualPhone.replace(/\D/g, '').length >= 10;
@@ -911,44 +963,78 @@ export const WhatsAppPanel: React.FC = () => {
                 </div>
               </div>
 
+              {/* Badge de estado Evolution API */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                {waStatusLoading ? (
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Verificando conexión…</span>
+                ) : waStatus?.connected ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: '#16a34a' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                    WhatsApp conectado — envío automático disponible
+                  </span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: '#dc2626' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                    WhatsApp desconectado
+                    {canConfigureWa && (
+                      <button
+                        onClick={loadQR}
+                        disabled={waQRLoading}
+                        style={{ marginLeft: 6, fontSize: '11px', padding: '2px 8px', borderRadius: 4, border: '1px solid #dc2626', background: 'transparent', color: '#dc2626', cursor: 'pointer' }}
+                      >
+                        {waQRLoading ? 'Cargando…' : 'Configurar'}
+                      </button>
+                    )}
+                    <button onClick={refreshStatus} style={{ marginLeft: 4, fontSize: '11px', padding: '2px 6px', borderRadius: 4, border: '1px solid #9ca3af', background: 'transparent', color: '#6b7280', cursor: 'pointer' }}>↻</button>
+                  </span>
+                )}
+              </div>
+
               <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+
+                {/* Botón de envío automático (solo si WhatsApp conectado) */}
+                {waStatus?.connected && (
+                  <>
+                    <button
+                      onClick={handleEnviarAutomatico}
+                      disabled={!phoneValido || autoSending}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        padding: '12px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 700,
+                        cursor: phoneValido && !autoSending ? 'pointer' : 'not-allowed',
+                        background: autoSendResult === 'success' ? '#16a34a' : autoSendResult === 'error' ? '#dc2626' : '#16a34a',
+                        color: 'white', border: 'none', transition: 'all 0.2s',
+                        opacity: !phoneValido || autoSending ? 0.6 : 1,
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                      </svg>
+                      {autoSending ? 'Enviando…' : autoSendResult === 'success' ? '✅ Enviado correctamente' : autoSendResult === 'error' ? '❌ Error al enviar' : 'Enviar automáticamente'}
+                    </button>
+                    {autoSendResult === 'error' && autoSendError && (
+                      <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: '13px' }}>
+                        {autoSendError}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Botón abrir WhatsApp Web (siempre disponible como alternativa) */}
                 <button
                   className="wap-send-btn"
                   onClick={handleEnviarWhatsApp}
                   disabled={!phoneValido}
+                  style={{ opacity: waStatus?.connected ? 0.8 : 1 }}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
                   </svg>
-                  Abrir en WhatsApp
-                </button>
-
-                <button
-                  onClick={handleCopiarTexto}
-                  disabled={!selected}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '10px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
-                    cursor: selected ? 'pointer' : 'not-allowed',
-                    background: copiado ? '#16a34a' : '#f3f4f6',
-                    color: copiado ? 'white' : '#374151',
-                    border: '1px solid',
-                    borderColor: copiado ? '#16a34a' : '#d1d5db',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {copiado ? (
-                    <>✅ ¡Copiado! Pega directamente en WhatsApp</>
-                  ) : (
-                    <>📋 Copiar texto (para pegar en WhatsApp)</>
-                  )}
+                  Abrir en WhatsApp Web
                 </button>
               </div>
-
-              <p className="wap-disclaimer">
-                Usa <strong>Copiar texto</strong> si pegas el mensaje manualmente — garantiza que los emojis lleguen correctamente.
-              </p>
             </>
           )}
         </div>
@@ -1002,6 +1088,67 @@ export const WhatsAppPanel: React.FC = () => {
                 {manualModal.saving ? 'Guardando...' : 'Guardar fecha'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR — configuración inicial (auditor y super_admin) */}
+      {waQRModal && canConfigureWa && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 12, padding: '28px 32px', maxWidth: 380, width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center',
+          }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700 }}>Conectar WhatsApp</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280' }}>
+              Escanea este código con la app de WhatsApp en tu teléfono.<br />
+              <strong>WhatsApp → Dispositivos vinculados → Vincular dispositivo</strong>
+            </p>
+
+            {waQRError ? (
+              <div style={{ width: 240, height: 'auto', minHeight: 120, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '20px 16px' }}>
+                <span style={{ fontSize: 28 }}>⚠️</span>
+                <span style={{ color: '#991b1b', fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{waQRError}</span>
+                <button
+                  onClick={loadQR}
+                  style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: '1px solid #dc2626', background: '#dc2626', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : waQR?.qrcode ? (
+              <img
+                src={waQR.qrcode.startsWith('data:') ? waQR.qrcode : `data:image/png;base64,${waQR.qrcode}`}
+                alt="QR WhatsApp"
+                style={{ width: 240, height: 240, borderRadius: 8, border: '1px solid #e5e7eb' }}
+              />
+            ) : (
+              <div style={{ width: 240, height: 240, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: 8 }}>
+                <span style={{ color: '#6b7280', fontSize: 13 }}>Generando QR…</span>
+              </div>
+            )}
+
+            <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <button
+                onClick={refreshStatus}
+                style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #16a34a', background: '#16a34a', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+              >
+                Ya escaneé — verificar
+              </button>
+              <button
+                onClick={() => { setWaQRModal(false); setWaQRError(''); }}
+                style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <p style={{ marginTop: 14, fontSize: 11, color: '#9ca3af' }}>
+              El QR expira en ~30 segundos. Si vence, cierra y vuelve a abrir.
+            </p>
           </div>
         </div>
       )}

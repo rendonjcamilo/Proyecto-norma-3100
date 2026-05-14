@@ -24,6 +24,9 @@ services:
       - RESEND_API_KEY=re_SZxw6HFN_GFcV5w3p9cpgUZmL9v4J7YEM
       - EMAIL_FROM_ADDRESS=onboarding@resend.dev
       - EMAIL_FROM_NAME=Sistema Norma 3100
+      - EVOLUTION_API_URL=http://evolution:8080
+      - EVOLUTION_API_KEY=norma3100_evo_key_2025
+      - EVOLUTION_INSTANCE_NAME=norma3100
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +99,56 @@ services:
       retries: 5
     restart: unless-stopped
 
+  evolution:
+    image: atendai/evolution-api:v2.2.3
+    container_name: norma3100-evolution
+    ports:
+      - "8080:8080"
+    environment:
+      - DOCKER_ENV=true
+      - SERVER_TYPE=http
+      - SERVER_PORT=8080
+      - SERVER_URL=http://evolution:8080
+      - CORS_ORIGIN=*
+      - CORS_METHODS=GET,POST,PUT,DELETE
+      - CORS_CREDENTIALS=true
+      - LOG_LEVEL=ERROR
+      - LOG_COLOR=true
+      - LOG_BAILEYS=error
+      - DEL_INSTANCE=false
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:postgres_dev_password@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_norma3100
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_CHATS=false
+      - DATABASE_SAVE_DATA_LABELS=false
+      - DATABASE_SAVE_DATA_HISTORIC=false
+      - DATABASE_SAVE_IS_ON_WHATSAPP=false
+      - DATABASE_DELETE_MESSAGE=false
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379
+      - CACHE_REDIS_TTL=604800
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      - CACHE_REDIS_SAVE_INSTANCES=false
+      - CACHE_LOCAL_ENABLED=false
+      - AUTHENTICATION_API_KEY=norma3100_evo_key_2025
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - QRCODE_LIMIT=30
+      - LANGUAGE=es
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - norma-network
+    volumes:
+      - evolution_data:/evolution/instances
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     container_name: norma3100-redis
@@ -122,4 +175,6 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  evolution_data:
     driver: local
