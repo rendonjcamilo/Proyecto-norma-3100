@@ -183,9 +183,13 @@ const RepsWrapper = () => {
 };
 
 function AppContent(): JSX.Element {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const { isAuthenticated, user } = useAuth();
   const { selectedProvider, availableProviders, setSelectedProvider } = useProvider();
+
+  const closeSidebarOnMobile = () => {
+    if (window.innerWidth < 1024) setSidebarOpen(false);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -200,7 +204,7 @@ function AppContent(): JSX.Element {
 
   return (
     <div className="app-layout">
-      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
+      <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} onClose={closeSidebarOnMobile} />
       <div className="app-main">
         <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} providers={availableProviders} selectedProvider={selectedProvider} onSelectProvider={setSelectedProvider} userRole={user?.role} />
         <main className="app-content">

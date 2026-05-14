@@ -204,12 +204,17 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onClose }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const handleNavClick = () => {
+    onClose?.();
+  };
 
   const handleLogout = () => {
     logout();
@@ -260,6 +265,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                         <NavLink
                           to={item.to}
                           end={item.to === '/'}
+                          onClick={handleNavClick}
                           className={({ isActive }) =>
                             `nav-link ${isActive ? 'active' : ''}`
                           }

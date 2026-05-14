@@ -269,6 +269,7 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -282,6 +283,14 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Previene zoom automático en iOS al hacer focus en inputs con font-size < 16px */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 #root {
