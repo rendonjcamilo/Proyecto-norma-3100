@@ -271,7 +271,7 @@ export class ReportService {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
-    doc.text(`Razón Social: ${data.provider.legal_name}`, 50, y);
+    doc.text(`Nombre: ${data.provider.legal_name}`, 50, y);
     y += 15;
     doc.text(`CC/NIT: ${data.provider.rut}`, 50, y);
     y += 15;
