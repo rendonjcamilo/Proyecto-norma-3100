@@ -38,16 +38,13 @@ export function createRepsRouter(pool: Pool): Router {
 
         const result = await repsService.consultarEnReps(codigoHabilitacion);
 
-        // Si datos.gov.co no trajo fecha_vencimiento, buscar en caché del scraping MINSALUD
+        // Si datos.gov.co no trajo fecha_vencimiento, obtenerla del portal MINSALUD
+        // (enriquecimiento: primero caché local, luego scraping si no está cacheada)
         if (result.found && result.data && !result.data.fecha_vencimiento) {
-          const enriched = await pool.query<{ fecha_vencimiento: string }>(
-            `SELECT fecha_vencimiento FROM reps_enriched
-             WHERE nit = $1 AND fecha_vencimiento IS NOT NULL
-             ORDER BY updated_at DESC LIMIT 1`,
-            [result.data.nit]
-          ).catch(() => ({ rows: [] as { fecha_vencimiento: string }[] }));
-          if (enriched.rows.length > 0) {
-            result.data.fecha_vencimiento = enriched.rows[0].fecha_vencimiento;
+          const enrichResults = await enrichmentService.enrichLote([result.data.nit]).catch(() => []);
+          const enriched = enrichResults.find((r) => r.nit === result.data!.nit && r.fecha_vencimiento);
+          if (enriched?.fecha_vencimiento) {
+            result.data.fecha_vencimiento = enriched.fecha_vencimiento;
           }
         }
 
