@@ -26,19 +26,19 @@ const CLASES_PRESTADOR = [
   'Objeto Social Diferente al de Salud',
 ];
 
-const PLANTILLA_DEFAULT = `🚨 Estimado(a) Dr {{nombre_prestador}}
+const PLANTILLA_DEFAULT = `🔔 Estimado(a) Dr {{nombre_prestador}}
 
 Hemos verificado su registro en REPS y su habilitación esta próxima a vencer. Recuerde que la autoevaluación anual es obligatoria según la Resolución 3100 de 2019 y no realizarla oportunamente puede generar retiro automático del REPS y suspensión de servicios.
 
 ✅ En AYH Consultores lo hacemos por usted:
-✔ Autoevaluación REPS
-✔ Recuperación de usuario y contraseña
-✔ Actualización de vigencia
-✔ Entrega de soportes
+📋 Autoevaluación REPS
+🔑 Recuperación de usuario y contraseña
+📄 Actualización de vigencia
+📦 Entrega de soportes
 
-⚠ Evite reprocesos y sanciones económicas por incumplimiento. El sistema deja trazabilidad. La omisión queda registrada.
+⚠️ Evite reprocesos y sanciones económicas por incumplimiento. El sistema deja trazabilidad. La omisión queda registrada.
 
-📲 Agende hoy mismo con nosotros tu autoevaluación.
+📅 Agende hoy mismo con nosotros tu autoevaluación.
 
 AYH Consultores – Tu tranquilidad, mi compromiso.
 
