@@ -216,10 +216,10 @@
 /* ── Tabla ───────────────────────────────────────────────────────────── */
 .a4-table-wrapper {
   overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid var(--color-border, #c5cae9);
+  border-radius: 4px;
+  border: 1.5px solid #333;
   margin-bottom: 20px;
-  background: var(--color-card, #fff);
+  background: #fff;
 }
 
 .a4-table {
@@ -230,8 +230,8 @@
 
 /* Encabezados de criterios */
 .a4-th-crit {
-  background: linear-gradient(135deg, #6255A0 0%, #10989E 100%);
-  color: #fff;
+  background: #e8e8e8;
+  color: #000;
   font-size: 0.78rem;
   font-weight: 700;
   padding: 10px 14px;
@@ -242,16 +242,19 @@
   position: sticky;
   left: 0;
   z-index: 2;
+  border-right: 1px solid #555;
 }
 
 /* Encabezados de cada H.C. */
 .a4-th-hc {
-  background: #6255A0;
-  color: #fff;
+  background: #e8e8e8;
+  color: #000;
   text-align: center;
   padding: 6px 4px;
-  border-left: 1px solid rgba(255,255,255,0.2);
+  border-left: 1px solid #999;
   min-width: 100px;
+  font-weight: 700;
+  font-size: 0.78rem;
 }
 
 .a4-hc-header {
@@ -264,9 +267,9 @@
 .a4-hc-num { font-size: 0.78rem; font-weight: 700; }
 
 .a4-hc-remove {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  color: #fff;
+  background: #ccc;
+  border: 1px solid #999;
+  color: #333;
   border-radius: 50%;
   width: 18px;
   height: 18px;
@@ -277,65 +280,68 @@
   justify-content: center;
   line-height: 1;
 }
-.a4-hc-remove:hover { background: rgba(255,100,100,0.5); }
+.a4-hc-remove:hover { background: #f0a0a0; border-color: #c00; color: #c00; }
 
 /* Inputs dentro del encabezado */
 .a4-th-inputs {
-  background: #4e4080;
+  background: #fff;
   padding: 6px 4px;
-  border-left: 1px solid rgba(255,255,255,0.2);
+  border-left: 1px solid #999;
+  border-top: 1px solid #999;
 }
 
 .a4-input-hc {
   display: block;
   width: 100%;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 4px;
-  color: #fff;
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  color: #000;
   font-size: 0.72rem;
   padding: 3px 6px;
   margin-bottom: 3px;
   box-sizing: border-box;
 }
-.a4-input-hc::placeholder { color: rgba(255,255,255,0.5); }
-.a4-input-hc:focus { outline: none; border-color: rgba(255,255,255,0.6); }
+.a4-input-hc::placeholder { color: #aaa; }
+.a4-input-hc:focus { outline: none; border-color: #333; }
 
 /* Sub-encabezado C / NC */
 .a4-tr-cnc { }
 .a4-th-c {
-  background: #ddd9f0;
-  color: #6255A0;
+  background: #e8e8e8;
+  color: #000;
   font-weight: 700;
   font-size: 0.78rem;
   text-align: center;
   padding: 5px 2px;
   min-width: 36px;
-  border-left: 1px solid rgba(98,85,160,0.2);
+  border-left: 1px solid #999;
+  border-top: 1px solid #999;
 }
 .a4-th-nc {
-  background: #ffcdd2;
-  color: #b71c1c;
+  background: #e8e8e8;
+  color: #000;
   font-weight: 700;
   font-size: 0.78rem;
   text-align: center;
   padding: 5px 2px;
   min-width: 36px;
-  border-left: 1px solid rgba(183,28,28,0.15);
+  border-left: 1px solid #999;
+  border-top: 1px solid #999;
 }
 
 /* Botón agregar H.C. */
 .a4-th-add {
-  background: #6255A0;
-  border-left: 1px solid rgba(255,255,255,0.2);
+  background: #f5f5f5;
+  border-left: 1px solid #999;
   text-align: center;
   vertical-align: middle;
   padding: 4px;
 }
 .a4-btn-add-hc {
-  background: rgba(255,255,255,0.2);
-  border: 1.5px dashed rgba(255,255,255,0.5);
-  color: #fff;
+  background: #fff;
+  border: 1.5px dashed #666;
+  color: #444;
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -343,44 +349,45 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-.a4-btn-add-hc:hover { background: rgba(255,255,255,0.35); }
+.a4-btn-add-hc:hover { background: #e8e8e8; }
 
 /* Filas de criterios */
 .a4-td-crit {
-  padding: 7px 14px;
-  color: var(--color-text, #1e2a3b);
+  padding: 6px 14px;
+  color: #000;
   font-size: 0.8rem;
-  border-bottom: 1px solid var(--color-border, #e8eaf0);
-  background: var(--color-card, #fff);
+  border-bottom: 1px solid #ccc;
+  border-right: 1px solid #555;
+  background: #fff;
   position: sticky;
   left: 0;
   z-index: 1;
 }
-.a4-tr-alt .a4-td-crit { background: #f3f4f6; }
+.a4-tr-alt .a4-td-crit { background: #f8f8f8; }
 
 /* Celdas C / NC */
 .a4-td-toggle {
   text-align: center;
-  padding: 7px 4px;
+  padding: 6px 4px;
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border, #e8eaf0);
-  border-left: 1px solid var(--color-border, #e8eaf0);
+  border-bottom: 1px solid #ccc;
+  border-left: 1px solid #ccc;
   transition: background 0.12s;
   min-width: 36px;
 }
 
 .a4-td-c:hover:not(.a4-td--active-c) {
-  background: #f0fdf4;
+  background: #efffef;
 }
 .a4-td-nc:hover:not(.a4-td--active-nc) {
-  background: #fff1f2;
+  background: #fff5f5;
 }
 
-.a4-td--active-c  { background: #dcfce7; }
-.a4-td--active-nc { background: #fee2e2; }
+.a4-td--active-c  { background: #d6f0d6; }
+.a4-td--active-nc { background: #f5d6d6; }
 
-.a4-check { color: #15803d; font-size: 1rem; font-weight: 700; }
-.a4-cross  { color: #b91c1c; font-size: 1rem; font-weight: 700; }
+.a4-check { color: #1a7a1a; font-size: 1rem; font-weight: 700; }
+.a4-cross  { color: #991111; font-size: 1rem; font-weight: 700; }
 
 /* ── Observaciones ───────────────────────────────────────────────────── */
 .a4-obs {
@@ -444,12 +451,21 @@
 /* ── Dark mode ───────────────────────────────────────────────────────── */
 .dark .a4-page          { background: var(--color-bg, #0f172a); }
 .dark .a4-card          { background: var(--color-card, #1e293b); border-color: #334155; }
-.dark .a4-table-wrapper { background: var(--color-card, #1e293b); border-color: #334155; }
-.dark .a4-td-crit       { background: var(--color-card, #1e293b); border-color: #334155; }
+.dark .a4-table-wrapper { background: #1e293b; border-color: #555; }
+.dark .a4-th-crit       { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
+.dark .a4-th-hc         { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
+.dark .a4-th-inputs     { background: #1e293b; border-color: #4a5568; }
+.dark .a4-th-c,
+.dark .a4-th-nc         { background: #2d3748; color: #e2e8f0; border-color: #4a5568; }
+.dark .a4-th-add        { background: #1e293b; border-color: #4a5568; }
+.dark .a4-btn-add-hc    { background: #2d3748; border-color: #666; color: #ccc; }
+.dark .a4-td-crit       { background: #1e293b; color: #e2e8f0; border-color: #4a5568; }
 .dark .a4-tr-alt .a4-td-crit { background: #1a2540; }
 .dark .a4-td-toggle     { border-color: #334155; }
 .dark .a4-td--active-c  { background: #14532d; }
 .dark .a4-td--active-nc { background: #7f1d1d; }
+.dark .a4-input-hc      { background: #1e293b; border-color: #4a5568; color: #e2e8f0; }
+.dark .a4-input-hc::placeholder { color: #64748b; }
 .dark .a4-field input,
 .dark .a4-obs textarea  { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 .dark .a4-resumen       { background: #1e293b; border-color: #334155; }
