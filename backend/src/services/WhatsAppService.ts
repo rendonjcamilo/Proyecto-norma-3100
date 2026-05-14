@@ -63,37 +63,54 @@ export class WhatsAppService {
 
   async getQR(userId: string): Promise<WaQRResult> {
     const instance = instanceName(userId);
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    // Verificar si la instancia existe; crearla si no
+    // Verificar si la instancia existe; si está en close borrarla y recrear para sesión limpia
     try {
       const instances = await evoFetch<unknown[]>('/instance/fetchInstances');
-      const exists = Array.isArray(instances) && instances.some(
-        (i) => (i as Record<string, unknown>).name === instance
-      );
-      if (!exists) {
+      const found = Array.isArray(instances)
+        ? (instances as Record<string, unknown>[]).find((i) => i.name === instance)
+        : null;
+
+      if (!found) {
         await evoFetch('/instance/create', {
           method: 'POST',
-          body: JSON.stringify({
-            instanceName: instance,
-            qrcode: true,
-            integration: 'WHATSAPP-BAILEYS',
-          }),
+          body: JSON.stringify({ instanceName: instance, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
         });
         logger.info({ msg: 'Evolution instance created', instance, userId });
+        // Baileys necesita ~2s para inicializar la sesión y generar el primer QR
+        await sleep(2500);
+      } else if ((found.connectionStatus as string) === 'close') {
+        // Instancia existe pero desconectada — borrar y recrear para forzar nuevo QR
+        await evoFetch(`/instance/delete/${instance}`, { method: 'DELETE' }).catch(() => null);
+        await evoFetch('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({ instanceName: instance, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
+        });
+        logger.info({ msg: 'Evolution instance recreated (was close)', instance, userId });
+        await sleep(2500);
       }
     } catch (err) {
       logger.warn({ msg: 'Could not verify/create Evolution instance', instance, error: String(err) });
     }
 
-    const data = await evoFetch<Record<string, unknown>>(`/instance/connect/${instance}`);
-    const base64 = (data?.base64 as string | undefined)
-      ?? ((data?.qrcode as Record<string, string> | undefined)?.base64);
+    // Reintentar hasta 4 veces — Baileys puede tardar en generar el QR
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) await sleep(2000);
+      try {
+        const data = await evoFetch<Record<string, unknown>>(`/instance/connect/${instance}`);
+        const base64 = (data?.base64 as string | undefined)
+          ?? ((data?.qrcode as Record<string, string> | undefined)?.base64);
+        if (base64) {
+          return { qrcode: base64, pairingCode: data?.pairingCode as string | undefined, state: 'qr' };
+        }
+        logger.warn({ msg: 'No QR yet, retrying', instance, attempt, keys: Object.keys(data ?? {}) });
+      } catch (err) {
+        logger.warn({ msg: 'connect attempt failed', instance, attempt, error: String(err) });
+      }
+    }
 
-    return {
-      qrcode: base64,
-      pairingCode: data?.pairingCode as string | undefined,
-      state: (data?.state as string | undefined) ?? 'qr',
-    };
+    throw new Error('Evolution API no generó el código QR. Espera 30 segundos e intenta de nuevo.');
   }
 
   async sendText(userId: string, phone: string, message: string): Promise<WaSendResult> {
