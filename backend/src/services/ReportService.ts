@@ -195,7 +195,7 @@ export class ReportService {
       };
     });
 
-    // Top findings
+    // Top findings — usa nc_hint (texto negado del criterio) igual que el informe de auditoría
     const topResult = await this.pool.query<{
       title: string;
       severity: string;
@@ -203,11 +203,24 @@ export class ReportService {
       status: string;
       days_overdue: string;
     }>(
-      `SELECT title, severity, COALESCE(risk_score, 0)::text as risk_score, status,
-        GREATEST(0, (CURRENT_DATE - due_date))::text as days_overdue
-       FROM findings
-       WHERE provider_id = $1 AND status NOT IN ('closed')
-       ORDER BY COALESCE(risk_score, 0) DESC
+      `SELECT
+        COALESCE(
+          NULLIF(acr.description, ''),
+          NULLIF(ec.nc_hint, ''),
+          CASE
+            WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.code || ': ' || ec.name
+            ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
+          END
+        ) AS title,
+        f.severity,
+        COALESCE(f.risk_score, 0)::text AS risk_score,
+        f.status,
+        GREATEST(0, (CURRENT_DATE - f.due_date))::text AS days_overdue
+       FROM findings f
+       LEFT JOIN evaluation_criteria ec ON ec.id = f.criterion_id
+       LEFT JOIN assessment_responses_detailed acr ON acr.id = f.assessment_response_id
+       WHERE f.provider_id = $1 AND f.status NOT IN ('closed')
+       ORDER BY COALESCE(f.risk_score, 0) DESC
        LIMIT 10`,
       [providerId]
     ).catch(() => ({ rows: [] }));
