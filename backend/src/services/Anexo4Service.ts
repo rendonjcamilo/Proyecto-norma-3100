@@ -153,7 +153,7 @@ export class Anexo4Service {
     return (rowCount ?? 0) > 0;
   }
 
-  // ─── PDF (landscape A4) ──────────────────────────────────────────────────────
+  // ─── PDF (landscape A4) — estilo formulario oficial blanco/negro ─────────────
   generatePdf(v: Anexo4Verificacion): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -165,117 +165,139 @@ export class Anexo4Service {
       });
 
       doc.on('data', (c: Buffer) => chunks.push(c));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('end',  () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       const registros = v.registros.slice(0, 10);
       const nHC = registros.length || 1;
 
-      // Paleta sobria: fondo blanco / texto negro / bordes grises
-      const C_HEADER  = '#2c2c2c';  // gris casi negro para cabeceras de columna
-      const C_SEC     = '#e0e0e0';  // gris claro para fila de sección
-      const C_ALT     = '#f7f7f7';  // alternado muy sutil
-      const C_C_BG    = '#ffffff';  // blanco para celda C
-      const C_NC_BG   = '#ffffff';  // blanco para celda NC
-      const C_C_TXT   = '#166534';  // verde oscuro para ✓ (distinción funcional)
-      const C_NC_TXT  = '#991b1b';  // rojo oscuro para ✗ (distinción funcional)
-      const C_BORDER  = '#aaaaaa';  // gris para bordes
+      // Paleta: blanco/negro, sin colores — estilo formulario oficial
+      const BLK    = '#000000';
+      const WHITE  = '#ffffff';
+      const LGRAY  = '#f0f0f0';  // fondo de cabeceras y sección
+      const ALT    = '#f8f8f8';  // filas alternas (apenas perceptible)
+      const MARK   = '#e0e0e0';  // fondo de celda marcada
 
-      // Dimensiones
-      const PAGE_W   = 841.89 - 56;  // A4 landscape - márgenes
-      const CRIT_W   = 205;
-      const HC_W     = (PAGE_W - CRIT_W) / nHC;
-      const SUB_W    = HC_W / 2;
-      const ROW_H    = 17;
-      const HEAD1_H  = 20;
-      const HEAD2_H  = 13;
-      const SEC_H    = 13;
-      let x0 = 28;
-      let y  = 28;
+      // Dimensiones — landscape A4 con márgenes 28
+      const PAGE_W  = 841.89 - 56;
+      const CRIT_W  = 200;
+      const HC_W    = (PAGE_W - CRIT_W) / nHC;
+      const SUB_W   = HC_W / 2;
+      const ROW_H   = 16;
+      // Tres sub-filas en la cabecera de la tabla; CRITERIOS abarca las tres
+      const H_NUM   = 18;   // fila N° H.C.
+      const H_NOM   = 13;   // fila nombre usuario
+      const H_CNC   = 12;   // fila C / NC
+      const H_TOT   = H_NUM + H_NOM + H_CNC;
+      const SEC_H   = 14;
+      const x0 = 28;
+      let   y  = 28;
 
-      // ── Título ────────────────────────────────────────────────────────────────
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000')
-        .text('VERIFICACIÓN ESTÁNDAR DE HISTORIA CLÍNICA Y REGISTROS ASISTENCIALES', x0, y, { width: PAGE_W, align: 'center' });
-      y += 13;
-      doc.fontSize(9).fillColor('#000000')
-        .text('ANEXO N° 4', x0, y, { width: PAGE_W, align: 'center' });
-      y += 16;
+      // ── Bloque de título (bordeado) ───────────────────────────────────────────
+      const TITLE_H = 40;
+      doc.lineWidth(0.8)
+        .rect(x0, y, PAGE_W, TITLE_H).stroke(BLK);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(BLK)
+        .text('VERIFICACIÓN ESTÁNDAR DE HISTORIA CLÍNICA Y REGISTROS ASISTENCIALES',
+              x0, y + 7, { width: PAGE_W, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(BLK)
+        .text('ANEXO N° 4', x0, y + 21, { width: PAGE_W, align: 'center' });
+      y += TITLE_H;
 
-      // pg puede retornar DATE como objeto Date o string; normalizamos a "YYYY-MM-DD" antes de split
+      // ── Línea SERVICIO / FECHA (bordeada, dentro del bloque) ─────────────────
+      const INFO_H = 16;
+      doc.lineWidth(0.8).rect(x0, y, PAGE_W, INFO_H).stroke(BLK);
+
+      // pg puede retornar DATE como objeto Date o string; normalizamos a "YYYY-MM-DD"
       const fechaIso = v.fecha instanceof Date
         ? v.fecha.toISOString().substring(0, 10)
         : String(v.fecha).substring(0, 10);
       const [fYear, fMonth, fDay] = fechaIso.split('-');
       const fechaLabel = `${fDay}/${fMonth}/${fYear}`;
 
-      doc.font('Helvetica').fontSize(8).fillColor('#000000')
-        .text(`SERVICIO: ${v.servicio}`, x0, y, { continued: true })
-        .text(`          FECHA: ${fechaLabel}`, { align: 'right', width: PAGE_W });
-      y += 14;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(BLK)
+        .text('SERVICIO: ', x0 + 6, y + 4, { continued: true });
+      doc.font('Helvetica').fillColor(BLK)
+        .text(v.servicio, { continued: true });
+      doc.font('Helvetica-Bold')
+        .text('    FECHA: ', { continued: true });
+      doc.font('Helvetica')
+        .text(fechaLabel, { align: 'right', width: PAGE_W - 12 });
+      y += INFO_H;
 
-      // ── Fila 1 encabezado: CRITERIOS | N°HC 1…n ───────────────────────────
-      doc.rect(x0, y, CRIT_W, HEAD1_H).fill(C_HEADER);
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#fff')
-        .text('CRITERIOS', x0, y + (HEAD1_H - 7) / 2, { width: CRIT_W, align: 'center' });
+      // ── Cabecera de tabla ─────────────────────────────────────────────────────
+      // Celda CRITERIOS — abarca las 3 sub-filas de cabecera
+      doc.lineWidth(0.5)
+        .rect(x0, y, CRIT_W, H_TOT).fillAndStroke(LGRAY, BLK);
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(BLK)
+        .text('CRITERIOS', x0, y + (H_TOT - 8) / 2, { width: CRIT_W, align: 'center' });
 
+      // Sub-fila 1: N° H.C.
       registros.forEach((reg, i) => {
         const hx = x0 + CRIT_W + i * HC_W;
-        doc.rect(hx, y, HC_W, HEAD1_H).fill(C_HEADER).stroke(C_BORDER);
-        const numLabel = `N° H.C. ${reg.numero_hc || (i + 1)}`;
-        doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#fff')
-          .text(numLabel, hx + 1, y + 2, { width: HC_W - 2, align: 'center' });
-        const nombre = (reg.nombre_usuario || '').substring(0, 22);
-        doc.font('Helvetica').fontSize(5.5).fillColor('#c5cae9')
-          .text(nombre, hx + 1, y + 11, { width: HC_W - 2, align: 'center' });
+        doc.rect(hx, y, HC_W, H_NUM).fillAndStroke(LGRAY, BLK);
+        doc.font('Helvetica-Bold').fontSize(7).fillColor(BLK)
+          .text(`N° H.C. ${reg.numero_hc || (i + 1)}`,
+                hx + 2, y + (H_NUM - 7) / 2, { width: HC_W - 4, align: 'center' });
       });
-      y += HEAD1_H;
 
-      // ── Fila 2 sub-encabezado: C / NC ────────────────────────────────────
-      doc.rect(x0, y, CRIT_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
+      // Sub-fila 2: nombre usuario
+      registros.forEach((reg, i) => {
+        const hx = x0 + CRIT_W + i * HC_W;
+        const hy = y + H_NUM;
+        doc.rect(hx, hy, HC_W, H_NOM).fillAndStroke(WHITE, BLK);
+        const nombre = (reg.nombre_usuario || '').substring(0, 24);
+        doc.font('Helvetica').fontSize(6).fillColor(BLK)
+          .text(nombre, hx + 2, hy + (H_NOM - 6) / 2, { width: HC_W - 4, align: 'center' });
+      });
+
+      // Sub-fila 3: C / NC
       registros.forEach((_, i) => {
         const hx = x0 + CRIT_W + i * HC_W;
-        doc.rect(hx,           y, SUB_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
-        doc.rect(hx + SUB_W,  y, SUB_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
-        doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
-          .text('C',  hx,          y + 3, { width: SUB_W, align: 'center' });
-        doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
-          .text('NC', hx + SUB_W, y + 3, { width: SUB_W, align: 'center' });
+        const hy = y + H_NUM + H_NOM;
+        doc.rect(hx,          hy, SUB_W, H_CNC).fillAndStroke(LGRAY, BLK);
+        doc.rect(hx + SUB_W, hy, SUB_W, H_CNC).fillAndStroke(LGRAY, BLK);
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(BLK)
+          .text('C',  hx,          hy + (H_CNC - 7.5) / 2, { width: SUB_W, align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(BLK)
+          .text('NC', hx + SUB_W, hy + (H_CNC - 7.5) / 2, { width: SUB_W, align: 'center' });
       });
-      y += HEAD2_H;
+      y += H_TOT;
 
-      // ── Encabezado de sección ───────────────────────────────────────────────
-      doc.rect(x0, y, PAGE_W, SEC_H).fill(C_SEC).stroke(C_BORDER);
-      doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
-        .text('CONTENIDOS MÍNIMOS DE IDENTIFICACIÓN', x0 + 4, y + 3, { width: PAGE_W - 8 });
+      // ── Fila de sección ───────────────────────────────────────────────────────
+      doc.rect(x0, y, PAGE_W, SEC_H).fillAndStroke(LGRAY, BLK);
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(BLK)
+        .text('CONTENIDOS MÍNIMOS DE IDENTIFICACIÓN',
+              x0 + 6, y + (SEC_H - 7.5) / 2, { width: PAGE_W - 12 });
       y += SEC_H;
 
-      // ── Filas de criterios ───────────────────────────────────────────────────
+      // ── Filas de criterios ────────────────────────────────────────────────────
       CRITERIOS_IDENTIFICACION.forEach((crit, ci) => {
-        const rowBg = ci % 2 === 0 ? '#fff' : C_ALT;
+        const rowBg = ci % 2 === 0 ? WHITE : ALT;
 
-        // Celda criterio
-        doc.rect(x0, y, CRIT_W, ROW_H).fill(rowBg).stroke(C_BORDER);
-        doc.font('Helvetica').fontSize(6.8).fillColor('#000000')
-          .text(crit.label, x0 + 4, y + (ROW_H - 7) / 2, { width: CRIT_W - 8 });
+        // Celda del criterio (columna izquierda)
+        doc.rect(x0, y, CRIT_W, ROW_H).fillAndStroke(rowBg, BLK);
+        doc.font('Helvetica').fontSize(6.8).fillColor(BLK)
+          .text(crit.label, x0 + 5, y + (ROW_H - 7) / 2, { width: CRIT_W - 10 });
 
-        // Celdas C / NC por cada HC
+        // Celdas C / NC para cada HC
         registros.forEach((reg, i) => {
           const hx  = x0 + CRIT_W + i * HC_W;
           const val = reg.criterios?.[crit.key] ?? null;
 
           // C
           doc.rect(hx, y, SUB_W, ROW_H)
-            .fill(val === 'C' ? C_C_BG : rowBg).stroke(C_BORDER);
+            .fillAndStroke(val === 'C' ? MARK : rowBg, BLK);
           if (val === 'C') {
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(C_C_TXT)
+            doc.font('Helvetica-Bold').fontSize(9).fillColor(BLK)
               .text('✓', hx, y + (ROW_H - 9) / 2, { width: SUB_W, align: 'center' });
           }
 
           // NC
           doc.rect(hx + SUB_W, y, SUB_W, ROW_H)
-            .fill(val === 'NC' ? C_NC_BG : rowBg).stroke(C_BORDER);
+            .fillAndStroke(val === 'NC' ? MARK : rowBg, BLK);
           if (val === 'NC') {
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(C_NC_TXT)
+            doc.font('Helvetica-Bold').fontSize(9).fillColor(BLK)
               .text('✗', hx + SUB_W, y + (ROW_H - 9) / 2, { width: SUB_W, align: 'center' });
           }
         });
@@ -283,16 +305,19 @@ export class Anexo4Service {
         y += ROW_H;
       });
 
-      // ── Observaciones ────────────────────────────────────────────────────────
+      // ── Observaciones ─────────────────────────────────────────────────────────
       if (v.observaciones) {
-        y += 10;
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#333')
-          .text('Observaciones: ', x0, y, { continued: true })
-          .font('Helvetica').text(v.observaciones, { width: PAGE_W });
+        y += 8;
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(BLK)
+          .text('Observaciones: ', x0, y, { continued: true });
+        doc.font('Helvetica').fillColor(BLK)
+          .text(v.observaciones, { width: PAGE_W });
+        y += 12;
+      } else {
+        y += 8;
       }
 
-      // ── Resumen numérico ─────────────────────────────────────────────────────
-      y += 14;
+      // ── Resumen numérico ──────────────────────────────────────────────────────
       const total = CRITERIOS_IDENTIFICACION.length * nHC;
       let totalC = 0, totalNC = 0;
       registros.forEach(reg => {
@@ -303,19 +328,22 @@ export class Anexo4Service {
         });
       });
       const pct = total > 0 ? Math.round((totalC / total) * 100) : 0;
-      doc.font('Helvetica').fontSize(7.5).fillColor('#000000')
-        .text(`Resumen: ${totalC} conformes · ${totalNC} no conformes · ${total - totalC - totalNC} sin evaluar · Cumplimiento: ${pct}%`, x0, y, { width: PAGE_W, align: 'right' });
+      doc.font('Helvetica').fontSize(7.5).fillColor(BLK)
+        .text(
+          `Resumen: ${totalC} conformes · ${totalNC} no conformes · ${total - totalC - totalNC} sin evaluar · Cumplimiento: ${pct}%`,
+          x0, y, { width: PAGE_W, align: 'right' },
+        );
 
-      // ── Pie de página ────────────────────────────────────────────────────────
+      // ── Pie de página ─────────────────────────────────────────────────────────
       const footerY = 595.28 - 28 - 10;
       const generadoEn = new Date().toLocaleString('es-CO', {
         timeZone: 'America/Bogota',
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       });
-      doc.font('Helvetica').fontSize(6).fillColor('#aaa')
+      doc.font('Helvetica').fontSize(6).fillColor('#888888')
         .text(
-          `HabilitaPro — Anexo 4 Verificación H.C. · Generado el ${generadoEn} (hora Colombia)`,
+          `HabilitaPro · Anexo N° 4 — Verificación Historia Clínica · Generado: ${generadoEn} (hora Colombia)`,
           x0, footerY, { width: PAGE_W, align: 'center' },
         );
 
