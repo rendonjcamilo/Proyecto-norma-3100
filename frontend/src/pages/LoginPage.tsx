@@ -99,7 +99,7 @@ export const LoginPage: React.FC = () => {
 
           <p className="lp-hero-subtitle">
             Plataforma de autoevaluación y auditoría para prestadores
-            de servicios de salud bajo la Norma 3100.
+            de servicios de salud bajo la Resolución 3100.
           </p>
 
           <div className="lp-features">
