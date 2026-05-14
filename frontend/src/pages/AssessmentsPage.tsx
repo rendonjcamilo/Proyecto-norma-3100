@@ -187,6 +187,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
   const handleProviderChange = async (newProviderId: string) => {
     setFormData((prev) => ({ ...prev, providerId: newProviderId, serviceId: '' }));
+    setSelectedServiceIds(new Set());
     if (!newProviderId) {
       setServices([]);
       setServicesFiltered(false);
@@ -202,6 +203,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         if (provServices.length === 1) {
           setFormData((prev) => ({ ...prev, providerId: newProviderId, serviceId: provServices[0].id }));
         }
+        // Auto-seleccionar los servicios habilitados del prestador en los checkboxes de evaluación
+        setSelectedServiceIds(new Set(provServices.map((s: { id: string }) => s.id)));
       } else {
         setServicesFiltered(false);
         const svcData = await servicesApi.getAll();
@@ -355,7 +358,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
 
             const getServiceName = (serviceId: string) => {
               const service = services.find(s => s.id === serviceId);
-              return service?.name || '—';
+              return service?.name || '';
             };
 
             const getProviderName = (assessment: any) => {
@@ -423,7 +426,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         <div className="prov-card-name assm-title">
                           {a.title || a.service_name || getServiceName(a.service_id) || '—'}
                         </div>
-                        {a.title && (a.service_name || getServiceName(a.service_id) !== '—') && (
+                        {a.title && !!(a.service_name || getServiceName(a.service_id)) && (
                           <div style={{ fontSize: '11px', color: '#6b778c', marginTop: '-4px', marginBottom: '4px' }}>
                             {a.service_name || getServiceName(a.service_id)}
                           </div>
@@ -448,7 +451,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                           </div>
                           <div className="prov-info-row">
                             <span className="prov-info-label">Servicio</span>
-                            <span className="prov-info-value assm-truncate">{a.service_name || getServiceName(a.service_id)}</span>
+                            <span className="prov-info-value assm-truncate">{a.service_name || getServiceName(a.service_id) || 'Estándares transversales'}</span>
                           </div>
                           <div className="prov-info-row">
                             <span className="prov-info-label">Tipo</span>
