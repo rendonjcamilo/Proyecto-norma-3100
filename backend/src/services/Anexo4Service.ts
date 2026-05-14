@@ -47,6 +47,7 @@ export interface Anexo4Verificacion {
   auditor_nombre?: string | null;
   registros: HCRegistro[];
   observaciones: string | null;
+  assessment_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -79,17 +80,32 @@ export class Anexo4Service {
     return rows[0] ?? null;
   }
 
+  async getByAssessmentId(assessmentId: string): Promise<Anexo4Verificacion | null> {
+    const { rows } = await this.pool.query<Anexo4Verificacion>(
+      `SELECT a.*,
+              COALESCE(u.first_name || ' ' || u.last_name, 'Auditor') AS auditor_nombre
+       FROM   anexo4_verificaciones a
+       LEFT JOIN users u ON u.id = a.auditor_id
+       WHERE  a.assessment_id = $1
+       ORDER BY a.created_at DESC
+       LIMIT 1`,
+      [assessmentId],
+    );
+    return rows[0] ?? null;
+  }
+
   async create(data: {
     servicio: string;
     fecha: string;
     auditor_id: string;
     registros: HCRegistro[];
     observaciones?: string | null;
+    assessment_id?: string | null;
   }): Promise<Anexo4Verificacion> {
     const { rows } = await this.pool.query<Anexo4Verificacion>(
       `INSERT INTO anexo4_verificaciones
-         (servicio, fecha, auditor_id, registros, observaciones)
-       VALUES ($1, $2, $3, $4::jsonb, $5)
+         (servicio, fecha, auditor_id, registros, observaciones, assessment_id)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
        RETURNING *`,
       [
         data.servicio,
@@ -97,6 +113,7 @@ export class Anexo4Service {
         data.auditor_id,
         JSON.stringify(data.registros),
         data.observaciones ?? null,
+        data.assessment_id ?? null,
       ],
     );
     return rows[0];

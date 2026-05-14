@@ -44,7 +44,7 @@ export function createAnexo4Router(pool: Pool): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
-        const { servicio, fecha, registros, observaciones } = req.body as Record<string, unknown>;
+        const { servicio, fecha, registros, observaciones, assessment_id } = req.body as Record<string, unknown>;
 
         if (!servicio || typeof servicio !== 'string') {
           return res.status(400).json({ error: 'servicio es requerido' });
@@ -65,12 +65,34 @@ export function createAnexo4Router(pool: Pool): Router {
           auditor_id: req.user!.user_id,
           registros,
           observaciones: typeof observaciones === 'string' ? observaciones : null,
+          assessment_id: typeof assessment_id === 'string' ? assessment_id : null,
         });
 
         res.status(201).json({ data });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error({ msg: 'Error creando anexo4', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    },
+  );
+
+  /**
+   * GET /api/anexo4/by-assessment/:assessmentId
+   * Obtiene la verificación H.C. vinculada a una auditoría específica.
+   * Debe ir ANTES de /anexo4/:id para que Express no trate "by-assessment" como un :id.
+   */
+  router.get(
+    '/anexo4/by-assessment/:assessmentId',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const data = await service.getByAssessmentId(req.params.assessmentId);
+        res.json({ data: data ?? null });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error({ msg: 'Error obteniendo anexo4 by-assessment', error: msg });
         res.status(500).json({ error: msg });
       }
     },

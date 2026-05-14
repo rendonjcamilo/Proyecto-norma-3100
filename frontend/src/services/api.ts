@@ -1170,6 +1170,7 @@ export interface Anexo4Verificacion {
   auditor_nombre?: string | null;
   registros: HCRegistro[];
   observaciones: string | null;
+  assessment_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1181,7 +1182,10 @@ export const anexo4Api = {
   getById: (id: string) =>
     get<{ data: Anexo4Verificacion }>(`/api/anexo4/${id}`),
 
-  create: (body: { servicio: string; fecha: string; registros: HCRegistro[]; observaciones?: string }) =>
+  getByAssessmentId: (assessmentId: string) =>
+    get<{ data: Anexo4Verificacion | null }>(`/api/anexo4/by-assessment/${assessmentId}`),
+
+  create: (body: { servicio: string; fecha: string; registros: HCRegistro[]; observaciones?: string; assessment_id?: string }) =>
     post<{ data: Anexo4Verificacion }>('/api/anexo4', body),
 
   update: (id: string, body: { servicio?: string; fecha?: string; registros?: HCRegistro[]; observaciones?: string }) =>

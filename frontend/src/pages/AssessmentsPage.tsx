@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { assessmentsApi, servicesApi, providerServicesApi, providersApi, type Assessment, type HealthService, type EvaluableService } from '../services/api';
+import { assessmentsApi, servicesApi, providerServicesApi, providersApi, anexo4Api, type Assessment, type HealthService, type EvaluableService } from '../services/api';
 import { useRolePermission } from '../hooks/useRolePermission';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '@/utils/dateFormat';
@@ -60,7 +60,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     title: '',
     type: 'initial',
     serviceId: '',
-    providerId: providerId || ''
+    providerId: providerId || '',
+    includeHC: false,
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadingProviderServices, setLoadingProviderServices] = useState(false);
@@ -614,8 +615,25 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 });
                 firstAssessmentId = res.data?.id || null;
 
+                // Si el auditor marcó "Incluir Verificación H.C.", crear borrador de Anexo 4 vinculado
+                if (firstAssessmentId && formData.includeHC) {
+                  const today = new Date().toISOString().split('T')[0];
+                  const servicioLabel = svcs.length > 0 ? svcs[0]!.name : baseTitle;
+                  const emptyRegistro = { numero_hc: '1', nombre_usuario: '', criterios: {} };
+                  try {
+                    await anexo4Api.create({
+                      servicio: servicioLabel,
+                      fecha: today,
+                      registros: [emptyRegistro],
+                      assessment_id: firstAssessmentId,
+                    });
+                  } catch {
+                    // No bloquear la creación de la auditoría si falla el borrador de HC
+                  }
+                }
+
                 setShowCreateModal(false);
-                setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '' });
+                setFormData({ title: '', type: 'initial', serviceId: '', providerId: providerId || '', includeHC: false });
                 setSelectedServiceIds(new Set());
 
                 // Navegar a la evaluación transversal recién creada
@@ -777,6 +795,37 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                   )}
                 </div>
               </div>
+
+              {/* Verificación H.C. — solo visible para auditores */}
+              {user?.role === 'auditor' || user?.role === 'super_admin' ? (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                    Documentos adicionales
+                  </label>
+                  <label style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '10px',
+                    padding: '10px 12px', cursor: 'pointer',
+                    background: formData.includeHC ? '#f5f3ff' : '#fafafa',
+                    border: formData.includeHC ? '1px solid #c4b5fd' : '1px solid #e5e7eb',
+                    borderRadius: '6px', transition: 'all 0.15s',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.includeHC}
+                      onChange={(e) => setFormData({ ...formData, includeHC: e.target.checked })}
+                      style={{ marginTop: '2px', accentColor: '#6255A0', cursor: 'pointer' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: formData.includeHC ? '#6255A0' : '#374151' }}>
+                        Verificación Historia Clínica — Anexo N° 4
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                        Incluye formulario de verificación de contenidos mínimos de identificación (Res. 1439/2002)
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              ) : null}
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '4px', fontWeight: 500 }}>{user?.role === 'auditor' ? 'Tipo de Auditoría' : 'Tipo de Evaluación'}</label>

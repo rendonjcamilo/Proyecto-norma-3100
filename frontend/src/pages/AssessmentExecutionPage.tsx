@@ -9,12 +9,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AssessmentForm from '../components/Assessment/AssessmentForm';
+import { AnexoCuatroEmbed } from '../components/Assessment/AnexoCuatroEmbed';
 import {
   assessmentsApi,
   questionnairesApi,
+  anexo4Api,
   type Assessment,
   type AssessmentResponse,
   type QuestionnaireCriterion,
+  type Anexo4Verificacion,
 } from '../services/api';
 
 // ─── Tipos internos del formulario ───────────────────────────────────────────
@@ -171,6 +174,8 @@ export const AssessmentExecutionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'assessment' | 'hc'>('assessment');
+  const [hcVerificacion, setHcVerificacion] = useState<Anexo4Verificacion | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -235,6 +240,15 @@ export const AssessmentExecutionPage: React.FC = () => {
             const grouped = groupCriteriaByStandard(questionnaireRes.data.criteria);
             setStandards(grouped);
           }
+        }
+        // 3. Verificar si hay una Verificación H.C. (Anexo 4) vinculada
+        try {
+          const hcRes = await anexo4Api.getByAssessmentId(id);
+          if (hcRes.data) {
+            setHcVerificacion(hcRes.data);
+          }
+        } catch {
+          // Sin HC vinculada — no es error bloqueante
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error al cargar la evaluación';
@@ -356,26 +370,55 @@ export const AssessmentExecutionPage: React.FC = () => {
         </div>
       )}
 
+      {/* Tabs — solo si hay Verificación H.C. vinculada */}
+      {hcVerificacion && (
+        <div style={styles.tabBar}>
+          <button
+            style={{ ...styles.tabBtn, ...(activeTab === 'assessment' ? styles.tabBtnActive : {}) }}
+            onClick={() => setActiveTab('assessment')}
+          >
+            📋 Evaluación
+          </button>
+          <button
+            style={{ ...styles.tabBtn, ...(activeTab === 'hc' ? styles.tabBtnActive : {}) }}
+            onClick={() => setActiveTab('hc')}
+          >
+            🏥 Verificación H.C.
+          </button>
+        </div>
+      )}
+
       {/* Formulario principal */}
-      <AssessmentForm
-        assessment={{
-          id: assessment.id,
-          providerId: assessment.provider_id,
-          serviceId: assessment.service_id,
-          serviceName: assessment.service_name ?? undefined,
-          questionnaireId: assessment.questionnaire_id,
-          assessmentVersion: assessment.assessment_version,
-          status: (assessment.status as 'in_progress' | 'submitted' | 'locked') ?? 'in_progress',
-          startedDate: assessment.started_date ?? assessment.created_at,
-          compliancePercent: assessment.compliance_percent ?? 0,
-          semaforo: assessment.semaforo ?? 'rojo',
-        }}
-        questionnaiireData={{ standards }}
-        initialResponses={initialResponses}
-        onSave={isReadOnly ? undefined : handleSave}
-        onSubmit={isReadOnly ? undefined : handleSubmit}
-        readOnly={isReadOnly}
-      />
+      {activeTab === 'assessment' && (
+        <AssessmentForm
+          assessment={{
+            id: assessment.id,
+            providerId: assessment.provider_id,
+            serviceId: assessment.service_id,
+            serviceName: assessment.service_name ?? undefined,
+            questionnaireId: assessment.questionnaire_id,
+            assessmentVersion: assessment.assessment_version,
+            status: (assessment.status as 'in_progress' | 'submitted' | 'locked') ?? 'in_progress',
+            startedDate: assessment.started_date ?? assessment.created_at,
+            compliancePercent: assessment.compliance_percent ?? 0,
+            semaforo: assessment.semaforo ?? 'rojo',
+          }}
+          questionnaiireData={{ standards }}
+          initialResponses={initialResponses}
+          onSave={isReadOnly ? undefined : handleSave}
+          onSubmit={isReadOnly ? undefined : handleSubmit}
+          readOnly={isReadOnly}
+        />
+      )}
+
+      {/* Tab Verificación Historia Clínica */}
+      {activeTab === 'hc' && hcVerificacion && (
+        <AnexoCuatroEmbed
+          verificacionId={hcVerificacion.id}
+          readOnly={isReadOnly}
+          onUpdated={(updated) => setHcVerificacion(updated)}
+        />
+      )}
     </div>
   );
 };
@@ -487,5 +530,30 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     marginBottom: 20,
     fontWeight: 500,
+  },
+  tabBar: {
+    display: 'flex',
+    gap: 4,
+    marginBottom: 20,
+    borderBottom: '2px solid #e5e7eb',
+    paddingBottom: 0,
+  },
+  tabBtn: {
+    padding: '8px 20px',
+    border: 'none',
+    background: 'none',
+    cursor: 'pointer',
+    fontSize: 14,
+    fontWeight: 500,
+    color: '#6b7280',
+    borderBottom: '2px solid transparent',
+    marginBottom: '-2px',
+    borderRadius: '4px 4px 0 0',
+    transition: 'color 0.15s, border-color 0.15s',
+  },
+  tabBtnActive: {
+    color: '#6255A0',
+    borderBottom: '2px solid #6255A0',
+    fontWeight: 600,
   },
 };
