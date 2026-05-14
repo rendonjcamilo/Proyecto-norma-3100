@@ -237,6 +237,27 @@ export class ReportService {
     });
   }
 
+  private translateSeverity(s: string): string {
+    const map: Record<string, string> = {
+      critical: 'Crítica', critica: 'Crítica',
+      high: 'Alta', alta: 'Alta',
+      medium: 'Media', media: 'Media',
+      low: 'Baja', baja: 'Baja',
+    };
+    return map[s.toLowerCase()] ?? s;
+  }
+
+  private translateStatus(s: string): string {
+    const map: Record<string, string> = {
+      open: 'Abierto',
+      in_progress: 'En Progreso',
+      resolved: 'Resuelto',
+      closed: 'Cerrado',
+      cerrada: 'Cerrado',
+    };
+    return map[s.toLowerCase()] ?? s;
+  }
+
   private renderPdfContent(doc: PDFKit.PDFDocument, data: ComplianceReportData): void {
     const pageWidth = doc.page.width - 100;
 
@@ -413,10 +434,11 @@ export class ReportService {
         doc.text(title, 55, y + 6, { width: 280 });
 
         const sevColor =
-          f.severity === 'critical' ? COLORS.danger : f.severity === 'high' ? COLORS.warning : COLORS.muted;
-        doc.fillColor(sevColor).font('Helvetica-Bold').text(f.severity.toUpperCase(), 340, y + 6);
+          f.severity === 'critical' || f.severity === 'critica' ? COLORS.danger :
+          f.severity === 'high'     || f.severity === 'alta'    ? COLORS.warning : COLORS.muted;
+        doc.fillColor(sevColor).font('Helvetica-Bold').text(this.translateSeverity(f.severity), 340, y + 6);
         doc.fillColor(COLORS.text).font('Helvetica').text(Math.round(f.riskScore).toString(), 415, y + 6);
-        doc.text(f.status, 470, y + 6, { width: 80 });
+        doc.text(this.translateStatus(f.status), 470, y + 6, { width: 80 });
         y += 22;
       });
     }
