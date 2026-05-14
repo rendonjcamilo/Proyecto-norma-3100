@@ -201,8 +201,11 @@ export class Anexo4Service {
         .text('ANEXO N° 4', x0, y, { width: PAGE_W, align: 'center' });
       y += 16;
 
-      // Formatear fecha de forma segura independiente del tipo que devuelva pg (string o Date)
-      const [fYear, fMonth, fDay] = String(v.fecha).substring(0, 10).split('-');
+      // pg puede retornar DATE como objeto Date o string; normalizamos a "YYYY-MM-DD" antes de split
+      const fechaIso = v.fecha instanceof Date
+        ? v.fecha.toISOString().substring(0, 10)
+        : String(v.fecha).substring(0, 10);
+      const [fYear, fMonth, fDay] = fechaIso.split('-');
       const fechaLabel = `${fDay}/${fMonth}/${fYear}`;
 
       doc.font('Helvetica').fontSize(8).fillColor('#222')
@@ -305,9 +308,14 @@ export class Anexo4Service {
 
       // ── Pie de página ────────────────────────────────────────────────────────
       const footerY = 595.28 - 28 - 10;
+      const generadoEn = new Date().toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
       doc.font('Helvetica').fontSize(6).fillColor('#aaa')
         .text(
-          `HabilitaPro — Anexo 4 Verificación H.C. · Generado el ${new Date().toLocaleDateString('es-CO')}`,
+          `HabilitaPro — Anexo 4 Verificación H.C. · Generado el ${generadoEn} (hora Colombia)`,
           x0, footerY, { width: PAGE_W, align: 'center' },
         );
 
