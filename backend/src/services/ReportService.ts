@@ -687,22 +687,29 @@ export class ReportService {
       y += 20;
 
       data.topFindings.forEach((f, idx) => {
-        if (y > 720) {
+        // Calcular altura dinámica según el texto real del hallazgo
+        doc.fontSize(9).font('Helvetica');
+        const titleH = doc.heightOfString(f.title, { width: 305 });
+        const rowH = Math.max(22, titleH + 12);
+
+        if (y + rowH > 720) {
           doc.addPage();
           y = 50;
         }
         const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
-        doc.rect(50, y, pageWidth, 22).fill(bg);
-        doc.fillColor(COLORS.text).fontSize(9).font('Helvetica');
-        const title = f.title.length > 55 ? f.title.substring(0, 55) + '...' : f.title;
-        doc.text(title, 55, y + 6, { width: 280 });
+        doc.rect(50, y, pageWidth, rowH).fill(bg);
+
+        doc.fillColor(COLORS.text).fontSize(9).font('Helvetica')
+          .text(f.title, 55, y + 6, { width: 305 });
 
         const sevColor =
           f.severity === 'critical' || f.severity === 'critica' ? COLORS.danger :
           f.severity === 'high'     || f.severity === 'alta'    ? COLORS.warning : COLORS.muted;
-        doc.fillColor(sevColor).font('Helvetica-Bold').text(this.translateSeverity(f.severity), 370, y + 6, { width: 80 });
-        doc.fillColor(COLORS.text).font('Helvetica').text(this.translateStatus(f.status), 455, y + 6, { width: 95 });
-        y += 22;
+        doc.fillColor(sevColor).font('Helvetica-Bold')
+          .text(this.translateSeverity(f.severity), 370, y + 6, { width: 80 });
+        doc.fillColor(COLORS.text).font('Helvetica')
+          .text(this.translateStatus(f.status), 455, y + 6, { width: 95 });
+        y += rowH;
       });
     }
 
