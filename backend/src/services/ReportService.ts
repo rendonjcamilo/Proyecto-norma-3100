@@ -331,21 +331,6 @@ export class ReportService {
         y + 35
       );
 
-    // Risk score on the right
-    doc
-      .fillColor(COLORS.text)
-      .fontSize(11)
-      .font('Helvetica-Bold')
-      .text('Riesgo Promedio', 380, y + 18);
-    doc
-      .fontSize(24)
-      .text(Math.round(data.metrics.averageRiskScore).toString(), 380, y + 32);
-    doc
-      .fillColor(COLORS.muted)
-      .fontSize(9)
-      .font('Helvetica')
-      .text('/100', 420, y + 45);
-
     y += 80;
 
     // === FINDINGS BREAKDOWN ===
@@ -416,10 +401,9 @@ export class ReportService {
       // Table header
       doc.rect(50, y, pageWidth, 20).fill(COLORS.primary);
       doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold');
-      doc.text('Hallazgo', 55, y + 6, { width: 280 });
-      doc.text('Severidad', 340, y + 6, { width: 70 });
-      doc.text('Riesgo', 415, y + 6, { width: 50 });
-      doc.text('Estado', 470, y + 6, { width: 80 });
+      doc.text('Hallazgo', 55, y + 6, { width: 310 });
+      doc.text('Severidad', 370, y + 6, { width: 80 });
+      doc.text('Estado', 455, y + 6, { width: 95 });
       y += 20;
 
       data.topFindings.forEach((f, idx) => {
@@ -436,9 +420,8 @@ export class ReportService {
         const sevColor =
           f.severity === 'critical' || f.severity === 'critica' ? COLORS.danger :
           f.severity === 'high'     || f.severity === 'alta'    ? COLORS.warning : COLORS.muted;
-        doc.fillColor(sevColor).font('Helvetica-Bold').text(this.translateSeverity(f.severity), 340, y + 6);
-        doc.fillColor(COLORS.text).font('Helvetica').text(Math.round(f.riskScore).toString(), 415, y + 6);
-        doc.text(this.translateStatus(f.status), 470, y + 6, { width: 80 });
+        doc.fillColor(sevColor).font('Helvetica-Bold').text(this.translateSeverity(f.severity), 370, y + 6, { width: 80 });
+        doc.fillColor(COLORS.text).font('Helvetica').text(this.translateStatus(f.status), 455, y + 6, { width: 95 });
         y += 22;
       });
     }
