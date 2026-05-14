@@ -251,7 +251,7 @@ export class ReportService {
       .fillColor(COLORS.muted)
       .fontSize(12)
       .font('Helvetica')
-      .text('Norma 3100 de 2019 - Ministerio de Salud de Colombia', 50, 80);
+      .text('Resolución 3100 de 2019 - Ministerio de Salud de Colombia', 50, 80);
 
     // Horizontal rule
     doc
@@ -266,15 +266,20 @@ export class ReportService {
     doc.fillColor(COLORS.text).fontSize(14).font('Helvetica-Bold').text('Información del Prestador', 50, y);
     y += 22;
     doc.fontSize(10).font('Helvetica');
+    const fechaBogota = data.generatedAt.toLocaleString('es-CO', {
+      timeZone: 'America/Bogota',
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
     doc.text(`Razón Social: ${data.provider.legal_name}`, 50, y);
     y += 15;
-    doc.text(`RUT: ${data.provider.rut}`, 50, y);
+    doc.text(`CC/NIT: ${data.provider.rut}`, 50, y);
     y += 15;
     doc.text(`Ubicación: ${data.provider.city}, ${data.provider.department}`, 50, y);
     y += 15;
-    doc.text(`Fecha de Generación: ${data.generatedAt.toLocaleString('es-CO')}`, 50, y);
+    doc.text(`Fecha de Generación: ${fechaBogota}`, 50, y);
     y += 15;
-    doc.text(`Generado por: ${data.generatedBy}`, 50, y);
+    doc.text('Generado por: HabilitaPro', 50, y);
     y += 30;
 
     // === COMPLIANCE METRICS ===
@@ -429,7 +434,7 @@ export class ReportService {
       .fontSize(8)
       .font('Helvetica')
       .text(
-        `Generado el ${data.generatedAt.toLocaleString('es-CO')} · Sistema de Gestión Norma 3100 · Página ${doc.bufferedPageRange().start + doc.bufferedPageRange().count}`,
+        `Generado el ${data.generatedAt.toLocaleString('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} · HabilitaPro · Resolución 3100 de 2019 · Página ${doc.bufferedPageRange().start + doc.bufferedPageRange().count}`,
         50,
         footerY + 10,
         { width: pageWidth, align: 'center' }
@@ -893,43 +898,72 @@ export class ReportService {
           y += 24;
         });
 
-        // ── TABLA SERVICIO ESPECÍFICO (solo si hay criterios de servicio) ──
+        // ── TABLA SERVICIO ESPECÍFICO (ionizantes y NO ionizantes separados) ──
         if (data.estandaresServicio.length > 0) {
-          y += 20;
-          if (y > 650) { doc.addPage(); y = 50; }
-
-          const svcLabel = data.servicio
+          const ionizSvc = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
+          const noIonizSvc = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
+          const tieneNISvc = noIonizSvc.length > 0;
+          const svcBase = data.servicio
             ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
             : 'SERVICIO ESPECÍFICO';
-          doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
-            .text(`RESULTADOS POR ESTÁNDAR — ${svcLabel}`, 50, y);
-          y += 25;
 
-          doc.rect(50, y, W, 20).fill(COLORS.primary);
-          doc.fillColor('#fff').fontSize(9).font('Helvetica-Bold');
-          doc.text('Estándar', 58, y + 6, { width: 200 });
-          doc.text('C', 268, y + 6, { width: 30, align: 'center' });
-          doc.text('NC', 305, y + 6, { width: 30, align: 'center' });
-          doc.text('% Cumpl.', 348, y + 6, { width: 60, align: 'center' });
-          doc.text('Semáforo', 414, y + 6, { width: 70, align: 'center' });
-          y += 20;
+          const renderSvcTable = (grupos: typeof data.estandaresServicio, titulo: string) => {
+            y += 20;
+            if (y > 650) { doc.addPage(); y = 50; }
+            doc.fillColor(COLORS.primary).fontSize(14).font('Helvetica-Bold')
+              .text(`RESULTADOS POR ESTÁNDAR — ${titulo}`, 50, y);
+            y += 25;
 
-          data.estandaresServicio.forEach((est, idx) => {
+            doc.rect(50, y, W, 20).fill(COLORS.primary);
+            doc.fillColor('#fff').fontSize(9).font('Helvetica-Bold');
+            doc.text('Estándar', 58, y + 6, { width: 200 });
+            doc.text('C', 268, y + 6, { width: 30, align: 'center' });
+            doc.text('NC', 305, y + 6, { width: 30, align: 'center' });
+            doc.text('% Cumpl.', 348, y + 6, { width: 60, align: 'center' });
+            doc.text('Semáforo', 414, y + 6, { width: 70, align: 'center' });
+            y += 20;
+
+            grupos.forEach((est, idx) => {
+              if (y > 700) { doc.addPage(); y = 50; }
+              const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
+              doc.rect(50, y, W, 24).fill(bg);
+              const esNA = est.semaforo === 'na';
+              const semColor = est.semaforo === 'verde' ? COLORS.success :
+                est.semaforo === 'naranja' ? COLORS.warning :
+                est.semaforo === 'na' ? COLORS.muted : COLORS.danger;
+              doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
+                .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
+              doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
+              doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
+              doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 348, y + 7, { width: 60, align: 'center' });
+              doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 414, y + 7, { width: 70, align: 'center' });
+              y += 24;
+            });
+
+            // Fila de subtotal
             if (y > 700) { doc.addPage(); y = 50; }
-            const bg = idx % 2 === 0 ? '#ffffff' : COLORS.bg;
-            doc.rect(50, y, W, 24).fill(bg);
-            const esNA = est.semaforo === 'na';
-            const semColor = est.semaforo === 'verde' ? COLORS.success :
-              est.semaforo === 'naranja' ? COLORS.warning :
-              est.semaforo === 'na' ? COLORS.muted : COLORS.danger;
+            const subC = grupos.reduce((s, e) => s + e.cumple, 0);
+            const subNC = grupos.reduce((s, e) => s + e.noCumple, 0);
+            const subApl = subC + subNC;
+            const subPct = subApl > 0 ? Math.round((subC / subApl) * 100) : 0;
+            const subSemColor = subPct >= 80 ? COLORS.success : subPct >= 50 ? COLORS.warning : COLORS.danger;
+            const subSemLabel = subPct >= 80 ? 'VERDE' : subPct >= 50 ? 'NARANJA' : 'ROJO';
+            doc.rect(50, y, W, 24).fill(COLORS.bg);
             doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
-              .text(`${est.codigo} — ${est.nombre}`, 58, y + 7, { width: 200 });
-            doc.font('Helvetica').fillColor(COLORS.success).text(est.cumple.toString(), 268, y + 7, { width: 30, align: 'center' });
-            doc.fillColor(COLORS.danger).text(est.noCumple.toString(), 305, y + 7, { width: 30, align: 'center' });
-            doc.fillColor(COLORS.text).font('Helvetica-Bold').text(esNA ? 'N/A' : `${est.porcentajeCumplimiento}%`, 348, y + 7, { width: 60, align: 'center' });
-            doc.fillColor(semColor).text(esNA ? 'NO APLICA' : est.semaforo.toUpperCase(), 414, y + 7, { width: 70, align: 'center' });
+              .text(tieneNISvc ? 'SUBTOTAL' : 'TOTAL GENERAL', 58, y + 7, { width: 200 });
+            doc.fillColor(COLORS.success).font('Helvetica').text(subC.toString(), 268, y + 7, { width: 30, align: 'center' });
+            doc.fillColor(COLORS.danger).text(subNC.toString(), 305, y + 7, { width: 30, align: 'center' });
+            doc.fillColor(COLORS.text).font('Helvetica-Bold').text(`${subPct}%`, 348, y + 7, { width: 60, align: 'center' });
+            doc.fillColor(subSemColor).text(subSemLabel, 414, y + 7, { width: 70, align: 'center' });
             y += 24;
-          });
+          };
+
+          if (!tieneNISvc) {
+            renderSvcTable(ionizSvc, svcBase);
+          } else {
+            renderSvcTable(ionizSvc, `${svcBase} — Radiaciones Ionizantes`);
+            renderSvcTable(noIonizSvc, `${svcBase} — Radiaciones NO Ionizantes`);
+          }
         }
 
         // ── HALLAZGOS POR ESTÁNDAR ───────────────────────────────
@@ -963,41 +997,52 @@ export class ReportService {
           y += 8;
         });
 
-        // ── HALLAZGOS SERVICIO ESPECÍFICO (solo si hay hallazgos) ────────
+        // ── HALLAZGOS SERVICIO ESPECÍFICO (ionizantes y NO ionizantes separados) ────────
         if (data.estandaresServicio.some(e => e.hallazgos.length > 0)) {
-          y += 20;
-          if (y > 650) { doc.addPage(); y = 50; }
-
-          const svcLabel2 = data.servicio
+          const ionizHall = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
+          const noIonizHall = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
+          const tieneNIHall = noIonizHall.length > 0;
+          const svcBase2 = data.servicio
             ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
             : 'SERVICIO ESPECÍFICO';
-          doc.fillColor(COLORS.primary).fontSize(13).font('Helvetica-Bold')
-            .text(`HALLAZGOS — ${svcLabel2}`, 50, y);
-          y += 20;
 
-          data.estandaresServicio.forEach((est) => {
-            if (est.hallazgos.length === 0) {return;}
+          const renderSvcHallazgos = (grupos: typeof data.estandaresServicio, titulo: string) => {
+            if (!grupos.some(e => e.hallazgos.length > 0)) return;
+            y += 20;
             if (y > 650) { doc.addPage(); y = 50; }
+            doc.fillColor(COLORS.primary).fontSize(13).font('Helvetica-Bold')
+              .text(`HALLAZGOS — ${titulo}`, 50, y);
+            y += 20;
 
-            doc.fillColor(COLORS.text).fontSize(11).font('Helvetica-Bold')
-              .text(`${est.codigo} — ${est.nombre}`, 50, y);
-            y += 16;
+            grupos.forEach((est) => {
+              if (est.hallazgos.length === 0) {return;}
+              if (y > 650) { doc.addPage(); y = 50; }
 
-            est.hallazgos.forEach((h, i) => {
-              if (y > 700) { doc.addPage(); y = 50; }
-              const sevColor = h.severidad === 'critica' || h.severidad === 'critical' ? COLORS.danger :
-                h.severidad === 'alta' || h.severidad === 'high' ? COLORS.warning : COLORS.muted;
-
-              doc.fontSize(9).font('Helvetica').fillColor(COLORS.muted)
-                .text(`${i + 1}.`, 58, y);
-              doc.fillColor(COLORS.text).text(h.descripcion, 72, y, { width: W - 130 });
-              doc.fillColor(sevColor).font('Helvetica-Bold')
-                .text(h.severidad.toUpperCase(), W - 40, y, { width: 80, align: 'right' });
+              doc.fillColor(COLORS.text).fontSize(11).font('Helvetica-Bold')
+                .text(`${est.codigo} — ${est.nombre}`, 50, y);
               y += 16;
-            });
 
-            y += 8;
-          });
+              est.hallazgos.forEach((h, i) => {
+                if (y > 700) { doc.addPage(); y = 50; }
+                const sevColor = h.severidad === 'critica' || h.severidad === 'critical' ? COLORS.danger :
+                  h.severidad === 'alta' || h.severidad === 'high' ? COLORS.warning : COLORS.muted;
+                doc.fontSize(9).font('Helvetica').fillColor(COLORS.muted).text(`${i + 1}.`, 58, y);
+                doc.fillColor(COLORS.text).text(h.descripcion, 72, y, { width: W - 130 });
+                doc.fillColor(sevColor).font('Helvetica-Bold')
+                  .text(h.severidad.toUpperCase(), W - 40, y, { width: 80, align: 'right' });
+                y += 16;
+              });
+
+              y += 8;
+            });
+          };
+
+          if (!tieneNIHall) {
+            renderSvcHallazgos(ionizHall, svcBase2);
+          } else {
+            renderSvcHallazgos(ionizHall, `${svcBase2} — Radiaciones Ionizantes`);
+            renderSvcHallazgos(noIonizHall, `${svcBase2} — Radiaciones NO Ionizantes`);
+          }
         }
 
         // ── FIRMAS ───────────────────────────────────────────────
@@ -1206,31 +1251,46 @@ export class ReportService {
         return paras;
       }),
 
-      // ── ESTÁNDARES ESPECÍFICOS DEL SERVICIO ─────────────────────
-      ...(data.estandaresServicio.length > 0 ? [
-        p(`ESTÁNDARES ESPECÍFICOS — ${data.servicio?.nombre?.toUpperCase() ?? ''} (${data.servicio?.codigo ?? ''})`, { bold: true, spaceBefore: 200, spaceAfter: 100 }),
-        ...data.estandaresServicio.flatMap((est) => {
-          const paras: any[] = [
-            p(`ESTÁNDAR DE ${est.nombre.toUpperCase()}:`, { bold: true, spaceBefore: 160, spaceAfter: 100 }),
-          ];
-          if (est.hallazgos.length > 0) {
-            paras.push(p('Hallazgos:', { bold: true, spaceAfter: 80 }));
-            est.hallazgos.forEach((h) => {
-              paras.push(
-                new Paragraph({
+      // ── ESTÁNDARES ESPECÍFICOS DEL SERVICIO (ionizantes y NO ionizantes separados) ─────
+      ...(() => {
+        if (data.estandaresServicio.length === 0) return [];
+        const _svcN = data.servicio?.nombre?.toUpperCase() ?? '';
+        const _svcC = data.servicio?.codigo ?? '';
+        const _ioniz = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
+        const _noIoniz = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
+        const _tieneNI = _noIoniz.length > 0;
+
+        const buildSvcFindings = (grupos: typeof data.estandaresServicio, titulo: string): any[] => [
+          p(titulo, { bold: true, spaceBefore: 200, spaceAfter: 100 }),
+          ...grupos.flatMap((est) => {
+            const paras: any[] = [
+              p(`ESTÁNDAR DE ${est.nombre.toUpperCase()}:`, { bold: true, spaceBefore: 160, spaceAfter: 100 }),
+            ];
+            if (est.hallazgos.length > 0) {
+              paras.push(p('Hallazgos:', { bold: true, spaceAfter: 80 }));
+              est.hallazgos.forEach((h) => {
+                paras.push(new Paragraph({
                   bullet: { level: 0 },
                   alignment: AlignmentType.BOTH,
                   spacing: { before: 0, after: 100 },
                   children: [new TextRun({ text: h.descripcion, font: 'Arial', size: 24, color: '000000' })],
-                })
-              );
-            });
-          } else {
-            paras.push(p('Todo se cumple en este estándar.', { spaceAfter: 100 }));
-          }
-          return paras;
-        }),
-      ] : []),
+                }));
+              });
+            } else {
+              paras.push(p('Todo se cumple en este estándar.', { spaceAfter: 100 }));
+            }
+            return paras;
+          }),
+        ];
+
+        if (!_tieneNI) {
+          return buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC})`);
+        }
+        return [
+          ...buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC}) — Radiaciones Ionizantes`),
+          ...buildSvcFindings(_noIoniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC}) — Radiaciones NO Ionizantes`),
+        ];
+      })(),
 
       p('', { spaceAfter: 200 }),
 
@@ -1280,53 +1340,70 @@ export class ReportService {
         ],
       }),
 
-      // ── TABLA DE RESULTADOS ESPECÍFICOS POR SERVICIO ────────────
-      ...(data.estandaresServicio.length > 0 ? [
-        p('', { spaceAfter: 120 }),
-        p(`RESULTADOS POR ESTÁNDAR — ${data.servicio?.nombre?.toUpperCase() ?? ''} (${data.servicio?.codigo ?? ''})`, { bold: true, spaceBefore: 200, spaceAfter: 160 }),
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [
-            new TableRow({
-              children: [
-                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Estándar', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
-                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'C', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
-                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'NC', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
-                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: '% Cumpl.', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
-                new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Semáforo', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+      // ── TABLA DE RESULTADOS ESPECÍFICOS POR SERVICIO (ionizantes y NO ionizantes separados) ──
+      ...(() => {
+        if (data.estandaresServicio.length === 0) return [];
+        const _svcN2 = data.servicio?.nombre?.toUpperCase() ?? '';
+        const _svcC2 = data.servicio?.codigo ?? '';
+        const _ioniz2 = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
+        const _noIoniz2 = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
+        const _tieneNI2 = _noIoniz2.length > 0;
+
+        const buildSvcTable = (grupos: typeof data.estandaresServicio, titulo: string, totalLabel: string): any[] => {
+          const totalC = grupos.reduce((s, e) => s + e.cumple, 0);
+          const totalNC = grupos.reduce((s, e) => s + e.noCumple, 0);
+          const totalApl = totalC + totalNC;
+          const pct = totalApl > 0 ? Math.round((totalC / totalApl) * 100) : 0;
+          const semColor = pct >= 80 ? '007000' : pct >= 50 ? 'E06000' : 'CC0000';
+          const semLabel = pct >= 80 ? 'VERDE' : pct >= 50 ? 'NARANJA' : 'ROJO';
+          return [
+            p('', { spaceAfter: 120 }),
+            p(titulo, { bold: true, spaceBefore: 200, spaceAfter: 160 }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Estándar', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                    new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'C', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                    new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'NC', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                    new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: '% Cumpl.', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                    new TableCell({ shading: { fill: '33CCCC', type: ShadingType.CLEAR, color: 'auto' }, children: [new Paragraph({ children: [new TextRun({ text: 'Semáforo', font: 'Arial', size: 24, bold: true, color: 'FFFFFF' })] })] }),
+                  ],
+                }),
+                ...grupos.map((est) =>
+                  new TableRow({
+                    children: [
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 24, color: '000000' })] })] }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 24, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
+                    ],
+                  })
+                ),
+                new TableRow({
+                  children: [
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalLabel, font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalNC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${pct}%`, font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: semLabel, font: 'Arial', size: 24, bold: true, color: semColor })] })] }),
+                  ],
+                }),
               ],
             }),
-            ...data.estandaresServicio.map((est) =>
-              new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${est.codigo} — ${est.nombre}`, font: 'Arial', size: 24, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.cumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.noCumple.toString(), font: 'Arial', size: 24, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'na' ? 'N/A' : `${est.porcentajeCumplimiento}%`, font: 'Arial', size: 24, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: est.semaforo === 'verde' ? 'VERDE' : est.semaforo === 'naranja' ? 'NARANJA' : est.semaforo === 'na' ? 'NO APLICA' : 'ROJO', font: 'Arial', size: 24, color: est.semaforo === 'verde' ? '007000' : est.semaforo === 'naranja' ? 'E06000' : est.semaforo === 'na' ? '666666' : 'CC0000' })] })] }),
-                ],
-              })
-            ),
-            (() => {
-              const totalC = data.estandaresServicio.reduce((s, e) => s + e.cumple, 0);
-              const totalNC = data.estandaresServicio.reduce((s, e) => s + e.noCumple, 0);
-              const totalApl = totalC + totalNC;
-              const pct = totalApl > 0 ? Math.round((totalC / totalApl) * 100) : 0;
-              const semaforoColor = pct >= 80 ? '007000' : pct >= 50 ? 'E06000' : 'CC0000';
-              const semaforoLabel = pct >= 80 ? 'VERDE' : pct >= 50 ? 'NARANJA' : 'ROJO';
-              return new TableRow({
-                children: [
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'TOTAL GENERAL', font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: totalNC.toString(), font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${pct}%`, font: 'Arial', size: 24, bold: true, color: '000000' })] })] }),
-                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: semaforoLabel, font: 'Arial', size: 24, bold: true, color: semaforoColor })] })] }),
-                ],
-              });
-            })(),
-          ],
-        }),
-      ] : []),
+          ];
+        };
+
+        if (!_tieneNI2) {
+          return buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2})`, 'TOTAL GENERAL');
+        }
+        return [
+          ...buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2}) — Radiaciones Ionizantes`, 'SUBTOTAL IONIZANTES'),
+          ...buildSvcTable(_noIoniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2}) — Radiaciones NO Ionizantes`, 'SUBTOTAL NO IONIZANTES'),
+        ];
+      })(),
 
       p('', { spaceAfter: 200 }),
 
