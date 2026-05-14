@@ -282,7 +282,20 @@ export const WhatsAppPanel: React.FC = () => {
     if (!selected) return;
     const phone = manualPhone || (selected.celular ? toWaPhone(selected.celular) : '');
     if (!phone) return;
-    const texto = encodeURIComponent(buildMensaje(plantilla, selected));
+    // Codificación mínima: solo caracteres ASCII problemáticos en URLs.
+    // Emoji y caracteres Unicode se dejan crudos — el navegador los envía como UTF-8,
+    // evitando que WhatsApp malinterprete las secuencias %Fx%... de encodeURIComponent.
+    const texto = Array.from(buildMensaje(plantilla, selected))
+      .map(c => {
+        const cp = c.codePointAt(0)!;
+        if (cp > 0x7E) return c;           // no-ASCII: dejar crudo (emoji, tildes, ñ…)
+        if (c === '\n') return '%0A';
+        if (c === '\r') return '';
+        if (c === ' ')  return '%20';
+        if ('&=+#%'.includes(c)) return encodeURIComponent(c);
+        return c;
+      })
+      .join('');
     window.open(`https://wa.me/${phone}?text=${texto}`, '_blank', 'noopener,noreferrer');
   };
 
