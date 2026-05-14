@@ -1,6 +1,6 @@
 /**
  * WhatsApp Routes — Envío automático vía Evolution API (Baileys)
- * Requiere Evolution API corriendo en el mismo docker-compose
+ * Cada auditor tiene su propia instancia identificada por su user_id
  */
 
 import { Router, Request, Response } from 'express';
@@ -15,16 +15,17 @@ export function createWhatsAppRouter(): Router {
 
   /**
    * GET /api/whatsapp/status
-   * Estado de conexión de la instancia WhatsApp
-   * Roles: auditor, super_admin
+   * Estado de conexión de la instancia WhatsApp del auditor autenticado
    */
   router.get(
     '/whatsapp/status',
     authMiddleware,
     rbacMiddleware(['auditor', 'super_admin']),
-    async (_req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
+      const userId = req.user?.user_id;
+      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
       try {
-        const status = await waService.getConnectionState();
+        const status = await waService.getConnectionState(userId);
         res.json({ data: status });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -36,16 +37,17 @@ export function createWhatsAppRouter(): Router {
 
   /**
    * GET /api/whatsapp/qr
-   * Obtiene el QR para parear la instancia WhatsApp (setup inicial)
-   * Roles: auditor, super_admin
+   * Obtiene el QR para parear la instancia WhatsApp del auditor autenticado
    */
   router.get(
     '/whatsapp/qr',
     authMiddleware,
     rbacMiddleware(['auditor', 'super_admin']),
-    async (_req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
+      const userId = req.user?.user_id;
+      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
       try {
-        const qr = await waService.getQR();
+        const qr = await waService.getQR(userId);
         res.json({ data: qr });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -57,8 +59,7 @@ export function createWhatsAppRouter(): Router {
 
   /**
    * POST /api/whatsapp/send
-   * Envía un mensaje de texto a un número de WhatsApp
-   * Roles: auditor, super_admin
+   * Envía un mensaje usando la instancia WhatsApp del auditor autenticado
    * Body: { phone: string, message: string }
    */
   router.post(
@@ -66,6 +67,8 @@ export function createWhatsAppRouter(): Router {
     authMiddleware,
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
+      const userId = req.user?.user_id;
+      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
       try {
         const { phone, message } = req.body as { phone?: string; message?: string };
 
@@ -76,13 +79,13 @@ export function createWhatsAppRouter(): Router {
           return res.status(400).json({ error: 'message es requerido' });
         }
 
-        const result = await waService.sendText(phone.trim(), message.trim());
+        const result = await waService.sendText(userId, phone.trim(), message.trim());
 
         logger.info({
           msg: 'WhatsApp message sent',
           phone: phone.trim().slice(0, 6) + '***',
           messageId: result.messageId,
-          sentBy: req.user?.user_id,
+          sentBy: userId,
         });
 
         res.json({ data: result, message: 'Mensaje enviado correctamente' });
