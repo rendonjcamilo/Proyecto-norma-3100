@@ -7,7 +7,7 @@
  * - Optional evidence upload
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './CriterionInput.css';
 
 interface Criterion {
@@ -35,6 +35,10 @@ interface CriterionInputProps {
   response?: CriterionResponse;
   onChange: (response: CriterionResponse) => void;
   readOnly?: boolean;
+  isBranchParent?: boolean;
+  branchSize?: number;
+  isAuditor?: boolean;
+  onDenyBranch?: () => void;
 }
 
 // Detecta el nivel jerárquico del número oficial embebido en el nombre
@@ -51,12 +55,28 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   response,
   onChange,
   readOnly = false,
+  isBranchParent = false,
+  branchSize = 0,
+  isAuditor = false,
+  onDenyBranch,
 }) => {
   const subLevel = getSubLevel(criterion.name);
 
   const [localResponse, setLocalResponse] = useState<CriterionResponse>(
     response || { criterionId: criterion.id, status: 'C' }
   );
+  const [showDenyConfirm, setShowDenyConfirm] = useState(false);
+
+  // Sincroniza estado local cuando el padre actualiza la respuesta externamente (ej: negar rama)
+  const responseStatus = response?.status;
+  const responseDescription = response?.description;
+  const responseComments = response?.comments;
+  useEffect(() => {
+    if (response) {
+      setLocalResponse(response);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responseStatus, responseDescription, responseComments]);
 
   const handleStatusChange = (status: 'C' | 'NC' | 'NA') => {
     const newResponse = { ...localResponse, status };
@@ -66,6 +86,13 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     }
     setLocalResponse(newResponse);
     onChange(newResponse);
+  };
+
+  const handleDenyBranchClick = () => setShowDenyConfirm(true);
+  const handleDenyBranchCancel = () => setShowDenyConfirm(false);
+  const handleDenyBranchConfirm = () => {
+    setShowDenyConfirm(false);
+    onDenyBranch?.();
   };
 
   const handleSuggest = () => {
@@ -110,6 +137,30 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
               <p className="criterion-description">{criterion.description}</p>
             )}
           </div>
+          {isBranchParent && isAuditor && !readOnly && (
+            <div className="deny-branch-action">
+              {showDenyConfirm ? (
+                <div className="deny-branch-confirm">
+                  <span>¿Negar {branchSize} criterio{branchSize !== 1 ? 's' : ''}?</span>
+                  <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>
+                    Confirmar
+                  </button>
+                  <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-deny-branch"
+                  onClick={handleDenyBranchClick}
+                  title={`Marcar los ${branchSize} criterio${branchSize !== 1 ? 's' : ''} de esta rama como No Cumple`}
+                >
+                  🚫 Negar rama ({branchSize})
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <p className="criterion-header-note">
           Los ítems siguientes detallan las condiciones específicas a evaluar.
@@ -132,6 +183,30 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
             </p>
           )}
         </div>
+        {isBranchParent && isAuditor && !readOnly && (
+          <div className="deny-branch-action">
+            {showDenyConfirm ? (
+              <div className="deny-branch-confirm">
+                <span>¿Negar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''}?</span>
+                <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>
+                  Confirmar
+                </button>
+                <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn-deny-branch"
+                onClick={handleDenyBranchClick}
+                title={`Marcar este criterio y sus ${branchSize} sub-criterio${branchSize !== 1 ? 's' : ''} como No Cumple`}
+              >
+                🚫 Negar rama ({branchSize})
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="criterion-response">

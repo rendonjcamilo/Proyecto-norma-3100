@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatTime } from '@/utils/dateFormat';
+import { useAuth } from '@context/AuthContext';
 import './AssessmentForm.css';
 import CriterionInput from './CriterionInput';
 import ProgressBar from './ProgressBar';
@@ -72,6 +73,19 @@ export interface AssessmentFormProps {
   readOnly?: boolean;
 }
 
+/**
+ * Retorna los IDs de todos los criterios descendientes del criterio dado,
+ * detectados por prefijo numérico (ej: padre "5" → hijos "5.1", "5.2", "5.1.1", etc.)
+ */
+function getBranchChildIds(criterion: Criterion, allCriteria: Criterion[]): string[] {
+  const num = criterion.number?.trim();
+  if (!num) return [];
+  const prefix = num + '.';
+  return allCriteria
+    .filter((c) => c.id !== criterion.id && c.number?.trim().startsWith(prefix))
+    .map((c) => c.id);
+}
+
 const AssessmentForm: React.FC<AssessmentFormProps> = ({
   assessment,
   questionnaiireData,
@@ -95,6 +109,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const { user } = useAuth();
+  const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
+
   const [expandedStandards, setExpandedStandards] = useState<Set<string>>(
     new Set(questionnaiireData.standards.map((s) => s.id).slice(0, 1))
   );
@@ -134,6 +152,25 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setResponses(newResponses);
   };
 
+  /**
+   * Marca como NC todos los criterios evaluables de la rama (padre + descendientes).
+   * Los encabezados de sección dentro de la rama se omiten ya que no son evaluables.
+   */
+  const handleDenyBranch = useCallback((parentId: string, branchIds: string[]) => {
+    const allCriteria = questionnaiireData.standards.flatMap((s) => s.criteria);
+    const defaultDescription = 'No cumple. Se niega la rama completa por incumplimiento del criterio principal.';
+    const newResponses = new Map(responses);
+
+    for (const id of [parentId, ...branchIds]) {
+      const criterion = allCriteria.find((c) => c.id === id);
+      if (criterion && !criterion.is_section_header) {
+        newResponses.set(id, { criterionId: id, status: 'NC', description: defaultDescription });
+      }
+    }
+
+    setResponses(newResponses);
+  }, [responses, questionnaiireData]);
+
   const handleDescriptionChange = (criterionId: string, description: string) => {
     const response = responses.get(criterionId);
     if (response) {
@@ -146,8 +183,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const handleSubmit = async () => {
     if (!onSubmit) return;
 
-    // Validate all criteria are answered (except NA)
-    const allStandardCriteria = questionnaiireData.standards.flatMap((s) => s.criteria);
+    // Valida que todos los criterios evaluables tengan respuesta (excluye encabezados de sección)
+    const allStandardCriteria = questionnaiireData.standards.flatMap((s) =>
+      s.criteria.filter((c) => !c.is_section_header)
+    );
     const unansweredCriteria = allStandardCriteria.filter((c) => !responses.has(c.id));
 
     if (unansweredCriteria.length > 0) {
@@ -290,7 +329,9 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 onToggle={() => toggleStandard(standard.id)}
                 responses={responses}
                 onResponseChange={handleResponseChange}
+                onDenyBranch={handleDenyBranch}
                 readOnly={readOnly}
+                isAuditor={isAuditor}
               />
             ))}
           </section>
@@ -308,7 +349,9 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 onToggle={() => toggleStandard(standard.id)}
                 responses={responses}
                 onResponseChange={handleResponseChange}
+                onDenyBranch={handleDenyBranch}
                 readOnly={readOnly}
+                isAuditor={isAuditor}
               />
             ))}
           </section>
@@ -366,7 +409,9 @@ interface StandardGroupProps {
   onToggle: () => void;
   responses: Map<string, Response>;
   onResponseChange: (criterionId: string, response: Response) => void;
+  onDenyBranch: (parentId: string, branchIds: string[]) => void;
   readOnly?: boolean;
+  isAuditor?: boolean;
 }
 
 const StandardGroup: React.FC<StandardGroupProps> = ({
@@ -375,7 +420,9 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   onToggle,
   responses,
   onResponseChange,
+  onDenyBranch,
   readOnly,
+  isAuditor = false,
 }) => {
   const evaluable = standard.criteria.filter((c) => !c.is_section_header);
   const answeredInGroup = evaluable.filter((c) => responses.has(c.id)).length;
@@ -406,16 +453,23 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
 
       {isExpanded && (
         <div className="standard-criteria">
-          {standard.criteria.map((criterion, index) => (
-            <CriterionInput
-              key={criterion.id}
-              criterion={criterion}
-              number={criterion.number || String(index + 1)}
-              response={responses.get(criterion.id)}
-              onChange={(response) => onResponseChange(criterion.id, response)}
-              readOnly={readOnly}
-            />
-          ))}
+          {standard.criteria.map((criterion, index) => {
+            const branchIds = getBranchChildIds(criterion, standard.criteria);
+            return (
+              <CriterionInput
+                key={criterion.id}
+                criterion={criterion}
+                number={criterion.number || String(index + 1)}
+                response={responses.get(criterion.id)}
+                onChange={(response) => onResponseChange(criterion.id, response)}
+                readOnly={readOnly}
+                isBranchParent={branchIds.length > 0}
+                branchSize={branchIds.length}
+                isAuditor={isAuditor}
+                onDenyBranch={branchIds.length > 0 ? () => onDenyBranch(criterion.id, branchIds) : undefined}
+              />
+            );
+          })}
         </div>
       )}
     </div>
