@@ -19,7 +19,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     // Load from localStorage
     const saved = localStorage.getItem('theme-mode') as ThemeMode | null;
-    return saved || 'auto';
+    return saved || 'light';
   });
 
   const [isDark, setIsDark] = useState(false);
