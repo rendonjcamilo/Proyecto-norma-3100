@@ -74,13 +74,14 @@ export interface AssessmentFormProps {
 }
 
 /**
- * Extrae el número jerárquico de un criterio: primero del campo number,
- * si está vacío lo parsea desde el inicio del name (ej: "4. El prestador..." → "4").
+ * Extrae el número jerárquico embebido en el nombre del criterio.
+ * El campo `number` de la BD es un contador secuencial (1, 2, 3...) y no refleja
+ * la jerarquía real. El número jerárquico vive solo en el nombre:
+ *   "4. El prestador..."  → "4"
+ *   "4.1. Convenio..."   → "4.1"
+ *   "13.1.1. Profesional..." → "13.1.1"
  */
-function getEffectiveNumber(criterion: Criterion): string | null {
-  const num = criterion.number?.trim();
-  if (num) return num;
-  // Parsea "4. Texto...", "4.1. Texto...", "13.1.1. Texto..." desde el name
+function getHierarchicalNumber(criterion: Criterion): string | null {
   const match = criterion.name.match(/^(\d+(?:\.\d+)*)\./);
   return match ? match[1] : null;
 }
@@ -90,13 +91,13 @@ function getEffectiveNumber(criterion: Criterion): string | null {
  * detectados por prefijo numérico (ej: padre "5" → hijos "5.1", "5.2", "5.1.1", etc.)
  */
 function getBranchChildIds(criterion: Criterion, allCriteria: Criterion[]): string[] {
-  const num = getEffectiveNumber(criterion);
+  const num = getHierarchicalNumber(criterion);
   if (!num) return [];
   const prefix = num + '.';
   return allCriteria
     .filter((c) => {
       if (c.id === criterion.id) return false;
-      const childNum = getEffectiveNumber(c);
+      const childNum = getHierarchicalNumber(c);
       return childNum?.startsWith(prefix) ?? false;
     })
     .map((c) => c.id);
