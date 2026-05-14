@@ -109,6 +109,7 @@ export const WhatsAppPanel: React.FC = () => {
   const [selected, setSelected] = useState<RepsProspecto | null>(null);
   const [plantilla, setPlantilla] = useState(PLANTILLA_DEFAULT);
   const [manualPhone, setManualPhone] = useState('');
+  const [copiado, setCopiado] = useState(false);
 
   // Estado de enriquecimiento
   const [enrichStatus, setEnrichStatus] = useState<EnrichStatus>('idle');
@@ -283,6 +284,13 @@ export const WhatsAppPanel: React.FC = () => {
     if (!phone) return;
     const texto = encodeURIComponent(buildMensaje(plantilla, selected));
     window.open(`https://wa.me/${phone}?text=${texto}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopiarTexto = async () => {
+    if (!selected) return;
+    await navigator.clipboard.writeText(buildMensaje(plantilla, selected));
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
   };
 
   const phoneValido = manualPhone.replace(/\D/g, '').length >= 10;
@@ -890,20 +898,43 @@ export const WhatsAppPanel: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                className="wap-send-btn"
-                onClick={handleEnviarWhatsApp}
-                disabled={!phoneValido}
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-                </svg>
-                Abrir en WhatsApp
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                <button
+                  className="wap-send-btn"
+                  onClick={handleEnviarWhatsApp}
+                  disabled={!phoneValido}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  </svg>
+                  Abrir en WhatsApp
+                </button>
+
+                <button
+                  onClick={handleCopiarTexto}
+                  disabled={!selected}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    padding: '10px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
+                    cursor: selected ? 'pointer' : 'not-allowed',
+                    background: copiado ? '#16a34a' : '#f3f4f6',
+                    color: copiado ? 'white' : '#374151',
+                    border: '1px solid',
+                    borderColor: copiado ? '#16a34a' : '#d1d5db',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {copiado ? (
+                    <>✅ ¡Copiado! Pega directamente en WhatsApp</>
+                  ) : (
+                    <>📋 Copiar texto (para pegar en WhatsApp)</>
+                  )}
+                </button>
+              </div>
 
               <p className="wap-disclaimer">
-                Se abrirá WhatsApp Web / app con el mensaje listo para enviar.
+                Usa <strong>Copiar texto</strong> si pegas el mensaje manualmente — garantiza que los emojis lleguen correctamente.
               </p>
             </>
           )}
