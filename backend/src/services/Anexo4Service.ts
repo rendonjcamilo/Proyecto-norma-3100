@@ -171,15 +171,15 @@ export class Anexo4Service {
       const registros = v.registros.slice(0, 10);
       const nHC = registros.length || 1;
 
-      // Colores
-      const C_HEADER  = '#1a237e';
-      const C_SEC     = '#3949ab';
-      const C_ALT     = '#f0f4ff';
-      const C_C_BG    = '#dcfce7';
-      const C_NC_BG   = '#fee2e2';
-      const C_C_TXT   = '#15803d';
-      const C_NC_TXT  = '#b91c1c';
-      const C_BORDER  = '#c5cae9';
+      // Paleta sobria: fondo blanco / texto negro / bordes grises
+      const C_HEADER  = '#2c2c2c';  // gris casi negro para cabeceras de columna
+      const C_SEC     = '#e0e0e0';  // gris claro para fila de sección
+      const C_ALT     = '#f7f7f7';  // alternado muy sutil
+      const C_C_BG    = '#ffffff';  // blanco para celda C
+      const C_NC_BG   = '#ffffff';  // blanco para celda NC
+      const C_C_TXT   = '#166534';  // verde oscuro para ✓ (distinción funcional)
+      const C_NC_TXT  = '#991b1b';  // rojo oscuro para ✗ (distinción funcional)
+      const C_BORDER  = '#aaaaaa';  // gris para bordes
 
       // Dimensiones
       const PAGE_W   = 841.89 - 56;  // A4 landscape - márgenes
@@ -194,10 +194,10 @@ export class Anexo4Service {
       let y  = 28;
 
       // ── Título ────────────────────────────────────────────────────────────────
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(C_HEADER)
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000')
         .text('VERIFICACIÓN ESTÁNDAR DE HISTORIA CLÍNICA Y REGISTROS ASISTENCIALES', x0, y, { width: PAGE_W, align: 'center' });
       y += 13;
-      doc.fontSize(9)
+      doc.fontSize(9).fillColor('#000000')
         .text('ANEXO N° 4', x0, y, { width: PAGE_W, align: 'center' });
       y += 16;
 
@@ -208,7 +208,7 @@ export class Anexo4Service {
       const [fYear, fMonth, fDay] = fechaIso.split('-');
       const fechaLabel = `${fDay}/${fMonth}/${fYear}`;
 
-      doc.font('Helvetica').fontSize(8).fillColor('#222')
+      doc.font('Helvetica').fontSize(8).fillColor('#000000')
         .text(`SERVICIO: ${v.servicio}`, x0, y, { continued: true })
         .text(`          FECHA: ${fechaLabel}`, { align: 'right', width: PAGE_W });
       y += 14;
@@ -231,21 +231,21 @@ export class Anexo4Service {
       y += HEAD1_H;
 
       // ── Fila 2 sub-encabezado: C / NC ────────────────────────────────────
-      doc.rect(x0, y, CRIT_W, HEAD2_H).fill('#283593');
+      doc.rect(x0, y, CRIT_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
       registros.forEach((_, i) => {
         const hx = x0 + CRIT_W + i * HC_W;
-        doc.rect(hx,           y, SUB_W, HEAD2_H).fill('#c5cae9').stroke(C_BORDER);
-        doc.rect(hx + SUB_W,  y, SUB_W, HEAD2_H).fill('#ffcdd2').stroke(C_BORDER);
-        doc.font('Helvetica-Bold').fontSize(7).fillColor('#1a237e')
+        doc.rect(hx,           y, SUB_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
+        doc.rect(hx + SUB_W,  y, SUB_W, HEAD2_H).fill('#e8e8e8').stroke(C_BORDER);
+        doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
           .text('C',  hx,          y + 3, { width: SUB_W, align: 'center' });
-        doc.font('Helvetica-Bold').fontSize(7).fillColor('#b71c1c')
+        doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
           .text('NC', hx + SUB_W, y + 3, { width: SUB_W, align: 'center' });
       });
       y += HEAD2_H;
 
       // ── Encabezado de sección ───────────────────────────────────────────────
-      doc.rect(x0, y, PAGE_W, SEC_H).fill(C_SEC);
-      doc.font('Helvetica-Bold').fontSize(7).fillColor('#fff')
+      doc.rect(x0, y, PAGE_W, SEC_H).fill(C_SEC).stroke(C_BORDER);
+      doc.font('Helvetica-Bold').fontSize(7).fillColor('#000000')
         .text('CONTENIDOS MÍNIMOS DE IDENTIFICACIÓN', x0 + 4, y + 3, { width: PAGE_W - 8 });
       y += SEC_H;
 
@@ -255,7 +255,7 @@ export class Anexo4Service {
 
         // Celda criterio
         doc.rect(x0, y, CRIT_W, ROW_H).fill(rowBg).stroke(C_BORDER);
-        doc.font('Helvetica').fontSize(6.8).fillColor('#111')
+        doc.font('Helvetica').fontSize(6.8).fillColor('#000000')
           .text(crit.label, x0 + 4, y + (ROW_H - 7) / 2, { width: CRIT_W - 8 });
 
         // Celdas C / NC por cada HC
@@ -303,7 +303,7 @@ export class Anexo4Service {
         });
       });
       const pct = total > 0 ? Math.round((totalC / total) * 100) : 0;
-      doc.font('Helvetica').fontSize(7.5).fillColor('#444')
+      doc.font('Helvetica').fontSize(7.5).fillColor('#000000')
         .text(`Resumen: ${totalC} conformes · ${totalNC} no conformes · ${total - totalC - totalNC} sin evaluar · Cumplimiento: ${pct}%`, x0, y, { width: PAGE_W, align: 'right' });
 
       // ── Pie de página ────────────────────────────────────────────────────────

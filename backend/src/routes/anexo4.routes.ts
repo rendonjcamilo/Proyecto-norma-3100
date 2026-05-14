@@ -187,7 +187,8 @@ export function createAnexo4Router(pool: Pool): Router {
         if (!v) return res.status(404).json({ error: 'Verificación no encontrada' });
 
         const pdfBuffer = await service.generatePdf(v);
-        const filename  = `Anexo4-HC-${v.fecha}-${v.servicio.replace(/\s+/g, '_').substring(0, 30)}.pdf`;
+        const fechaStr  = v.fecha instanceof Date ? v.fecha.toISOString().substring(0, 10) : String(v.fecha).substring(0, 10);
+        const filename  = `Anexo4-HC-${fechaStr}-${v.servicio.replace(/\s+/g, '_').substring(0, 30)}.pdf`;
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
