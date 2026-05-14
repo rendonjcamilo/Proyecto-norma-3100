@@ -26,26 +26,23 @@ const CLASES_PRESTADOR = [
   'Objeto Social Diferente al de Salud',
 ];
 
-const PLANTILLA_DEFAULT = `Estimado(a) {{nombre_prestador}},
+const PLANTILLA_DEFAULT = `🚨 Estimado(a) Dr {{nombre_prestador}}
 
-Mi nombre es [Tu nombre] y me especializo en auditoría de habilitación bajo la Resolución 3100 de 2019.
+Hemos verificado su registro en REPS y su habilitación esta próxima a vencer. Recuerde que la autoevaluación anual es obligatoria según la Resolución 3100 de 2019 y no realizarla oportunamente puede generar retiro automático del REPS y suspensión de servicios.
 
-He revisado su registro en el REPS y su habilitación vence el {{fecha_vencimiento}} (en {{dias_hasta_vencer}} días). Me gustaría ofrecerle nuestros servicios antes de ese plazo:
+✅ En AYH Consultores lo hacemos por usted:
+✔ Autoevaluación REPS
+✔ Recuperación de usuario y contraseña
+✔ Actualización de vigencia
+✔ Entrega de soportes
 
-✅ Autoevaluación de los 512 criterios de la Norma 3100
-✅ Preparación ante visitas de entes de control
-✅ Acompañamiento en corrección de no conformidades
+⚠ Evite reprocesos y sanciones económicas por incumplimiento. El sistema deja trazabilidad. La omisión queda registrada.
 
-🏥 Código REPS: {{codigo_habilitacion}}
-📍 Municipio: {{municipio}}
+📲 Agende hoy mismo con nosotros tu autoevaluación.
 
-¿Le interesa conocer cómo podemos apoyar a su institución?
+AYH Consultores – Tu tranquilidad, mi compromiso.
 
-Quedo atento(a),
-[Tu nombre y contacto]
-
----
-_Sus datos de contacto fueron obtenidos del Registro Especial de Prestadores de Servicios de Salud (REPS), fuente de acceso público administrada por el Ministerio de Salud y Protección Social, conforme al artículo 10 de la Ley 1581 de 2012. Si no desea recibir más comunicaciones, responda NO a este mensaje._`;
+Sus datos de contacto fueron obtenidos del Registro Especial de Prestadores de Servicios de Salud (REPS), fuente de acceso público administrada por el Ministerio de Salud y Protección Social, conforme al artículo 10 de la Ley 1581 de 2012. Si no desea recibir más comunicaciones, responda NO a este mensaje.`;
 
 type ClaseChip = { label: string; color: 'azul' | 'morado' | 'verde' | 'gris' };
 type EnrichStatus = 'idle' | 'running' | 'done';
