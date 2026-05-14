@@ -74,15 +74,31 @@ export interface AssessmentFormProps {
 }
 
 /**
+ * Extrae el número jerárquico de un criterio: primero del campo number,
+ * si está vacío lo parsea desde el inicio del name (ej: "4. El prestador..." → "4").
+ */
+function getEffectiveNumber(criterion: Criterion): string | null {
+  const num = criterion.number?.trim();
+  if (num) return num;
+  // Parsea "4. Texto...", "4.1. Texto...", "13.1.1. Texto..." desde el name
+  const match = criterion.name.match(/^(\d+(?:\.\d+)*)\./);
+  return match ? match[1] : null;
+}
+
+/**
  * Retorna los IDs de todos los criterios descendientes del criterio dado,
  * detectados por prefijo numérico (ej: padre "5" → hijos "5.1", "5.2", "5.1.1", etc.)
  */
 function getBranchChildIds(criterion: Criterion, allCriteria: Criterion[]): string[] {
-  const num = criterion.number?.trim();
+  const num = getEffectiveNumber(criterion);
   if (!num) return [];
   const prefix = num + '.';
   return allCriteria
-    .filter((c) => c.id !== criterion.id && c.number?.trim().startsWith(prefix))
+    .filter((c) => {
+      if (c.id === criterion.id) return false;
+      const childNum = getEffectiveNumber(c);
+      return childNum?.startsWith(prefix) ?? false;
+    })
     .map((c) => c.id);
 }
 
