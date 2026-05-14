@@ -573,11 +573,12 @@ export class ReportService {
       const chartCY = tableStartY + chartH / 2;
       const chartR = Math.min(chartAreaW / 2 - 30, chartH / 2 - 28);
 
-      // Título del gráfico
+      // Título del gráfico — encima del área del radar, con margen para que no tape "Talento Humano"
       doc.fillColor(COLORS.text).fontSize(8).font('Helvetica-Bold')
-        .text('Todos los servicios', chartAreaX, tableStartY, { width: chartAreaW, align: 'center' });
+        .text('Todos los servicios', chartAreaX, tableStartY + 4, { width: chartAreaW, align: 'center' });
 
-      this.drawRadarChart(doc, chartCX, chartCY + 6, Math.max(chartR, 30), data.standardsBreakdown);
+      // Centro del radar bajado 22px para que la etiqueta superior (Talento Humano) no choque con el título
+      this.drawRadarChart(doc, chartCX, chartCY + 22, Math.max(chartR - 10, 28), data.standardsBreakdown);
 
       y = tableEndY + 20;
     }
