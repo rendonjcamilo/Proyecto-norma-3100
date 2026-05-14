@@ -132,7 +132,7 @@ export class WhatsAppService {
 
     const data = await evoFetch<Record<string, unknown>>(`/message/sendText/${instance}`, {
       method: 'POST',
-      body: JSON.stringify({ number: phone, text: message }),
+      body: JSON.stringify({ number: phone, textMessage: { text: message } }),
     });
 
     const key = data?.key as Record<string, unknown> | undefined;
