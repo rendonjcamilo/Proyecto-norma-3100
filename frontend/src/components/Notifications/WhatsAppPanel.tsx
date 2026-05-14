@@ -22,7 +22,6 @@ const DEPARTAMENTOS_COLOMBIA = [
 const CLASES_PRESTADOR = [
   'Profesional Independiente',
   'Institución Prestadora de Servicios de Salud',
-  'Empresa Social del Estado',
   'Transporte Especial de Pacientes',
   'Objeto Social Diferente al de Salud',
 ];
