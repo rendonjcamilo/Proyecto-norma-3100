@@ -39,6 +39,7 @@ export function AuditorDashboard(): JSX.Element {
     actionsRequired: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProviders();
@@ -46,6 +47,7 @@ export function AuditorDashboard(): JSX.Element {
 
   const loadProviders = async () => {
     if (!user?.id) return;
+    setLoadError(null);
     try {
       setLoading(true);
       const [response, kpis] = await Promise.all([
@@ -61,7 +63,12 @@ export function AuditorDashboard(): JSX.Element {
         actionsRequired: kpis?.actionsRequired ?? 0,
       });
     } catch (err) {
-      console.error('Error loading auditor providers:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      const esExpiracion = msg.toLowerCase().includes('expir') || msg.includes('401') || msg.includes('Sesión');
+      setLoadError(esExpiracion
+        ? 'Tu sesión expiró. Cierra sesión y vuelve a entrar para ver tus datos.'
+        : 'No se pudieron cargar los datos. Intenta actualizar o vuelve a iniciar sesión.'
+      );
     } finally {
       setLoading(false);
     }
@@ -118,6 +125,17 @@ export function AuditorDashboard(): JSX.Element {
         <div className="adb-hero-orb adb-hero-orb-1" />
         <div className="adb-hero-orb adb-hero-orb-2" />
       </div>
+
+      {loadError && (
+        <div style={{
+          margin: '0 0 16px 0', padding: '14px 18px',
+          background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px',
+          color: '#92400e', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          <span style={{ fontSize: '18px' }}>⚠️</span>
+          <span>{loadError}</span>
+        </div>
+      )}
 
       {/* ── KPI STRIP ───────────────────────────────────── */}
       <div className="adb-kpi-strip">
