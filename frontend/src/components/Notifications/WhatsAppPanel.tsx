@@ -27,23 +27,27 @@ const CLASES_PRESTADOR = [
   'Objeto Social Diferente al de Salud',
 ];
 
-const PLANTILLA_DEFAULT = `🔔 Estimado(a) Dr {{nombre_prestador}}
+const PLANTILLA_DEFAULT = `🚨 Estimado(a) Dr(a). {{nombre_prestador}}
 
-Hemos verificado su registro en REPS y su habilitación esta próxima a vencer. Recuerde que la autoevaluación anual es obligatoria según la Resolución 3100 de 2019 y no realizarla oportunamente puede generar retiro automático del REPS y suspensión de servicios.
+Mi nombre es Adriana Perdomo M., especialista en auditoría en salud y verificadora de habilitación.
 
-✅ En AYH Consultores lo hacemos por usted:
-📋 Autoevaluación REPS
-🔑 Recuperación de usuario y contraseña
-📄 Actualización de vigencia
-📦 Entrega de soportes
+Hemos identificado que su habilitación en REPS vence el {{fecha_vencimiento}}. La autoevaluación anual exigida por la Resolución 3100 de 2019 debe realizarse oportunamente para evitar retiro automático del REPS, suspensión de servicios y reprocesos ante Secretaría de Salud.
+Código REPS {{codigo_habilitacion}}
 
-⚠️ Evite reprocesos y sanciones económicas por incumplimiento. El sistema deja trazabilidad. La omisión queda registrada.
+✅ En AYH Consultores realizamos todo el proceso por usted:
+✔ Autoevaluación REPS
+✔ Actualización de vigencia
+✔ Recuperación de usuario y contraseña
+✔ Entrega de soportes y evidencias
 
-📅 Agende hoy mismo con nosotros tu autoevaluación.
+⚠ El sistema deja trazabilidad y la omisión queda registrada. Evite sanciones, hallazgos y pérdidas económicas por incumplimiento.
 
-AYH Consultores – Tu tranquilidad, mi compromiso.
+📲 Agenda hoy mismo su proceso y deje su habilitación al día antes del vencimiento.
 
-Sus datos de contacto fueron obtenidos del Registro Especial de Prestadores de Servicios de Salud (REPS), fuente de acceso público administrada por el Ministerio de Salud y Protección Social, conforme al artículo 10 de la Ley 1581 de 2012. Si no desea recibir más comunicaciones, responda NO a este mensaje.`;
+AYH Consultores
+"Tu tranquilidad, mi compromiso".
+
+Sus datos fueron obtenidos del REPS, fuente pública administrada por el Ministerio de Salud y Protección Social, conforme al artículo 10 de la Ley 1581 de 2012. Si no desea recibir más información, responda NO.`;
 
 type ClaseChip = { label: string; color: 'azul' | 'morado' | 'verde' | 'gris' };
 type EnrichStatus = 'idle' | 'running' | 'done';
