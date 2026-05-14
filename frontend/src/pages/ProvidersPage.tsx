@@ -155,7 +155,7 @@ export const ProvidersPage: React.FC = () => {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [repsSearchCode, setRepsSearchCode] = useState('');
   const [repsSearching, setRepsSearching] = useState(false);
-  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; servicios_count: number; servicios_matched: number } | null>(null);
+  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; fecha_vencimiento?: string; servicios_count: number; servicios_matched: number } | null>(null);
   const [repsError, setRepsError] = useState<string | null>(null);
   const [allServices, setAllServices] = useState<HealthService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -408,7 +408,12 @@ export const ProvidersPage: React.FC = () => {
         setRepsServiciosCodigos(repsCodigos);
         if (matchedIds.length > 0) setSelectedServiceIds(matchedIds);
 
-        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '', servicios_count: d.servicios_habilitados?.length || 0, servicios_matched: matchedIds.length });
+        // Normalizar fecha_vencimiento al formato YYYY-MM-DD que espera el input[type=date]
+        const fechaVenc = d.fecha_vencimiento
+          ? d.fecha_vencimiento.replace(/T.*$/, '').replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3')
+          : undefined;
+
+        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '', fecha_vencimiento: fechaVenc, servicios_count: d.servicios_habilitados?.length || 0, servicios_matched: matchedIds.length });
         // Autocompletar campos del formulario directamente desde REPS
         setFormData((prev) => ({
           ...prev,
@@ -422,6 +427,7 @@ export const ProvidersPage: React.FC = () => {
           nombre_sede: d.nombre_sede || prev.nombre_sede,
           codigo_habilitacion: d.codigo_habilitacion || prev.codigo_habilitacion,
           tipo_prestador: d.tipo_prestador || prev.tipo_prestador,
+          ...(fechaVenc ? { habilitacion_fecha_vencimiento: fechaVenc } : {}),
         }));
       } else {
         setRepsError('No se encontró el prestador en REPS. Verifique el código de habilitación o NIT.');
@@ -658,6 +664,13 @@ export const ProvidersPage: React.FC = () => {
                         <span><strong>Teléfono:</strong> {repsFound.telefono || '—'}</span>
                         <span><strong>Código de prestador:</strong> {repsFound.codigo_prestador || '—'}</span>
                         <span><strong>Sede:</strong> {repsFound.sede || '—'}</span>
+                        {repsFound.fecha_vencimiento && (
+                          <span style={{ gridColumn: '1 / -1' }}>
+                            <strong>Fecha venc. habilitación:</strong>{' '}
+                            {new Date(repsFound.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {' '}✓ <em style={{ fontWeight: 400 }}>Autocompletada desde REPS</em>
+                          </span>
+                        )}
                       </div>
                       {repsFound.servicios_count > 0 && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px' }}>
