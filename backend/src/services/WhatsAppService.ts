@@ -66,11 +66,21 @@ export class WhatsAppService {
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
     // Verificar si la instancia existe; si está en close borrarla y recrear para sesión limpia
+    // Compatibilidad con Evolution v1.x ({instance:{instanceName,status}}) y v2.x ({name,connectionStatus})
     try {
       const instances = await evoFetch<unknown[]>('/instance/fetchInstances');
       const found = Array.isArray(instances)
-        ? (instances as Record<string, unknown>[]).find((i) => i.name === instance)
+        ? (instances as Record<string, unknown>[]).find((i) => {
+            const name = (i.name as string | undefined)
+              ?? ((i.instance as Record<string, unknown>)?.instanceName as string | undefined);
+            return name === instance;
+          })
         : null;
+
+      const foundStatus = found
+        ? ((found.connectionStatus as string | undefined)
+            ?? ((found.instance as Record<string, unknown>)?.status as string | undefined))
+        : undefined;
 
       if (!found) {
         await evoFetch('/instance/create', {
@@ -80,7 +90,7 @@ export class WhatsAppService {
         logger.info({ msg: 'Evolution instance created', instance, userId });
         // Baileys necesita ~2s para inicializar la sesión y generar el primer QR
         await sleep(2500);
-      } else if ((found.connectionStatus as string) === 'close') {
+      } else if (foundStatus === 'close') {
         // Instancia existe pero desconectada — borrar y recrear para forzar nuevo QR
         await evoFetch(`/instance/delete/${instance}`, { method: 'DELETE' }).catch(() => null);
         await evoFetch('/instance/create', {
