@@ -32,6 +32,7 @@ interface Criterion {
   complexity: 'simple' | 'medium' | 'complex';
   ncHint?: string;
   is_section_header?: boolean;
+  sort_order?: number;
 }
 
 interface Standard {
@@ -110,7 +111,16 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
       complexity: c.complexity,
       ncHint: c.nc_hint || undefined,
       is_section_header: (c as any).is_section_header === true,
+      sort_order: (c as any).sort_order ?? undefined,
     });
+  }
+
+  // Ordenar criterios dentro de cada estándar por sort_order si está disponible
+  for (const standard of standardMap.values()) {
+    const hasSortOrder = standard.criteria.some(c => c.sort_order != null);
+    if (hasSortOrder) {
+      standard.criteria.sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999));
+    }
   }
 
   // TH=1, INF=2, DOT=3, MD=4, PP=5, HCR=6, INT=7

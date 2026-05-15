@@ -45,6 +45,7 @@ interface Criterion {
   complexity: 'simple' | 'medium' | 'complex';
   ncHint?: string;
   is_section_header?: boolean;
+  sort_order?: number;
 }
 
 interface Standard {

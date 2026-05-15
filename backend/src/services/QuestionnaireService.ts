@@ -185,7 +185,7 @@ export class QuestionnaireService {
         ec.id, ec.code, ec.number, ec.name, ec.description,
         ec.evidence_requirement, ec.complexity, ec.standard_id,
         es.name as standard_name, es.is_transversal, ec.is_mandatory,
-        ec.nc_hint, ec.is_section_header
+        ec.nc_hint, ec.is_section_header, ec.sort_order
       FROM questionnaire_criteria qc
       INNER JOIN evaluation_criteria ec ON qc.criterion_id = ec.id
       INNER JOIN evaluation_standards es ON ec.standard_id = es.id
@@ -202,6 +202,7 @@ export class QuestionnaireService {
       END,
       CASE WHEN es.code ~ '^IDX_NI_' THEN 1 ELSE 0 END,
       es.code,
+      COALESCE(ec.sort_order, 9999),
       ec.code
     `;
 
@@ -506,11 +507,11 @@ export class QuestionnaireService {
             ec.id, ec.code, ec.number, ec.name, ec.description,
             ec.evidence_requirement, ec.complexity, ec.standard_id,
             es.name as standard_name, es.is_transversal, ec.is_mandatory,
-            ec.nc_hint, ec.is_section_header
+            ec.nc_hint, ec.is_section_header, ec.sort_order
           FROM evaluation_criteria ec
           INNER JOIN evaluation_standards es ON ec.standard_id = es.id
           WHERE ec.standard_id = $1 AND ec.service_id = $2 AND ec.status = 'active'
-          ORDER BY ec.code
+          ORDER BY COALESCE(ec.sort_order, 9999), ec.code
         `;
 
         const criteriaResult = await this.pool.query(criteriaQuery, [std.id, serviceId]);

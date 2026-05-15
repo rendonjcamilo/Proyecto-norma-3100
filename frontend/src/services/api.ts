@@ -572,6 +572,8 @@ export interface QuestionnaireCriterion {
   is_transversal: boolean;
   is_mandatory: boolean;
   nc_hint?: string;
+  is_section_header?: boolean;
+  sort_order?: number;
 }
 
 export interface QuestionnaireDetail {

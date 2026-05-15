@@ -311,6 +311,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
             ec.nc_hint,
             COALESCE(ec.is_mandatory, false) AS is_mandatory,
             COALESCE(ec.is_section_header, false) AS is_section_header,
+            ec.sort_order,
             es.id AS standard_id,
             es.code AS standard_code,
             es.name AS standard_name,
@@ -334,6 +335,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
             ec.nc_hint,
             COALESCE(ec.is_mandatory, false) AS is_mandatory,
             true AS is_section_header,
+            ec.sort_order,
             es.id AS standard_id,
             es.code AS standard_code,
             es.name AS standard_name,
@@ -359,6 +361,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
             ec.nc_hint,
             COALESCE(ec.is_mandatory, false) AS is_mandatory,
             true AS is_section_header,
+            ec.sort_order,
             es.id AS standard_id,
             es.code AS standard_code,
             es.name AS standard_name,
@@ -371,7 +374,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           WHERE a.id = $1
             AND ec.is_section_header = true
 
-          ORDER BY is_transversal DESC, standard_id, code
+          ORDER BY is_transversal DESC, standard_id, COALESCE(sort_order, 9999), code
         `, [id]);
 
         const criteria = result.rows.map(row => ({
@@ -385,6 +388,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           nc_hint: row.nc_hint,
           is_mandatory: row.is_mandatory,
           is_section_header: row.is_section_header,
+          sort_order: row.sort_order ?? null,
           standard_id: row.standard_id,
           standard_code: row.standard_code,
           standard_name: row.standard_name,
