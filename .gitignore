@@ -76,3 +76,6 @@ temp/
 # Public files (if generated) — logo excluido de la regla
 frontend/public/*
 !frontend/public/ah-consultores-logo.png
+
+# Archivos exportados del Excel para análisis (datos derivados, no necesarios en repo)
+docs/Norma\ 3100/exported_csv/
