@@ -374,7 +374,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           WHERE a.id = $1
             AND ec.is_section_header = true
 
-          ORDER BY is_transversal DESC, standard_id, COALESCE(sort_order, 9999), code
+          ORDER BY is_transversal DESC, standard_id, sort_order NULLS LAST, code
         `, [id]);
 
         const criteria = result.rows.map(row => ({
