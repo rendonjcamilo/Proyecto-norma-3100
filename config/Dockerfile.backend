@@ -14,7 +14,7 @@ COPY backend/db ./db
 COPY backend/scripts ./scripts
 COPY docs/norma3100-model.json ./docs/norma3100-model.json
 
-RUN npx tsc --noEmitOnError false; test -f dist/index.js
+RUN npx tsc || true; test -f dist/index.js
 
 # ── Stage 2: Imagen de producción (solo lo necesario) ─────────────────────────
 FROM node:18-alpine AS production
