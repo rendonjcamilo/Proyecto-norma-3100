@@ -148,6 +148,12 @@ export const WhatsAppPanel: React.FC = () => {
   const [sortCol, setSortCol] = useState<'dias' | 'nombre' | 'municipio'>('dias');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
+  // Selección múltiple y envío masivo
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; errors: number } | null>(null);
+  const bulkAbort = useRef(false);
+
   // Cargar estado de conexión al montar
   useEffect(() => {
     whatsappApi.getStatus()
@@ -189,6 +195,51 @@ export const WhatsAppPanel: React.FC = () => {
     } finally {
       setWaStatusLoading(false);
     }
+  };
+
+  const prospKey = (p: RepsProspecto) => `${p.codigo_habilitacion}-${p.nit}`;
+
+  const toggleSelect = (p: RepsProspecto, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(prospKey(p)) ? next.delete(prospKey(p)) : next.add(prospKey(p));
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const conCelular = prospectosFiltrados.filter(p => p.celular);
+    if (selectedIds.size === conCelular.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(conCelular.map(prospKey)));
+    }
+  };
+
+  const handleEnviarMasivo = async () => {
+    const destinatarios = prospectosFiltrados.filter(
+      p => selectedIds.has(prospKey(p)) && p.celular
+    );
+    if (!destinatarios.length) return;
+    bulkAbort.current = false;
+    setBulkSending(true);
+    setBulkProgress({ done: 0, total: destinatarios.length, errors: 0 });
+    let errors = 0;
+    for (let i = 0; i < destinatarios.length; i++) {
+      if (bulkAbort.current) break;
+      const p = destinatarios[i];
+      const phone = toWaPhone(p.celular!);
+      try {
+        await whatsappApi.send(phone, buildMensaje(plantilla, p));
+      } catch {
+        errors++;
+      }
+      setBulkProgress({ done: i + 1, total: destinatarios.length, errors });
+      if (i < destinatarios.length - 1) await new Promise(r => setTimeout(r, 3000));
+    }
+    setBulkSending(false);
+    setSelectedIds(new Set());
   };
 
   const handleEnviarAutomatico = async () => {
@@ -717,19 +768,57 @@ export const WhatsAppPanel: React.FC = () => {
             </div>
           )}
 
+          {/* ── Barra de selección múltiple ──────────────────────────── */}
+          {!loading && !error && prospectosFiltrados.length > 0 && viewMode === 'cards' && waStatus?.connected && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: selectedIds.size > 0 ? '#f0fdf4' : '#f8fafc', border: '1px solid', borderColor: selectedIds.size > 0 ? '#86efac' : '#e2e8f0', borderRadius: 8, marginBottom: 6 }}>
+              <input
+                type="checkbox"
+                checked={selectedIds.size > 0 && selectedIds.size === prospectosFiltrados.filter(p => p.celular).length}
+                ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < prospectosFiltrados.filter(p => p.celular).length; }}
+                onChange={toggleSelectAll}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#16a34a' }}
+              />
+              <span style={{ fontSize: 13, color: '#374151', flex: 1 }}>
+                {selectedIds.size === 0
+                  ? `${prospectosFiltrados.filter(p => p.celular).length} con celular — selecciona para envío masivo`
+                  : `${selectedIds.size} seleccionado${selectedIds.size > 1 ? 's' : ''}`}
+              </span>
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={handleEnviarMasivo}
+                  disabled={bulkSending}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 6, background: '#16a34a', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: bulkSending ? 'not-allowed' : 'pointer', opacity: bulkSending ? 0.7 : 1 }}
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                  {bulkSending ? `Enviando… ${bulkProgress?.done}/${bulkProgress?.total}` : `Enviar a ${selectedIds.size}`}
+                </button>
+              )}
+            </div>
+          )}
+
           {!loading && !error && prospectosFiltrados.length > 0 && viewMode === 'cards' && (
             <ul className="wap-list">
               {prospectosFiltrados.map((p) => {
                 const chip = chipParaClase(p.clase_prestador);
                 const isActive = selected?.codigo_habilitacion === p.codigo_habilitacion && selected?.nit === p.nit;
+                const isChecked = selectedIds.has(prospKey(p));
                 const tieneVencimiento = p.fecha_vencimiento !== null;
                 return (
                   <li
                     key={`${p.codigo_habilitacion}-${p.nit}`}
-                    className={`wap-item ${isActive ? 'wap-item--active' : ''}`}
+                    className={`wap-item ${isActive ? 'wap-item--active' : ''} ${isChecked ? 'wap-item--checked' : ''}`}
                     onClick={() => handleSelect(p)}
                   >
                     <div className="wap-item-top">
+                      {waStatus?.connected && p.celular && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onClick={(e) => toggleSelect(p, e)}
+                          onChange={() => {}}
+                          style={{ width: 15, height: 15, marginRight: 6, flexShrink: 0, accentColor: '#16a34a', cursor: 'pointer' }}
+                        />
+                      )}
                       <span className="wap-item-name">{p.nombre_prestador}</span>
                       <div className="wap-item-top-badges">
                         {tieneVencimiento ? (
@@ -1121,6 +1210,30 @@ export const WhatsAppPanel: React.FC = () => {
                 {manualModal.saving ? 'Guardando...' : 'Guardar fecha'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de progreso — envío masivo */}
+      {bulkSending && bulkProgress && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: 12, padding: '28px 32px', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>📤</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Enviando mensajes</h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>3 segundos entre cada envío para evitar bloqueos</p>
+            <div style={{ background: '#f3f4f6', borderRadius: 8, height: 10, overflow: 'hidden', marginBottom: 12 }}>
+              <div style={{ background: '#16a34a', height: '100%', width: `${Math.round((bulkProgress.done / bulkProgress.total) * 100)}%`, transition: 'width 0.4s ease' }} />
+            </div>
+            <p style={{ margin: '0 0 16px', fontWeight: 700, fontSize: 16 }}>
+              {bulkProgress.done} / {bulkProgress.total} enviados
+              {bulkProgress.errors > 0 && <span style={{ color: '#dc2626', fontWeight: 400, fontSize: 13 }}> · {bulkProgress.errors} error{bulkProgress.errors > 1 ? 'es' : ''}</span>}
+            </p>
+            <button
+              onClick={() => { bulkAbort.current = true; }}
+              style={{ padding: '8px 20px', borderRadius: 6, background: '#f3f4f6', border: '1px solid #d1d5db', fontSize: 13, cursor: 'pointer', color: '#374151' }}
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
