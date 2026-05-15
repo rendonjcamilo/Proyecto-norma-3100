@@ -80,7 +80,7 @@ services:
     image: postgres:14-alpine
     container_name: norma3100-postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_DB=norma3100
       - POSTGRES_USER=postgres
