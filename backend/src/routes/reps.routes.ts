@@ -194,12 +194,14 @@ export function createRepsRouter(pool: Pool): Router {
           const nits = resultado.data.map((p) => p.nit).filter(Boolean);
           const enrichedMap = await enrichmentService.getBatchCached(nits);
 
-          const today = Date.now();
+          const todayMidnight = new Date();
+          todayMidnight.setUTCHours(0, 0, 0, 0);
+          const todayMs = todayMidnight.getTime();
           resultado.data = resultado.data.map((p) => {
             const cached = enrichedMap.get(p.nit);
             if (cached?.fecha_vencimiento) {
               const dias = Math.floor(
-                (new Date(cached.fecha_vencimiento).getTime() - today) / 86_400_000
+                (new Date(cached.fecha_vencimiento).getTime() - todayMs) / 86_400_000
               );
               return { ...p, fecha_vencimiento: cached.fecha_vencimiento, dias_hasta_vencer: dias };
             }
