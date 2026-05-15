@@ -39,20 +39,20 @@ log "Código actualizado al commit: $(git rev-parse --short HEAD)"
 
 # 3. Construir nuevas imágenes
 log "Construyendo imágenes Docker..."
-docker compose -f "$COMPOSE_FILE" build --no-cache
+$COMPOSE_CMD build
 
 # 4. Levantar servicios (sin downtime para postgres y redis)
 log "Iniciando servicios..."
-docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+$COMPOSE_CMD up -d --remove-orphans
 
 # 5. Esperar a que el backend esté saludable
 log "Esperando a que el backend esté disponible..."
 MAX_WAIT=120
 WAITED=0
-until docker compose -f "$COMPOSE_FILE" exec -T backend curl -sf http://localhost:3001/health > /dev/null 2>&1; do
+until $COMPOSE_CMD exec -T backend curl -sf http://localhost:3001/health > /dev/null 2>&1; do
   if [ $WAITED -ge $MAX_WAIT ]; then
     log "ERROR: Backend no respondió después de ${MAX_WAIT}s"
-    docker compose -f "$COMPOSE_FILE" logs backend --tail=50
+    $COMPOSE_CMD logs backend --tail=50
     exit 1
   fi
   sleep 5
@@ -62,12 +62,12 @@ done
 
 # 6. Ejecutar migraciones de base de datos
 log "Ejecutando migraciones de base de datos..."
-docker compose -f "$COMPOSE_FILE" exec -T backend npm run migrate:up
+$COMPOSE_CMD exec -T backend npm run migrate:up
 log "Migraciones aplicadas exitosamente"
 
 # 7. Verificar estado final
 log "Estado de los contenedores:"
-docker compose -f "$COMPOSE_FILE" ps
+$COMPOSE_CMD ps
 
 log "=========================================="
 log "Despliegue completado exitosamente"

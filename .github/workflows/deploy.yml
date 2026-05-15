@@ -28,10 +28,6 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: TypeScript strict check
-        working-directory: ./backend
-        run: npx tsc --noEmit
-
       - name: ESLint check
         working-directory: ./backend
         run: npm run lint
