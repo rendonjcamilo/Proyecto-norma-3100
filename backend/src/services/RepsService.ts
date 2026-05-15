@@ -117,6 +117,32 @@ export interface RepsProspecto {
 
 const DATOS_GOV_REPS_ENDPOINT = 'https://www.datos.gov.co/resource/c36g-9fc2.json';
 
+// Reintentos automáticos para llamadas a datos.gov.co
+// No reintenta en AbortError (timeout controlado por el usuario).
+async function fetchConReintentos(
+  url: string,
+  options: RequestInit,
+  maxReintentos = 2,
+  esperaMs = 2000
+): Promise<Response> {
+  let ultimoError: unknown;
+  for (let intento = 0; intento <= maxReintentos; intento++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok || res.status < 500) return res; // 4xx no se reintenta
+      ultimoError = new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') throw err; // timeout: no reintentar
+      ultimoError = err;
+    }
+    if (intento < maxReintentos) {
+      logger.warn({ msg: `datos.gov.co falló, reintentando (${intento + 1}/${maxReintentos})...` });
+      await new Promise((r) => setTimeout(r, esperaMs));
+    }
+  }
+  throw ultimoError;
+}
+
 // Mapeo de estados REPS a estándares
 const ESTADO_HABILITACION_MAP: Record<string, string> = {
   habilitado: 'habilitado',
@@ -202,7 +228,7 @@ export class RepsService {
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchConReintentos(url, {
         signal: controller.signal,
         headers: {
           Accept: 'application/json',
@@ -447,7 +473,7 @@ export class RepsService {
       });
       if (whereClause) params.set('$where', whereClause);
       const url = `${DATOS_GOV_REPS_ENDPOINT}?${params.toString()}`;
-      const response = await fetch(url, { signal: controller.signal, headers: fetchHeaders });
+      const response = await fetchConReintentos(url, { signal: controller.signal, headers: fetchHeaders });
       if (!response.ok) {
         logger.warn({ msg: 'REPS API page error (datos.gov.co)', status: response.status, offset, pageLimit });
         return null;
