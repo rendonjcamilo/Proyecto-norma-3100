@@ -83,7 +83,7 @@ export interface AssessmentFormProps {
  *   "13.1.1. Profesional..." → "13.1.1"
  */
 function getHierarchicalNumber(criterion: Criterion): string | null {
-  const match = criterion.name.match(/^(\d+(?:\.\d+)*)\./);
+  const match = criterion.name.match(/^(\d+(?:\.\d+)*)[\.\s]/);
   return match ? match[1] : null;
 }
 
