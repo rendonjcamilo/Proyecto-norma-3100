@@ -162,6 +162,13 @@ export const WhatsAppPanel: React.FC = () => {
     setWaQRModal(true);
     try {
       const res = await whatsappApi.getQR();
+      if (res.data.state === 'open') {
+        // Ya conectado — cerrar modal y refrescar estado
+        setWaQRModal(false);
+        const s = await whatsappApi.getStatus();
+        setWaStatus(s.data);
+        return;
+      }
       setWaQR(res.data);
     } catch (err) {
       setWaQR(null);

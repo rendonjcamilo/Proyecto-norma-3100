@@ -82,7 +82,10 @@ export class WhatsAppService {
             ?? ((found.instance as Record<string, unknown>)?.status as string | undefined))
         : undefined;
 
-      if (!found) {
+      if (foundStatus === 'open') {
+        // Ya conectado — no hay QR que mostrar
+        return { state: 'open' };
+      } else if (!found) {
         await evoFetch('/instance/create', {
           method: 'POST',
           body: JSON.stringify({ instanceName: instance, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
