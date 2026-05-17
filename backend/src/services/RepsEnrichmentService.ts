@@ -52,10 +52,21 @@ export class RepsEnrichmentService {
    * Enriquece un lote de NITs con fecha_vencimiento.
    * Retorna primero los cacheados, luego HTTP paralelo para los pendientes.
    * Máximo 20 NITs por llamada.
+   * Con force=true omite el cooldown y reintenta NITs que fallaron previamente.
    */
-  async enrichLote(nits: string[]): Promise<EnrichResult[]> {
+  async enrichLote(nits: string[], force = false): Promise<EnrichResult[]> {
     const unique = [...new Set(nits.map((n) => n.trim()).filter(Boolean))].slice(0, 20);
     if (unique.length === 0) return [];
+
+    if (force) {
+      await this.pool.query(
+        `UPDATE reps_enriched
+            SET intentos_fallidos = 0,
+                enriquecido_at    = NOW() - INTERVAL '${RETRY_COOLDOWN_HOURS + 1} hours'
+          WHERE nit = ANY($1) AND fecha_vencimiento IS NULL`,
+        [unique]
+      );
+    }
 
     const cached = await this.getCached(unique);
     const cachedNits = new Set(cached.map((r) => r.nit));

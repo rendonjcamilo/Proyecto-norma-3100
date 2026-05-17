@@ -273,7 +273,7 @@ export const WhatsAppPanel: React.FC = () => {
 
   // ── Enriquecimiento por lotes ──────────────────────────────────────────────
 
-  const doEnrich = useCallback(async (nits: string[]) => {
+  const doEnrich = useCallback(async (nits: string[], force = false) => {
     if (nits.length === 0) return;
 
     enrichAbort.current = false;
@@ -299,7 +299,7 @@ export const WhatsAppPanel: React.FC = () => {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
-        const res = await repsApi.enrichLote(batch, controller.signal).finally(() => clearTimeout(timeoutId));
+        const res = await repsApi.enrichLote(batch, controller.signal, force).finally(() => clearTimeout(timeoutId));
         const results = res.data || [];
 
         // Actualizar prospectos con las fechas obtenidas
@@ -656,11 +656,12 @@ export const WhatsAppPanel: React.FC = () => {
                   prospectos
                     .filter((p: RepsProspecto) => !p.fecha_vencimiento)
                     .map((p: RepsProspecto) => p.nit)
-                    .filter(Boolean)
+                    .filter(Boolean),
+                  true
                 )}
-                title="Consultar MINSALUD solo para prestadores sin fecha"
+                title="Forzar consulta en MINSALUD — omite el cooldown y reintenta todos los pendientes"
               >
-                🔄 Actualizar ({prospectos.filter((p: RepsProspecto) => !p.fecha_vencimiento).length} pendientes)
+                🔄 Forzar actualización ({prospectos.filter((p: RepsProspecto) => !p.fecha_vencimiento).length} pendientes)
               </button>
             )}
           </div>
@@ -834,13 +835,23 @@ export const WhatsAppPanel: React.FC = () => {
                               : formatFechaVenc(p.fecha_vencimiento)}
                           </span>
                         ) : (
-                          <button
-                            className="wap-venc-manual-btn"
-                            onClick={(e) => { e.stopPropagation(); abrirManual(p); }}
-                            title="Ingresar fecha de vencimiento manualmente"
-                          >
-                            📅 Fecha manual
-                          </button>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              className="wap-venc-manual-btn"
+                              onClick={(e) => { e.stopPropagation(); doEnrich([p.nit], true); }}
+                              title="Reintentar consulta en MinSalud (omite cooldown)"
+                              style={{ fontSize: '11px' }}
+                            >
+                              🔄
+                            </button>
+                            <button
+                              className="wap-venc-manual-btn"
+                              onClick={(e) => { e.stopPropagation(); abrirManual(p); }}
+                              title="Ingresar fecha de vencimiento manualmente"
+                            >
+                              📅 Fecha manual
+                            </button>
+                          </div>
                         )}
                         <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
                       </div>

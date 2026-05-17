@@ -303,7 +303,7 @@ export function createRepsRouter(pool: Pool): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
-        const { nits } = req.body as { nits?: unknown };
+        const { nits, force } = req.body as { nits?: unknown; force?: boolean };
 
         if (!Array.isArray(nits) || nits.length === 0) {
           return res.status(400).json({ error: 'Se requiere un array "nits" no vacío' });
@@ -319,9 +319,10 @@ export function createRepsRouter(pool: Pool): Router {
           return res.status(400).json({ error: 'NITs inválidos' });
         }
 
-        logger.info({ msg: 'REPS enriquecer-lote iniciado', total: cleanNits.length });
+        const forceRefresh = Boolean(force);
+        logger.info({ msg: 'REPS enriquecer-lote iniciado', total: cleanNits.length, force: forceRefresh });
 
-        const results = await enrichmentService.enrichLote(cleanNits);
+        const results = await enrichmentService.enrichLote(cleanNits, forceRefresh);
 
         const exitosos = results.filter((r) => r.ok && r.fecha_vencimiento).length;
         logger.info({
