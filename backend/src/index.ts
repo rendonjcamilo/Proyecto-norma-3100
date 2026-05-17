@@ -37,6 +37,8 @@ import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
 import { openapiSpec, swaggerUiOptions } from './config/openapi.config.js';
+import cron from 'node-cron';
+import { RepsEnrichmentService } from './services/RepsEnrichmentService.js';
 
 // Load environment variables
 dotenv.config();
@@ -308,4 +310,50 @@ runStartupMigrations().then(() => app.listen(PORT, () => {
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   repsAlertService.initAllActiveSchedulers();
+
+  // ─── Job nocturno: re-enriquecimiento automático de fechas REPS ───
+  // 2:00 AM UTC — refresca NITs a punto de expirar y reintenta los fallidos hace más de 7 días
+  const repsEnrichSvc = new RepsEnrichmentService(pool);
+  cron.schedule('0 2 * * *', async () => {
+    logger.info({ msg: 'REPS nightly enrichment job started' });
+    try {
+      const expiring = await pool.query<{ nit: string; codigo_habilitacion: string | null }>(
+        `SELECT nit, codigo_habilitacion FROM reps_enriched
+          WHERE fecha_vencimiento IS NOT NULL
+            AND expira_at < NOW() + INTERVAL '7 days'
+          LIMIT 200`
+      );
+      const stale = await pool.query<{ nit: string; codigo_habilitacion: string | null }>(
+        `SELECT nit, codigo_habilitacion FROM reps_enriched
+          WHERE fecha_vencimiento IS NULL
+            AND enriquecido_at < NOW() - INTERVAL '7 days'
+          LIMIT 100`
+      );
+
+      const entries = [...expiring.rows, ...stale.rows].map((r) => ({
+        nit: r.nit,
+        codigoHab: r.codigo_habilitacion ?? undefined,
+      }));
+
+      if (entries.length === 0) {
+        logger.info({ msg: 'REPS nightly job: nothing to enrich' });
+        return;
+      }
+
+      let exitosos = 0;
+      for (let i = 0; i < entries.length; i += 20) {
+        const batch = entries.slice(i, i + 20);
+        const results = await repsEnrichSvc.enrichLote(batch).catch((e) => {
+          logger.error({ msg: 'REPS nightly batch error', error: String(e) });
+          return [];
+        });
+        exitosos += results.filter((r) => r.ok && r.fecha_vencimiento).length;
+        if (i + 20 < entries.length) await new Promise((r) => setTimeout(r, 3000));
+      }
+
+      logger.info({ msg: 'REPS nightly enrichment job completed', total: entries.length, exitosos });
+    } catch (err) {
+      logger.error({ msg: 'REPS nightly enrichment job failed', error: String(err) });
+    }
+  }, { timezone: 'UTC' });
 }));

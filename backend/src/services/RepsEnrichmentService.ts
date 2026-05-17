@@ -39,6 +39,11 @@ interface SlotSession {
   createdAt: number;
 }
 
+export interface EnrichEntry {
+  nit: string;
+  codigoHab?: string;
+}
+
 export class RepsEnrichmentService {
   private slots: (SlotSession | null)[];
 
@@ -50,13 +55,26 @@ export class RepsEnrichmentService {
 
   /**
    * Enriquece un lote de NITs con fecha_vencimiento.
-   * Retorna primero los cacheados, luego HTTP paralelo para los pendientes.
-   * Máximo 20 NITs por llamada.
-   * Con force=true omite el cooldown y reintenta NITs que fallaron previamente.
+   * Acepta strings o {nit, codigoHab} — usa codigoHab como fallback si el NIT no se encuentra.
+   * Máximo 20 entradas por llamada. Con force=true omite el cooldown de 24h.
    */
-  async enrichLote(nits: string[], force = false): Promise<EnrichResult[]> {
-    const unique = [...new Set(nits.map((n) => n.trim()).filter(Boolean))].slice(0, 20);
-    if (unique.length === 0) return [];
+  async enrichLote(entries: Array<string | EnrichEntry>, force = false): Promise<EnrichResult[]> {
+    const normalized: EnrichEntry[] = entries.map((e) =>
+      typeof e === 'string' ? { nit: e.trim() } : { nit: e.nit.trim(), codigoHab: e.codigoHab }
+    );
+
+    const seen = new Set<string>();
+    const unique: EnrichEntry[] = [];
+    for (const e of normalized) {
+      if (e.nit && !seen.has(e.nit)) {
+        seen.add(e.nit);
+        unique.push(e);
+      }
+    }
+    const deduped = unique.slice(0, 20);
+    if (deduped.length === 0) return [];
+
+    const nits = deduped.map((e) => e.nit);
 
     if (force) {
       await this.pool.query(
@@ -64,17 +82,32 @@ export class RepsEnrichmentService {
             SET intentos_fallidos = 0,
                 enriquecido_at    = NOW() - INTERVAL '${RETRY_COOLDOWN_HOURS + 1} hours'
           WHERE nit = ANY($1) AND fecha_vencimiento IS NULL`,
-        [unique]
+        [nits]
       );
     }
 
-    const cached = await this.getCached(unique);
+    // Guardar código de habilitación para los pendientes (útil para fallback)
+    if (deduped.some((e) => e.codigoHab)) {
+      const withHab = deduped.filter((e) => e.codigoHab);
+      for (const e of withHab) {
+        await this.pool.query(
+          `INSERT INTO reps_enriched (nit, codigo_habilitacion, fuente, enriquecido_at, expira_at, intentos_fallidos)
+             VALUES ($1, $2, 'minsalud_scrape', NOW() - INTERVAL '${RETRY_COOLDOWN_HOURS + 1} hours', NOW() + INTERVAL '1 day', 0)
+             ON CONFLICT (nit) DO UPDATE SET
+               codigo_habilitacion = COALESCE(EXCLUDED.codigo_habilitacion, reps_enriched.codigo_habilitacion)
+             WHERE reps_enriched.codigo_habilitacion IS NULL`,
+          [e.nit, e.codigoHab]
+        );
+      }
+    }
+
+    const cached = await this.getCached(nits);
     const cachedNits = new Set(cached.map((r) => r.nit));
-    const pendientes = unique.filter((n) => !cachedNits.has(n));
+    const pendientes = deduped.filter((e) => !cachedNits.has(e.nit));
 
     if (pendientes.length === 0) return cached;
 
-    const scraped = await this.processWithConcurrency(pendientes);
+    const scraped = await this.processWithConcurrencyEntries(pendientes);
     return [...cached, ...scraped];
   }
 
@@ -132,43 +165,52 @@ export class RepsEnrichmentService {
 
   // ── Procesamiento concurrente ────────────────────────────────────────────────
 
-  private async processWithConcurrency(nits: string[]): Promise<EnrichResult[]> {
-    const results: EnrichResult[] = new Array(nits.length);
+  private async processWithConcurrencyEntries(entries: EnrichEntry[]): Promise<EnrichResult[]> {
+    const results: EnrichResult[] = new Array(entries.length);
     let ptr = 0;
 
     const worker = async (slot: number) => {
       while (true) {
-        // ptr++ es atómico en JS (single-threaded) — sin race condition
         const i = ptr++;
-        if (i >= nits.length) break;
-        results[i] = await this.scrapeNit(nits[i], slot);
-        if (ptr < nits.length) await this.sleep(SLOT_DELAY_MS);
+        if (i >= entries.length) break;
+        const { nit, codigoHab } = entries[i];
+        results[i] = await this.scrapeNit(nit, slot, codigoHab);
+        if (ptr < entries.length) await this.sleep(SLOT_DELAY_MS);
       }
     };
 
-    const workerCount = Math.min(CONCURRENCY, nits.length);
+    const workerCount = Math.min(CONCURRENCY, entries.length);
     await Promise.all(Array.from({ length: workerCount }, (_, slot) => worker(slot)));
     return results;
   }
 
-  private async scrapeNit(nit: string, slot: number): Promise<EnrichResult> {
+  private async scrapeNit(nit: string, slot: number, codigoHab?: string): Promise<EnrichResult> {
     if (await this.isInCooldown(nit)) {
       return { nit, fecha_vencimiento: null, fuente: 'minsalud_scrape', ok: false, error: 'Cooldown activo' };
     }
 
     try {
-      // Establecer o refrescar sesión del slot
       if (!this.slots[slot] || Date.now() - this.slots[slot]!.createdAt > SESSION_MAX_AGE_MS) {
         this.slots[slot] = { cookie: await this.establishSession(), createdAt: Date.now() };
       }
 
-      const fecha = await Promise.race([
+      // Intento 1: búsqueda por NIT + dígito de verificación
+      let fecha = await Promise.race([
         this.fetchNitHttp(nit, slot),
         this.timeoutValue<string | null>(null, HTTP_TIMEOUT_MS * 2),
       ]);
 
+      // Intento 2 (fallback): búsqueda por código de habilitación si NIT no retornó fecha
+      if (!fecha && codigoHab) {
+        logger.info({ msg: 'REPS HTTP: NIT sin resultado, intentando por hab code', nit, codigoHab: codigoHab.slice(0, 10) });
+        fecha = await Promise.race([
+          this.fetchHabCodeHttp(codigoHab, slot),
+          this.timeoutValue<string | null>(null, HTTP_TIMEOUT_MS * 2),
+        ]);
+      }
+
       if (fecha) {
-        await this.saveCacheSuccess(nit, fecha);
+        await this.saveCacheSuccess(nit, fecha, codigoHab);
         logger.info({ msg: 'REPS enriquecido (HTTP)', nit, fecha_vencimiento: fecha });
         return { nit, fecha_vencimiento: fecha, fuente: 'minsalud_scrape', ok: true };
       }
@@ -177,7 +219,7 @@ export class RepsEnrichmentService {
       return { nit, fecha_vencimiento: null, fuente: 'minsalud_scrape', ok: false, error: 'Fecha no encontrada' };
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
-      this.slots[slot] = null; // invalida sesión del slot en error
+      this.slots[slot] = null;
       await this.recordFailure(nit, error);
       logger.warn({ msg: 'REPS HTTP scraping fallido', nit, slot, error });
       return { nit, fecha_vencimiento: null, fuente: 'minsalud_scrape', ok: false, error };
@@ -186,38 +228,41 @@ export class RepsEnrichmentService {
 
   // ── HTTP scraping MINSALUD ───────────────────────────────────────────────────
 
-  private async fetchNitHttp(nit: string, slot: number, isRetry = false): Promise<string | null> {
+  private async getSearchPageHtml(slot: number, isRetry = false): Promise<{ html: string; url: string }> {
     const session = this.slots[slot]!;
     const repsUrl = `${MINSALUD_BASE}${REPS_PATH}`;
 
-    // GET para obtener VIEWSTATE actual de la página de búsqueda
     const getResp = await this.timedFetch(repsUrl, {
-      headers: {
-        'User-Agent': UA,
-        'Cookie': session.cookie,
-        'Referer': `${MINSALUD_BASE}/work.aspx`,
-      },
+      headers: { 'User-Agent': UA, 'Cookie': session.cookie, 'Referer': `${MINSALUD_BASE}/work.aspx` },
     });
     session.cookie = this.mergeCookies(session.cookie, getResp.headers);
-    const pageHtml = await getResp.text();
+    const html = await getResp.text();
 
-    // Detectar sesión expirada: la página de búsqueda debe tener el campo NIT
-    const sessionExpired = !pageHtml.includes('tbnits_nit') || pageHtml.includes('id="Button1"');
+    const sessionExpired = !html.includes('tbnits_nit') || html.includes('id="Button1"');
     if (sessionExpired) {
       if (isRetry) throw new Error('Sesión MINSALUD inválida tras reestablecimiento');
       logger.info({ msg: 'REPS HTTP: sesión expirada, reestableciendo', slot });
       this.slots[slot] = { cookie: await this.establishSession(), createdAt: Date.now() };
-      return this.fetchNitHttp(nit, slot, true);
+      return this.getSearchPageHtml(slot, true);
     }
+
+    return { html, url: repsUrl };
+  }
+
+  private async fetchNitHttp(nit: string, slot: number): Promise<string | null> {
+    const session = this.slots[slot]!;
+    const { html: pageHtml, url: repsUrl } = await this.getSearchPageHtml(slot);
 
     const viewState = this.extractHidden(pageHtml, '__VIEWSTATE') ?? '';
     const viewStateGen = this.extractHidden(pageHtml, '__VIEWSTATEGENERATOR') ?? '';
     const eventValidation = this.extractHidden(pageHtml, '__EVENTVALIDATION') ?? '';
 
-    // Extraer nombres de campo reales del HTML (ASP.NET puede usar ':' o '_')
     const nitName =
       this.extractFieldNameById(pageHtml, '_ctl0_ContentPlaceHolder1_tbnits_nit') ??
       '_ctl0:ContentPlaceHolder1:tbnits_nit';
+    const dvName =
+      this.extractFieldNameById(pageHtml, '_ctl0_ContentPlaceHolder1_tbdv') ??
+      '_ctl0:ContentPlaceHolder1:tbdv';
     const btnName =
       this.extractFieldNameById(pageHtml, '_ctl0_ibBuscarHdr') ?? '_ctl0:ibBuscarHdr';
 
@@ -226,16 +271,15 @@ export class RepsEnrichmentService {
     if (viewStateGen) body.set('__VIEWSTATEGENERATOR', viewStateGen);
     if (eventValidation) body.set('__EVENTVALIDATION', eventValidation);
     body.set(nitName, nit);
+    body.set(dvName, this.calcNitDv(nit)); // dígito de verificación
     body.set(`${btnName}.x`, '10');
     body.set(`${btnName}.y`, '10');
 
     const postResp = await this.timedFetch(repsUrl, {
       method: 'POST',
       headers: {
-        'User-Agent': UA,
-        'Cookie': session.cookie,
-        'Referer': repsUrl,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': UA, 'Cookie': session.cookie,
+        'Referer': repsUrl, 'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: body.toString(),
     });
@@ -243,6 +287,64 @@ export class RepsEnrichmentService {
     const resultHtml = await postResp.text();
 
     return this.parseFechaFromInput(resultHtml) ?? this.parseFechaVencimiento(resultHtml);
+  }
+
+  /**
+   * Búsqueda alternativa por código de habilitación (fallback cuando NIT no retorna resultados).
+   * El portal acepta 10 caracteres en el campo tbcodigo_habilitacion.
+   */
+  private async fetchHabCodeHttp(codigoHab: string, slot: number): Promise<string | null> {
+    const session = this.slots[slot]!;
+    const { html: pageHtml, url: repsUrl } = await this.getSearchPageHtml(slot);
+
+    const viewState = this.extractHidden(pageHtml, '__VIEWSTATE') ?? '';
+    const viewStateGen = this.extractHidden(pageHtml, '__VIEWSTATEGENERATOR') ?? '';
+    const eventValidation = this.extractHidden(pageHtml, '__EVENTVALIDATION') ?? '';
+
+    const habName =
+      this.extractFieldNameById(pageHtml, '_ctl0_ContentPlaceHolder1_tbcodigo_habilitacion') ??
+      '_ctl0:ContentPlaceHolder1:tbcodigo_habilitacion';
+    const btnName =
+      this.extractFieldNameById(pageHtml, '_ctl0_ibBuscarHdr') ?? '_ctl0:ibBuscarHdr';
+
+    // El campo acepta 10 caracteres; los códigos de datos.gov.co tienen 12 (últimos 2 = sede)
+    const habCode10 = codigoHab.replace(/\D/g, '').slice(0, 10);
+
+    const body = new URLSearchParams();
+    body.set('__VIEWSTATE', viewState);
+    if (viewStateGen) body.set('__VIEWSTATEGENERATOR', viewStateGen);
+    if (eventValidation) body.set('__EVENTVALIDATION', eventValidation);
+    body.set(habName, habCode10);
+    body.set(`${btnName}.x`, '10');
+    body.set(`${btnName}.y`, '10');
+
+    const postResp = await this.timedFetch(repsUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': UA, 'Cookie': session.cookie,
+        'Referer': repsUrl, 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    });
+    session.cookie = this.mergeCookies(session.cookie, postResp.headers);
+    const resultHtml = await postResp.text();
+
+    return this.parseFechaFromInput(resultHtml) ?? this.parseFechaVencimiento(resultHtml);
+  }
+
+  /**
+   * Calcula el dígito de verificación (DV) de un NIT colombiano.
+   * Fórmula DIAN: pesos [3,7,13,17,19,23,29,37,41,43] de derecha a izquierda.
+   */
+  private calcNitDv(nit: string): string {
+    const digits = nit.replace(/\D/g, '');
+    const weights = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43];
+    let sum = 0;
+    for (let i = 0; i < digits.length && i < weights.length; i++) {
+      sum += parseInt(digits[digits.length - 1 - i], 10) * weights[i];
+    }
+    const residue = sum % 11;
+    return String(residue === 0 || residue === 1 ? residue : 11 - residue);
   }
 
   /**
@@ -464,19 +566,20 @@ export class RepsEnrichmentService {
     return res.rows.length > 0;
   }
 
-  private async saveCacheSuccess(nit: string, fecha: string): Promise<void> {
+  private async saveCacheSuccess(nit: string, fecha: string, codigoHab?: string): Promise<void> {
     await this.pool.query(
       `INSERT INTO reps_enriched
-         (nit, fecha_vencimiento, fuente, enriquecido_at, expira_at, intentos_fallidos, ultimo_error)
-       VALUES ($1, $2, 'minsalud_scrape', NOW(), NOW() + INTERVAL '${CACHE_TTL_DAYS} days', 0, NULL)
+         (nit, fecha_vencimiento, codigo_habilitacion, fuente, enriquecido_at, expira_at, intentos_fallidos, ultimo_error)
+       VALUES ($1, $2, $3, 'minsalud_scrape', NOW(), NOW() + INTERVAL '${CACHE_TTL_DAYS} days', 0, NULL)
        ON CONFLICT (nit) DO UPDATE SET
-         fecha_vencimiento = EXCLUDED.fecha_vencimiento,
-         fuente            = 'minsalud_scrape',
-         enriquecido_at    = NOW(),
-         expira_at         = NOW() + INTERVAL '${CACHE_TTL_DAYS} days',
-         intentos_fallidos = 0,
-         ultimo_error      = NULL`,
-      [nit, fecha]
+         fecha_vencimiento   = EXCLUDED.fecha_vencimiento,
+         codigo_habilitacion = COALESCE(EXCLUDED.codigo_habilitacion, reps_enriched.codigo_habilitacion),
+         fuente              = 'minsalud_scrape',
+         enriquecido_at      = NOW(),
+         expira_at           = NOW() + INTERVAL '${CACHE_TTL_DAYS} days',
+         intentos_fallidos   = 0,
+         ultimo_error        = NULL`,
+      [nit, fecha, codigoHab ?? null]
     );
   }
 

@@ -276,10 +276,18 @@ export const WhatsAppPanel: React.FC = () => {
   const doEnrich = useCallback(async (nits: string[], force = false) => {
     if (nits.length === 0) return;
 
-    // Deduplicar NITs antes de batching — el mismo NIT puede aparecer varias veces
-    // si el dataset REPS tiene múltiples registros para la misma entidad.
-    const uniqueNits = [...new Set(nits.filter(Boolean))];
-    if (uniqueNits.length === 0) return;
+    // Deduplicar NITs y construir entries con codigoHab como fallback de búsqueda
+    const habMap = new Map(prospectos.map((p) => [p.nit, p.codigo_habilitacion]));
+    const seenNits = new Set<string>();
+    const uniqueEntries: Array<{ nit: string; codigoHab?: string }> = [];
+    for (const nit of nits) {
+      if (nit && !seenNits.has(nit)) {
+        seenNits.add(nit);
+        const hab = habMap.get(nit);
+        uniqueEntries.push({ nit, codigoHab: hab || undefined });
+      }
+    }
+    if (uniqueEntries.length === 0) return;
 
     enrichAbort.current = false;
     setEnrichStatus('running');
@@ -292,15 +300,14 @@ export const WhatsAppPanel: React.FC = () => {
     let exitosos = 0;
     const allErrors: RepsEnrichResult[] = [];
 
-    setEnrichProgress({ done: 0, total: uniqueNits.length, exitosos: 0 });
+    setEnrichProgress({ done: 0, total: uniqueEntries.length, exitosos: 0 });
 
-    for (let i = 0; i < uniqueNits.length; i += BATCH) {
+    for (let i = 0; i < uniqueEntries.length; i += BATCH) {
       if (enrichAbort.current) break;
 
-      // Pausa entre lotes para no saturar el portal MINSALUD
       if (i > 0) await new Promise((r) => setTimeout(r, INTER_BATCH_DELAY_MS));
 
-      const batch = uniqueNits.slice(i, i + BATCH);
+      const batch = uniqueEntries.slice(i, i + BATCH);
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
@@ -328,11 +335,11 @@ export const WhatsAppPanel: React.FC = () => {
         const errors = results.filter((r) => !r.ok || !r.fecha_vencimiento);
         allErrors.push(...errors);
 
-        setEnrichProgress({ done, total: uniqueNits.length, exitosos });
+        setEnrichProgress({ done, total: uniqueEntries.length, exitosos });
         setEnrichErrors([...allErrors]);
       } catch {
         done += batch.length;
-        setEnrichProgress({ done, total: uniqueNits.length, exitosos });
+        setEnrichProgress({ done, total: uniqueEntries.length, exitosos });
       }
     }
 
@@ -856,7 +863,7 @@ export const WhatsAppPanel: React.FC = () => {
                             <button
                               className="wap-venc-manual-btn"
                               onClick={(e) => { e.stopPropagation(); doEnrich([p.nit], true); }}
-                              title="Reintentar consulta en MinSalud (omite cooldown)"
+                              title={`Reintentar en MinSalud por NIT${p.codigo_habilitacion ? ' + hab code como fallback' : ''}`}
                               style={{ fontSize: '11px' }}
                             >
                               🔄

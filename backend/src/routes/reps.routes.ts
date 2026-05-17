@@ -303,26 +303,40 @@ export function createRepsRouter(pool: Pool): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
-        const { nits, force } = req.body as { nits?: unknown; force?: boolean };
+        const { nits, entries, force } = req.body as {
+          nits?: unknown;
+          entries?: unknown;
+          force?: boolean;
+        };
 
-        if (!Array.isArray(nits) || nits.length === 0) {
-          return res.status(400).json({ error: 'Se requiere un array "nits" no vacío' });
+        // Acepta formato nuevo { entries: [{nit, codigoHab?}] } o antiguo { nits: string[] }
+        type EntryInput = { nit?: unknown; codigoHab?: unknown };
+        let cleanEntries: { nit: string; codigoHab?: string }[] = [];
+
+        if (Array.isArray(entries) && entries.length > 0) {
+          cleanEntries = (entries as EntryInput[])
+            .filter((e) => e && typeof e.nit === 'string' && e.nit.trim())
+            .map((e) => ({
+              nit: String(e.nit).trim(),
+              codigoHab: typeof e.codigoHab === 'string' ? e.codigoHab.trim() || undefined : undefined,
+            }))
+            .slice(0, 20);
+        } else if (Array.isArray(nits) && nits.length > 0) {
+          cleanEntries = (nits as unknown[])
+            .filter((n) => typeof n === 'string')
+            .map((n) => ({ nit: String(n).trim() }))
+            .filter((e) => e.nit)
+            .slice(0, 20);
         }
 
-        const cleanNits = (nits as unknown[])
-          .filter((n) => typeof n === 'string')
-          .map((n) => String(n).trim())
-          .filter(Boolean)
-          .slice(0, 20);
-
-        if (cleanNits.length === 0) {
-          return res.status(400).json({ error: 'NITs inválidos' });
+        if (cleanEntries.length === 0) {
+          return res.status(400).json({ error: 'Se requiere un array "entries" o "nits" no vacío' });
         }
 
         const forceRefresh = Boolean(force);
-        logger.info({ msg: 'REPS enriquecer-lote iniciado', total: cleanNits.length, force: forceRefresh });
+        logger.info({ msg: 'REPS enriquecer-lote iniciado', total: cleanEntries.length, force: forceRefresh });
 
-        const results = await enrichmentService.enrichLote(cleanNits, forceRefresh);
+        const results = await enrichmentService.enrichLote(cleanEntries, forceRefresh);
 
         const exitosos = results.filter((r) => r.ok && r.fecha_vencimiento).length;
         logger.info({

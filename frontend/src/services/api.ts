@@ -1009,11 +1009,12 @@ export const repsApi = {
     }>(`/api/reps/mercado-potencial?${params.toString()}`);
   },
 
-  /** Enriquece hasta 20 NITs con fecha_vencimiento vía scraping del portal MINSALUD.
+  /** Enriquece hasta 20 entradas {nit, codigoHab?} con fecha_vencimiento vía scraping MINSALUD.
+   *  codigoHab se usa como fallback cuando la búsqueda por NIT no retorna resultado.
    *  force=true omite el cooldown y reintenta NITs que fallaron previamente. */
-  enrichLote: (nits: string[], signal?: AbortSignal, force = false) =>
+  enrichLote: (entries: Array<{ nit: string; codigoHab?: string }>, signal?: AbortSignal, force = false) =>
     request<{ data: RepsEnrichResult[]; total: number; exitosos: number }>(
-      'POST', '/api/reps/enriquecer-lote', { nits, force }, { signal }
+      'POST', '/api/reps/enriquecer-lote', { entries, force }, { signal }
     ),
 
   /** Ingreso manual de fecha_vencimiento para un NIT cuando el scraping falla */
