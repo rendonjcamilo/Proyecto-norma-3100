@@ -507,7 +507,7 @@ export class RepsService {
 
       // Nota: el dataset c36g-9fc2 de datos.gov.co NO incluye fecha de vencimiento
       // de habilitación. El campo fecha_vencimiento siempre vendrá null desde esta fuente.
-      const data: RepsProspecto[] = rawResults.slice(0, limit).map((r) => {
+      const allMapped: RepsProspecto[] = rawResults.map((r) => {
         const telefonoRaw = this.pick(r, 'telefonoprestador', 't_lefonosede') || null;
         return {
           codigo_habilitacion: this.pick(r, 'codigohabilitacionsede') || '',
@@ -525,13 +525,26 @@ export class RepsService {
         };
       });
 
+      // Deduplicar por NIT: un prestador puede tener múltiples sedes/habilitaciones en REPS.
+      // Para prospección comercial se necesita contactar a la entidad (no a cada sede),
+      // así que consolidamos en un solo registro priorizando el que tenga celular.
+      const byNit = new Map<string, RepsProspecto>();
+      for (const item of allMapped) {
+        const existing = byNit.get(item.nit);
+        if (!existing || (!existing.celular && item.celular)) {
+          byNit.set(item.nit, item);
+        }
+      }
+      const data = [...byNit.values()].slice(0, limit);
+
       logger.info({
         msg: 'REPS prospectos consultados',
         departamento,
         municipio,
         clasePrestador,
         diasHastaVencer,
-        total: data.length,
+        total_registros_reps: allMapped.length,
+        total_entidades_unicas: data.length,
       });
 
       return { data, total: data.length };

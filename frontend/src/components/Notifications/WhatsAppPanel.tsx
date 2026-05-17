@@ -276,6 +276,11 @@ export const WhatsAppPanel: React.FC = () => {
   const doEnrich = useCallback(async (nits: string[], force = false) => {
     if (nits.length === 0) return;
 
+    // Deduplicar NITs antes de batching — el mismo NIT puede aparecer varias veces
+    // si el dataset REPS tiene múltiples registros para la misma entidad.
+    const uniqueNits = [...new Set(nits.filter(Boolean))];
+    if (uniqueNits.length === 0) return;
+
     enrichAbort.current = false;
     setEnrichStatus('running');
     setEnrichErrors([]);
@@ -287,15 +292,15 @@ export const WhatsAppPanel: React.FC = () => {
     let exitosos = 0;
     const allErrors: RepsEnrichResult[] = [];
 
-    setEnrichProgress({ done: 0, total: nits.length, exitosos: 0 });
+    setEnrichProgress({ done: 0, total: uniqueNits.length, exitosos: 0 });
 
-    for (let i = 0; i < nits.length; i += BATCH) {
+    for (let i = 0; i < uniqueNits.length; i += BATCH) {
       if (enrichAbort.current) break;
 
       // Pausa entre lotes para no saturar el portal MINSALUD
       if (i > 0) await new Promise((r) => setTimeout(r, INTER_BATCH_DELAY_MS));
 
-      const batch = nits.slice(i, i + BATCH);
+      const batch = uniqueNits.slice(i, i + BATCH);
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
@@ -323,11 +328,11 @@ export const WhatsAppPanel: React.FC = () => {
         const errors = results.filter((r) => !r.ok || !r.fecha_vencimiento);
         allErrors.push(...errors);
 
-        setEnrichProgress({ done, total: nits.length, exitosos });
+        setEnrichProgress({ done, total: uniqueNits.length, exitosos });
         setEnrichErrors([...allErrors]);
       } catch {
         done += batch.length;
-        setEnrichProgress({ done, total: nits.length, exitosos });
+        setEnrichProgress({ done, total: uniqueNits.length, exitosos });
       }
     }
 
@@ -675,20 +680,32 @@ export const WhatsAppPanel: React.FC = () => {
             <>
               ✅ <strong>{enrichedCount}</strong> prestadores con fecha de vencimiento cargada.
               {enrichErrors.length > 0 && (
-                <> · <strong>{enrichErrors.length}</strong> sin resultado del portal (ingresa manualmente haciendo clic en "Fecha manual" en cada uno).</>
+                <>
+                  {' '}· <strong>{enrichErrors.length}</strong> no tienen datos en el portal MINSALUD
+                  {' '}— usa <strong>"📅 Fecha manual"</strong> en cada tarjeta para ingresarla
+                  consultando{' '}
+                  <a
+                    href="https://prestadores.minsalud.gov.co/habilitacion/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    el portal oficial
+                  </a>.
+                </>
               )}
             </>
           ) : (
             <>
-              ⚠️ El portal MINSALUD no retornó fechas automáticamente (puede requerir sesión de navegador).
-              {' '}Usa el botón <strong>"Fecha manual"</strong> en cada prestador para ingresar la fecha que ves en el{' '}
+              ⚠️ El portal MINSALUD no encontró fechas para estos prestadores.
+              {' '}Consulta manualmente en{' '}
               <a
                 href="https://prestadores.minsalud.gov.co/habilitacion/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                portal oficial
-              </a>.
+                prestadores.minsalud.gov.co
+              </a>
+              {' '}con el NIT de cada uno y usa <strong>"📅 Fecha manual"</strong> en cada tarjeta.
             </>
           )}
         </div>
