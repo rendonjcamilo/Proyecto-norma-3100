@@ -125,8 +125,8 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   const isDescriptionValid = localResponse.status !== 'NC' || (localResponse.description && localResponse.description.length >= 10);
   const hasError = localResponse.status === 'NC' && !isDescriptionValid;
 
-  // Título de sección: marcado explícitamente en BD o texto que termina en ":"
-  const isHeader = criterion.is_section_header === true || criterion.name.trimEnd().endsWith(':');
+  // Título de sección: solo los marcados explícitamente en BD (is_section_header=true)
+  const isHeader = criterion.is_section_header === true;
 
   if (isHeader) {
     return (
