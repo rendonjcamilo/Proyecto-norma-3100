@@ -109,3 +109,12 @@ UPDATE evaluation_criteria SET sort_order = 7  WHERE code = 'CBN-INT-006';
 UPDATE evaluation_criteria SET sort_order = 8  WHERE code = 'CBN-INT-007';
 UPDATE evaluation_criteria SET sort_order = 9  WHERE code = 'CBN-INT-H02';
 UPDATE evaluation_criteria SET sort_order = 10 WHERE code = 'CBN-INT-008';
+
+-- Step 9: Link H-coded headers to CBN questionnaire (were missing from questionnaire_criteria)
+INSERT INTO questionnaire_criteria (questionnaire_id, criterion_id)
+SELECT '907b5de2-f372-40f0-bfb3-32639d3597a7', ec.id
+FROM evaluation_criteria ec
+JOIN evaluation_standards es ON ec.standard_id = es.id
+WHERE es.service_id = 'd4d7f1df-7969-4fba-82e3-595c49b214bb'
+  AND ec.code LIKE '%-H0%'
+ON CONFLICT DO NOTHING;
