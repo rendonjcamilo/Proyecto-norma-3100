@@ -823,7 +823,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                         Verificación Historia Clínica — Anexo N° 4
                       </div>
                       <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        Incluye formulario de verificación de contenidos mínimos de identificación (Res. 1439/2002)
+                        Incluye formulario de verificación de contenidos mínimos de identificación
                       </div>
                     </div>
                   </label>

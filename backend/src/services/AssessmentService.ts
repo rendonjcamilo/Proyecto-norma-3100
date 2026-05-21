@@ -612,7 +612,8 @@ export class AssessmentService {
         ec.code as criterion_code,
         ec.name as criterion_name,
         ec.complexity,
-        es.is_transversal
+        es.is_transversal,
+        es.code as standard_code
       FROM assessment_responses_detailed acr
       JOIN evaluation_criteria ec ON acr.criterion_id = ec.id
       JOIN evaluation_standards es ON ec.standard_id = es.id
@@ -623,19 +624,19 @@ export class AssessmentService {
     const ncResult = await client.query(ncResponsesQuery, [assessmentId]);
     const ncResponses = ncResult.rows;
 
+    // Estándares que generan hallazgos críticos (Infraestructura, Historia Clínica, Procesos Prioritarios)
+    const CRITICAL_STANDARDS = ['_INF', '_HCR', '_PP'];
+    const isCriticalStandard = (code: string) =>
+      CRITICAL_STANDARDS.some(suffix => code.endsWith(suffix));
+
     const hallazgos: Hallazgo[] = [];
 
     for (const ncResponse of ncResponses) {
       // 2. Determine severity
-      // - Transversales = higher base weight (media/alta)
-      // - Complex criteria = higher severity
-      let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
-
-      if (ncResponse.is_transversal) {
-        severity = ncResponse.complexity === 'complex' ? 'critical' : 'high';
-      } else {
-        severity = ncResponse.complexity === 'complex' ? 'high' : 'medium';
-      }
+      // - INF, HCR, PP → critical
+      // - Resto de estándares → high
+      const severity: 'low' | 'medium' | 'high' | 'critical' =
+        isCriticalStandard(ncResponse.standard_code) ? 'critical' : 'high';
 
       // 3. Create finding
       const hallazgoQuery = `
