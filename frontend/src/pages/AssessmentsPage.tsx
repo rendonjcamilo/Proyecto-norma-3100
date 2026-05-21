@@ -294,7 +294,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             Gestión de Cumplimiento
           </span>
           <h1 className="aud-hero-title">{user?.role === 'auditor' ? 'Auditoría' : 'Evaluaciones'}</h1>
-          <p className="aud-hero-subtitle">{user?.role === 'auditor' ? 'Auditorías de cumplimiento Norma 3100' : 'Auditorías y evaluaciones de cumplimiento Norma 3100'}</p>
+          <p className="aud-hero-subtitle">{user?.role === 'auditor' ? 'Auditorías de cumplimiento bajo la Resolución 3100' : 'Auditorías y evaluaciones de cumplimiento bajo la Resolución 3100'}</p>
         </div>
         <div className="aud-hero-actions" style={{ display: 'flex', gap: '8px' }}>
           {can('assessments', 'delete') && assessments.length > 0 && (
