@@ -18,7 +18,7 @@ import { logger } from '../utils/logger.js';
 // Multer config: memory storage (files held in RAM before persistence)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
 export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Router {

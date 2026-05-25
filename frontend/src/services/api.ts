@@ -625,18 +625,31 @@ export const questionnairesApi = {
 
 export const documentsApi = {
   getCatalog: () =>
-    get<{ data: Array<{ code: string; name: string; category: string; standard_reference: string; is_mandatory: boolean; expiry_months: number | null }> }>(
+    get<{ data: Array<{ id: string; code: string; name: string; category: string; standard_reference: string; is_mandatory: boolean; expiry_months: number | null }> }>(
       '/api/documents/catalog'
     ),
 
   listByProvider: (providerId: string) =>
     get<{ data: Document[]; total: number }>(`/api/providers/${providerId}/documents`),
 
+  getComplianceSummary: (providerId: string) =>
+    get<{ data: { provider_id: string; provider_name: string; total_required: number; compliant_count: number; expired_count: number; expiring_soon_count: number; pending_count: number; rejected_count: number; compliance_percentage: number } }>(
+      `/api/providers/${providerId}/documents/compliance`
+    ),
+
+  getMissingDocuments: (providerId: string) =>
+    get<{ data: Array<{ id: string; code: string; name: string; category: string; is_mandatory: boolean }>; total: number }>(
+      `/api/providers/${providerId}/documents/missing`
+    ),
+
   download: (docId: string) =>
     blob(`/api/documents/${docId}/download`),
 
   upload: (providerId: string, formData: FormData) =>
     request<{ data: Document }>('POST', `/api/providers/${providerId}/documents`, formData, { formData: true }),
+
+  validate: (docId: string, status: 'compliant' | 'rejected' | 'under_review' | 'pending', notes?: string) =>
+    request<{ data: Document }>('PATCH', `/api/documents/${docId}/validate`, { status, notes }),
 };
 
 // ─────────────────────────────────────────────

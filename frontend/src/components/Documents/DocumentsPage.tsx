@@ -1,14 +1,18 @@
 /**
- * Documents Page - Documentary Matrix
- * Professional interface for managing provider documents (Norma 3100)
+ * Documents Page - Matriz Documental
+ * Vista para prestador: subir documentos (máx 5MB)
+ * Vista para auditor: revisar, descargar y validar documentos del prestador
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentsApi, downloadBlob } from '../../services/api';
 import { useRolePermission } from '../../hooks/useRolePermission';
+import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '@/utils/dateFormat';
 import './DocumentsPage.css';
 import '../../pages/Pages.css';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 interface DocumentCatalogItem {
   id: string;
@@ -36,6 +40,8 @@ interface ProviderDocument {
   document_name?: string;
   document_category?: string;
   computed_status?: string;
+  validation_notes?: string;
+  validated_at?: string;
 }
 
 interface ComplianceSummary {
@@ -73,8 +79,6 @@ const STATUS_COLORS: Record<string, string> = {
   expiring_soon: '#ff8b00',
 };
 
-
-
 export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName }) => {
   const [catalog, setCatalog] = useState<DocumentCatalogItem[]>([]);
   const [documents, setDocuments] = useState<ProviderDocument[]>([]);
@@ -84,9 +88,15 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploadModal, setUploadModal] = useState<DocumentCatalogItem | null>(null);
+  const [validateModal, setValidateModal] = useState<{ doc: ProviderDocument; item: DocumentCatalogItem } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
+  const { user } = useAuth();
+
+  const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -94,16 +104,19 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   };
 
   const loadData = async () => {
+    if (!providerId) return;
     try {
       setLoading(true);
-      const [catalogRes, docsRes] = await Promise.all([
+      const [catalogRes, docsRes, summaryRes, missingRes] = await Promise.all([
         documentsApi.getCatalog(),
         documentsApi.listByProvider(providerId),
+        documentsApi.getComplianceSummary(providerId).catch(() => null),
+        documentsApi.getMissingDocuments(providerId).catch(() => null),
       ]);
       setCatalog((catalogRes.data || []) as unknown as DocumentCatalogItem[]);
       setDocuments((docsRes.data || []) as unknown as ProviderDocument[]);
-      setSummary(null);
-      setMissing([]);
+      if (summaryRes?.data) setSummary(summaryRes.data as unknown as ComplianceSummary);
+      if (missingRes?.data) setMissing(missingRes.data as unknown as DocumentCatalogItem[]);
     } catch (err) {
       console.error('Failed to load documents', err);
       showToast('error', 'Error al cargar la matriz documental');
@@ -143,10 +156,31 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     });
   }, [catalog, selectedCategory, searchQuery]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
+    const file = e.target.files?.[0];
+    if (file && file.size > MAX_FILE_SIZE) {
+      setFileError(`El archivo supera el límite de 5MB (tamaño actual: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+      e.target.value = '';
+    }
+  };
+
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!uploadModal) return;
     const form = event.currentTarget;
+    const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+      showToast('error', 'Debes seleccionar un archivo');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      showToast('error', 'El archivo supera el límite de 5MB');
+      return;
+    }
+
     const formData = new FormData(form);
     formData.append('document_catalog_id', uploadModal.id);
 
@@ -173,6 +207,29 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     }
   };
 
+  const handleValidate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validateModal) return;
+    const form = event.currentTarget;
+    const statusEl = form.querySelector<HTMLSelectElement>('select[name="status"]');
+    const notesEl = form.querySelector<HTMLTextAreaElement>('textarea[name="notes"]');
+    const status = statusEl?.value as 'compliant' | 'rejected' | 'under_review' | 'pending';
+    const notes = notesEl?.value || undefined;
+
+    try {
+      setValidating(true);
+      await documentsApi.validate(validateModal.doc.id, status, notes);
+      showToast('success', `Documento "${validateModal.item.name}" validado como ${STATUS_LABELS[status]}`);
+      setValidateModal(null);
+      await loadData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al validar el documento';
+      showToast('error', msg);
+    } finally {
+      setValidating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="docs-page docs-loading">
@@ -189,10 +246,12 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         <div className="aud-hero-content">
           <span className="aud-hero-badge">
             <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
-            Gestión Documental
+            {isAuditor ? 'Verificación Documental' : 'Gestión Documental'}
           </span>
           <h1 className="aud-hero-title">Matriz Documental</h1>
-          <p className="aud-hero-subtitle">{providerName} · {catalog.length} documentos en catálogo Norma 3100</p>
+          <p className="aud-hero-subtitle">
+            {providerName} · {catalog.length} documentos requeridos — Resolución 3100 de 2019
+          </p>
         </div>
         <div className="aud-hero-actions">
           <button className="aud-hero-btn" onClick={loadData}>
@@ -210,7 +269,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         <section className="docs-kpis">
           <div className="kpi-card kpi-main">
             <div className="kpi-label">Cumplimiento Documental</div>
-            <div className="kpi-value-big" style={{ color: summary.compliance_percentage >= 80 ? '#00875a' : summary.compliance_percentage >= 50 ? '#ff8b00' : '#de350b' }}>
+            <div
+              className="kpi-value-big"
+              style={{ color: summary.compliance_percentage >= 80 ? '#00875a' : summary.compliance_percentage >= 50 ? '#ff8b00' : '#de350b' }}
+            >
               {Math.round(summary.compliance_percentage)}%
             </div>
             <div className="kpi-bar">
@@ -225,36 +287,28 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Conformes</div>
-            <div className="kpi-value" style={{ color: '#00875a' }}>
-              {summary.compliant_count}
-            </div>
+            <div className="kpi-value" style={{ color: '#00875a' }}>{summary.compliant_count}</div>
             <div className="kpi-sublabel">de {summary.total_required} requeridos</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Vencidos</div>
-            <div className="kpi-value" style={{ color: '#de350b' }}>
-              {summary.expired_count}
-            </div>
+            <div className="kpi-value" style={{ color: '#de350b' }}>{summary.expired_count}</div>
             <div className="kpi-sublabel">requieren acción</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Próx. a vencer</div>
-            <div className="kpi-value" style={{ color: '#ff8b00' }}>
-              {summary.expiring_soon_count}
-            </div>
+            <div className="kpi-value" style={{ color: '#ff8b00' }}>{summary.expiring_soon_count}</div>
             <div className="kpi-sublabel">en 30 días</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Pendientes</div>
-            <div className="kpi-value" style={{ color: '#6b778c' }}>
-              {summary.pending_count}
-            </div>
+            <div className="kpi-value" style={{ color: '#6b778c' }}>{summary.pending_count}</div>
             <div className="kpi-sublabel">sin cargar</div>
           </div>
         </section>
       )}
 
-      {/* === MISSING ALERT === */}
+      {/* === ALERTA DOCUMENTOS FALTANTES === */}
       {missing.length > 0 && (
         <div className="docs-alert">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -264,12 +318,14 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           </svg>
           <div>
             <strong>{missing.length} documentos obligatorios faltantes</strong>
-            <div className="docs-alert-hint">Revisa el catálogo abajo para cargarlos</div>
+            <div className="docs-alert-hint">
+              {isAuditor ? 'El prestador aún no ha cargado estos documentos obligatorios' : 'Debes cargarlos para completar tu habilitación'}
+            </div>
           </div>
         </div>
       )}
 
-      {/* === FILTERS === */}
+      {/* === FILTROS === */}
       <section className="docs-filters">
         <div className="search-wrapper">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -297,7 +353,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         </div>
       </section>
 
-      {/* === DOCUMENT CARDS === */}
+      {/* === TARJETAS DE DOCUMENTOS === */}
       {filteredCatalog.length === 0 ? (
         <div className="prov-empty">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
@@ -305,7 +361,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             <polyline points="14 2 14 8 20 8"/>
             <line x1="16" y1="13" x2="8" y2="13"/>
             <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
           </svg>
           <h3>Sin resultados</h3>
           <p>No se encontraron documentos con los filtros aplicados</p>
@@ -315,20 +370,22 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           {filteredCatalog.map((item) => {
             const doc = documentsByCatalogId.get(item.id);
             const status = (doc?.computed_status || doc?.status || 'pending') as string;
-            const accentColor = status === 'compliant' ? 'linear-gradient(180deg,#10b981,#34d399)'
-              : status === 'expired' || status === 'rejected' ? 'linear-gradient(180deg,#ef4444,#f87171)'
-              : status === 'under_review' || status === 'expiring_soon' ? 'linear-gradient(180deg,#f59e0b,#fbbf24)'
+            const accentColor = status === 'compliant'
+              ? 'linear-gradient(180deg,#10b981,#34d399)'
+              : status === 'expired' || status === 'rejected'
+              ? 'linear-gradient(180deg,#ef4444,#f87171)'
+              : status === 'under_review' || status === 'expiring_soon'
+              ? 'linear-gradient(180deg,#f59e0b,#fbbf24)'
               : 'linear-gradient(180deg,#94a3b8,#cbd5e1)';
             const statusClass = status === 'compliant' ? 'prov-status-active'
               : status === 'expired' || status === 'rejected' ? 'docs-status-danger'
               : status === 'under_review' || status === 'expiring_soon' ? 'docs-status-warn'
               : 'prov-status-inactive';
+
             return (
               <div key={item.id} className={`prov-card docs-card${!doc ? ' docs-card-missing' : ''}`}>
-                {/* Accent bar */}
                 <div className="prov-card-accent" style={{ background: accentColor }} />
 
-                {/* Top row */}
                 <div className="prov-card-top">
                   <div className="prov-card-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -338,22 +395,22 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                       <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
                   </div>
-                  <span className={`prov-status ${statusClass}`}>
-                    <span className="prov-status-dot" />
+                  <span className={`prov-status ${statusClass}`} style={{ color: STATUS_COLORS[status] || '#6b778c' }}>
+                    <span className="prov-status-dot" style={{ background: STATUS_COLORS[status] || '#6b778c' }} />
                     {STATUS_LABELS[status] || status}
                   </span>
                 </div>
 
-                {/* Code + name */}
                 <div className="docs-card-code">{item.code}</div>
                 <div className="prov-card-name docs-card-name">{item.name}</div>
 
-                {/* Badges */}
                 <div className="docs-card-badges">
                   {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
+                  {doc && doc.validation_notes && (
+                    <span className="docs-badge-notes" title={doc.validation_notes}>Con observaciones</span>
+                  )}
                 </div>
 
-                {/* Info rows */}
                 <div className="prov-card-info">
                   <div className="prov-info-row">
                     <span className="prov-info-label">Categoría</span>
@@ -371,7 +428,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="prov-card-actions">
                   {doc && (
                     <button
@@ -387,7 +443,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                       Descargar
                     </button>
                   )}
-                  {can('documents', 'create') && (
+                  {/* Botón subir — solo para prestador */}
+                  {!isAuditor && can('documents', 'create') && (
                     <button
                       className="docs-btn-upload docs-btn-action"
                       title={doc ? 'Actualizar versión' : 'Subir'}
@@ -401,6 +458,19 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                       {doc ? 'Actualizar' : 'Subir'}
                     </button>
                   )}
+                  {/* Botón validar — solo para auditor */}
+                  {isAuditor && doc && (
+                    <button
+                      className="docs-btn-validate docs-btn-action"
+                      title="Validar documento"
+                      onClick={() => setValidateModal({ doc, item })}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Validar
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -408,15 +478,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         </div>
       )}
 
-      {/* === UPLOAD MODAL === */}
+      {/* === MODAL SUBIR DOCUMENTO (prestador) === */}
       {uploadModal && (
-        <div className="modal-overlay" onClick={() => setUploadModal(null)}>
+        <div className="modal-overlay" onClick={() => { setUploadModal(null); setFileError(null); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <header className="modal-header">
               <h3>Subir Documento</h3>
-              <button className="modal-close" onClick={() => setUploadModal(null)}>
-                ×
-              </button>
+              <button className="modal-close" onClick={() => { setUploadModal(null); setFileError(null); }}>×</button>
             </header>
             <div className="modal-body">
               <div className="modal-doc-info">
@@ -432,8 +500,12 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     name="file"
                     required
                     accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+                    onChange={handleFileChange}
                   />
-                  <small>PDF, imágenes o Office. Máximo 50MB.</small>
+                  {fileError
+                    ? <small className="docs-file-error">{fileError}</small>
+                    : <small>PDF, imágenes o documentos Office. Máximo 5MB.</small>
+                  }
                 </div>
                 <div className="field-row">
                   <div className="field">
@@ -453,11 +525,65 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </div>
                 </div>
                 <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => setUploadModal(null)}>
+                  <button type="button" className="btn-secondary" onClick={() => { setUploadModal(null); setFileError(null); }}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn-primary" disabled={uploading}>
+                  <button type="submit" className="btn-primary" disabled={uploading || !!fileError}>
                     {uploading ? 'Subiendo...' : 'Subir documento'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === MODAL VALIDAR DOCUMENTO (auditor) === */}
+      {validateModal && (
+        <div className="modal-overlay" onClick={() => setValidateModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header">
+              <h3>Validar Documento</h3>
+              <button className="modal-close" onClick={() => setValidateModal(null)}>×</button>
+            </header>
+            <div className="modal-body">
+              <div className="modal-doc-info">
+                <div className="modal-code">{validateModal.item.code}</div>
+                <div className="modal-doc-name">{validateModal.item.name}</div>
+                <div className="modal-doc-cat">{validateModal.item.category}</div>
+                <div className="docs-validate-meta">
+                  <span>Archivo: <strong>{validateModal.doc.original_filename}</strong></span>
+                  {validateModal.doc.expiry_date && (
+                    <span>Vencimiento: <strong>{formatDate(validateModal.doc.expiry_date)}</strong></span>
+                  )}
+                  <span>Versión: <strong>v{validateModal.doc.version}</strong></span>
+                </div>
+              </div>
+              <form onSubmit={handleValidate}>
+                <div className="field">
+                  <label>Estado de validación</label>
+                  <select name="status" defaultValue={validateModal.doc.status} required>
+                    <option value="compliant">✅ Conforme</option>
+                    <option value="under_review">⏳ En revisión</option>
+                    <option value="rejected">❌ Rechazado</option>
+                    <option value="pending">⚪ Pendiente</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Observaciones / Hallazgos</label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    placeholder="Escribe observaciones o hallazgos sobre este documento..."
+                    defaultValue={validateModal.doc.validation_notes || ''}
+                  />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn-secondary" onClick={() => setValidateModal(null)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={validating}>
+                    {validating ? 'Guardando...' : 'Guardar validación'}
                   </button>
                 </div>
               </form>

@@ -20,7 +20,7 @@ import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 
 const STORAGE_ROOT = process.env.DOCUMENT_STORAGE_PATH || './storage/documents';
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
