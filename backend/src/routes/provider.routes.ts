@@ -21,8 +21,8 @@ const DEV_USER_IDS = new Set([
 ]);
 
 const getEventUserId = (userId: string | null): string | null => {
-  if (!userId) return null;
-  if (process.env.NODE_ENV === 'development' && DEV_USER_IDS.has(userId)) return null;
+  if (!userId) {return null;}
+  if (process.env.NODE_ENV === 'development' && DEV_USER_IDS.has(userId)) {return null;}
   return userId;
 };
 

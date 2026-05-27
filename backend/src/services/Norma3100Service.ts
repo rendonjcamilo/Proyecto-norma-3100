@@ -223,7 +223,7 @@ export class Norma3100Service {
 
     const questionnaireId = uuidv4();
     const questions: QuestionnaireQuestion[] = [];
-    let questionOrder = 1;
+    let _questionOrder = 1;
 
     // Add transversal criteria
     for (const standard of model.standards) {
@@ -239,7 +239,7 @@ export class Norma3100Service {
           complexity: criterion.complexity,
           isMandatory: criterion.is_mandatory,
         });
-        questionOrder++;
+        _questionOrder++;
       }
     }
 
@@ -261,7 +261,7 @@ export class Norma3100Service {
           complexity: 'simple',
           isMandatory: criterion.is_mandatory,
         });
-        questionOrder++;
+        _questionOrder++;
       }
     }
 
@@ -359,7 +359,7 @@ export class Norma3100Service {
     let cumple = 0;
     let noCumple = 0;
     let noAplica = 0;
-    let mandatory = 0;
+    let _mandatory = 0;
 
     for (const criterion of allCriteria) {
       const response = responses[criterion.id];
@@ -377,7 +377,7 @@ export class Norma3100Service {
       }
 
       if (criterion.isMandatory) {
-        mandatory++;
+        _mandatory++;
       }
     }
 

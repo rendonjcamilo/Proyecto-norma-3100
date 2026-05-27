@@ -7,7 +7,6 @@
 
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { authMiddleware } from '../middleware/auth.middleware.js';
 import { Norma3100Service } from '../services/Norma3100Service.js';
 import { logger } from '../utils/logger.js';
 
@@ -234,7 +233,7 @@ export function createNorma3100Router(): Router {
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const { serviceCode, responses, criteria } = req.body;
+        const { serviceCode: _serviceCode, responses, criteria } = req.body;
 
         if (!responses || !criteria) {
           return res.status(400).json({

@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { rbacMiddleware, providerAccessMiddleware } from '../middleware/role.middleware.js';
+import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { reportLimiter } from '../middleware/rate-limit.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';
 import { ReportService } from '../services/ReportService.js';
@@ -64,7 +64,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
-        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) {return;}
         const generatedBy = req.user?.user_id || 'system';
         const buffer = await service.generatePdfReport(req.params.providerId, generatedBy);
 
@@ -111,7 +111,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
-        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) {return;}
         const generatedBy = req.user?.user_id || 'system';
         const buffer = await service.generateExcelReport(req.params.providerId, generatedBy);
 
@@ -159,7 +159,7 @@ export function createReportsRouter(pool: Pool): Router {
     validateUuidParam('providerId'),
     async (req: Request, res: Response) => {
       try {
-        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) return;
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, req.params.providerId, res)) {return;}
         const generatedBy = req.user?.user_id || 'system';
         const data = await service.gatherProviderData(req.params.providerId, generatedBy);
         res.json({ data });
@@ -375,7 +375,7 @@ export function createReportsRouter(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const { providerId } = req.params;
-        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, providerId, res)) return;
+        if (!await assertProviderAccess(pool, req.user!.user_id, req.user!.role, providerId, res)) {return;}
 
         // 1. Count open findings
         const openFindingsResult = await pool.query<{ count: string }>(

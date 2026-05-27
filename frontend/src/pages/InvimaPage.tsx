@@ -213,7 +213,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId: _providerId 
               (que solo incluye registros vencidos). Puede estar vigente en el portal oficial de INVIMA.
             </p>
             <div className="inv-not-found-hint">
-              En el portal oficial, seleccione <em>"Por número de registro"</em> y escriba: <code>{query}</code>
+              En el portal oficial, seleccione <em>&quot;Por número de registro&quot;</em> y escriba: <code>{query}</code>
             </div>
             <button className="inv-oficial-btn" onClick={openInvimaOficial}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -293,7 +293,7 @@ app.use((err: Error, _req: Request, res: Response) => {
 });
 
 // Start server
-runStartupMigrations().then(() => app.listen(PORT, () => {
+void runStartupMigrations().then(() => app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Environment: ${NODE_ENV}`);
 
@@ -309,7 +309,7 @@ runStartupMigrations().then(() => app.listen(PORT, () => {
   habilitacionAlertService.startDailyCheck();
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
-  repsAlertService.initAllActiveSchedulers();
+  void repsAlertService.initAllActiveSchedulers();
 
   // ─── Job nocturno: re-enriquecimiento automático de fechas REPS ───
   // 2:00 AM UTC — refresca NITs a punto de expirar y reintenta los fallidos hace más de 7 días
@@ -348,7 +348,7 @@ runStartupMigrations().then(() => app.listen(PORT, () => {
           return [];
         });
         exitosos += results.filter((r) => r.ok && r.fecha_vencimiento).length;
-        if (i + 20 < entries.length) await new Promise((r) => setTimeout(r, 3000));
+        if (i + 20 < entries.length) {await new Promise((r) => setTimeout(r, 3000));}
       }
 
       logger.info({ msg: 'REPS nightly enrichment job completed', total: entries.length, exitosos });

@@ -392,7 +392,7 @@ export class AssessmentService {
 
       await client.query('COMMIT');
 
-      const assessment = updResult.rows[0];
+      const _assessment = updResult.rows[0];
       return this.getAssessment(assessmentId);
     } catch (error) {
       await client.query('ROLLBACK');
@@ -443,7 +443,7 @@ export class AssessmentService {
           status, assigned_date, created_by, submitted_at, compliance_pct
       `;
 
-      const submitResult = await client.query(submitQuery, [assessmentId]);
+      const _submitResult = await client.query(submitQuery, [assessmentId]);
 
       // 3. Auto-generate hallazgos from NC criteria
       const hallazgos = await this.generateHallazgos(assessmentId, assessment.service_id, userId, client);

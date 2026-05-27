@@ -27,22 +27,7 @@ const ESTADO_COLORS: Record<string, string> = {
 };
 
 export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
-  // Validate providerId early - MUST NOT PROCEED IF EMPTY
-  if (!providerId || providerId === '' || providerId.trim() === '') {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        color: '#d32f2f',
-        fontSize: '16px',
-      }}>
-        ⚠️ Cargando... Por favor selecciona un prestador
-      </div>
-    );
-  }
-
+  // Todos los hooks deben ir antes de cualquier return condicional (Regla de Hooks de React)
   const [activeTab, setActiveTab] = useState<'estado' | 'historial' | 'diferencias' | 'servicios'>('estado');
   const [loading, setLoading] = useState(true);
   const [codigoHabilitacion, setCodigoHabilitacion] = useState('');
@@ -54,13 +39,12 @@ export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { can } = useRolePermission();
+  const { isLoading: providerLoading } = useProvider();
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
   };
-
-  const { isLoading: providerLoading } = useProvider();
 
   const loadTabData = useCallback(async () => {
     // Don't load if providerId is empty
@@ -94,6 +78,22 @@ export const RepsPage: React.FC<RepsPageProps> = ({ providerId }) => {
       loadTabData();
     }
   }, [loadTabData, providerLoading]);
+
+  // Validate providerId - return early after all hooks
+  if (!providerId || providerId === '' || providerId.trim() === '') {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        color: '#d32f2f',
+        fontSize: '16px',
+      }}>
+        ⚠️ Cargando... Por favor selecciona un prestador
+      </div>
+    );
+  }
 
   // ─── CONSULTAR EN REPS ───
   const handleConsultar = async (e: React.FormEvent) => {

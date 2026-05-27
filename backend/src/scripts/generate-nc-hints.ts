@@ -75,7 +75,7 @@ async function generateHint(criterionName: string): Promise<string> {
   });
 
   const content = message.content[0];
-  if (content.type !== 'text') throw new Error('Respuesta inesperada del modelo');
+  if (content.type !== 'text') {throw new Error('Respuesta inesperada del modelo');}
   return content.text.trim();
 }
 

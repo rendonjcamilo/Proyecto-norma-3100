@@ -45,7 +45,7 @@ interface AssessmentResult {
 export function AssessmentResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams();
+  const { id: _id } = useParams();
   const [assessment, setAssessment] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
 

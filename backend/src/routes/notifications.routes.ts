@@ -24,7 +24,7 @@ export function createNotificationsRouter(pool: Pool): Router {
   // GET /api/notifications
   router.get('/', async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    if (!userId) {return res.status(401).json({ error: 'No autenticado' });}
 
     const limit = Math.min(parseInt(String(req.query.limit || '30')), 100);
     const offset = parseInt(String(req.query.offset || '0'));
@@ -41,7 +41,7 @@ export function createNotificationsRouter(pool: Pool): Router {
   // GET /api/notifications/unread-count
   router.get('/unread-count', async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    if (!userId) {return res.status(401).json({ error: 'No autenticado' });}
 
     try {
       const count = await notificationService.getUnreadCount(userId);
@@ -54,7 +54,7 @@ export function createNotificationsRouter(pool: Pool): Router {
   // PUT /api/notifications/mark-all-read  (debe ir ANTES de /:id/read)
   router.put('/mark-all-read', async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    if (!userId) {return res.status(401).json({ error: 'No autenticado' });}
 
     try {
       await pool.query(
@@ -70,7 +70,7 @@ export function createNotificationsRouter(pool: Pool): Router {
   // PUT /api/notifications/:id/read
   router.put('/:id/read', async (req: Request, res: Response) => {
     const userId = getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    if (!userId) {return res.status(401).json({ error: 'No autenticado' });}
 
     try {
       await notificationService.markAsRead(req.params.id, userId);

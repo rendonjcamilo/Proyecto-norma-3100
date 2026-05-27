@@ -23,7 +23,7 @@ export function createWhatsAppRouter(): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       const userId = req.user?.user_id;
-      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
+      if (!userId) {return res.status(401).json({ error: 'Usuario no autenticado' });}
       try {
         const status = await waService.getConnectionState(userId);
         res.json({ data: status });
@@ -45,7 +45,7 @@ export function createWhatsAppRouter(): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       const userId = req.user?.user_id;
-      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
+      if (!userId) {return res.status(401).json({ error: 'Usuario no autenticado' });}
       try {
         const qr = await waService.getQR(userId);
         res.json({ data: qr });
@@ -68,7 +68,7 @@ export function createWhatsAppRouter(): Router {
     rbacMiddleware(['auditor', 'super_admin']),
     async (req: Request, res: Response) => {
       const userId = req.user?.user_id;
-      if (!userId) return res.status(401).json({ error: 'Usuario no autenticado' });
+      if (!userId) {return res.status(401).json({ error: 'Usuario no autenticado' });}
       try {
         const { phone, message } = req.body as { phone?: string; message?: string };
 

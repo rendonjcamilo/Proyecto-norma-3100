@@ -689,7 +689,7 @@ export const WhatsAppPanel: React.FC = () => {
               {enrichErrors.length > 0 && (
                 <>
                   {' '}· <strong>{enrichErrors.length}</strong> no tienen datos en el portal MINSALUD
-                  {' '}— usa <strong>"📅 Fecha manual"</strong> en cada tarjeta para ingresarla
+                  {' '}— usa <strong>&quot;📅 Fecha manual&quot;</strong> en cada tarjeta para ingresarla
                   consultando{' '}
                   <a
                     href="https://prestadores.minsalud.gov.co/habilitacion/"
@@ -712,7 +712,7 @@ export const WhatsAppPanel: React.FC = () => {
               >
                 prestadores.minsalud.gov.co
               </a>
-              {' '}con el NIT de cada uno y usa <strong>"📅 Fecha manual"</strong> en cada tarjeta.
+              {' '}con el NIT de cada uno y usa <strong>&quot;📅 Fecha manual&quot;</strong> en cada tarjeta.
             </>
           )}
         </div>
@@ -781,7 +781,7 @@ export const WhatsAppPanel: React.FC = () => {
             <div className="wap-state wap-state--empty">
               <span className="wap-empty-icon">🔍</span>
               <span>No se encontraron prestadores con los filtros seleccionados.</span>
-              {soloConCelular && <small>Prueba desactivando "Solo con celular"</small>}
+              {soloConCelular && <small>Prueba desactivando &quot;Solo con celular&quot;</small>}
             </div>
           )}
 

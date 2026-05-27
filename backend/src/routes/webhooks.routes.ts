@@ -6,9 +6,6 @@
 import express, { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { logger } from '../utils/logger.js';
-import { EmailService } from '../services/email/EmailService.js';
-import { SMSService } from '../services/sms/SMSService.js';
-import { PushService } from '../services/push/PushService.js';
 import {
   EmailWebhookPayload,
   SMSWebhookPayload,

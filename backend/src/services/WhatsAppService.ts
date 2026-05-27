@@ -109,7 +109,7 @@ export class WhatsAppService {
 
     // Reintentar hasta 4 veces — Baileys puede tardar en generar el QR
     for (let attempt = 0; attempt < 4; attempt++) {
-      if (attempt > 0) await sleep(2000);
+      if (attempt > 0) {await sleep(2000);}
       try {
         const data = await evoFetch<Record<string, unknown>>(`/instance/connect/${instance}`);
         const base64 = (data?.base64 as string | undefined)

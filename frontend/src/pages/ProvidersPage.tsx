@@ -48,7 +48,7 @@ const STATUS_LABELS: Record<string, string> = {
   suspended: 'Suspendido',
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const _STATUS_COLORS: Record<string, string> = {
   active: '#00875a',
   inactive: '#6b778c',
   suspended: '#de350b',
@@ -149,8 +149,8 @@ export const ProvidersPage: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [_departments, setDepartments] = useState<Department[]>([]);
+  const [_municipalities, _setMunicipalities] = useState<Municipality[]>([]);
   const [createAdminUser, setCreateAdminUser] = useState(false);
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [repsSearchCode, setRepsSearchCode] = useState('');

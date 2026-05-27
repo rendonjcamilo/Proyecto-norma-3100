@@ -10,7 +10,7 @@
  * - Total: 0-130 points → normalized to 0-100 scale
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 

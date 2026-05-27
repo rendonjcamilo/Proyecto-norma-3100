@@ -181,7 +181,7 @@ export const AnexoCuatroPage: React.FC = () => {
     setRegistros(prev => prev.map((r, i) => i === idx ? { ...r, [field]: val } : r));
   };
 
-  const toggleCriterio = (hcIdx: number, key: string) => {
+  const _toggleCriterio = (hcIdx: number, key: string) => {
     setRegistros(prev => prev.map((r, i) => {
       if (i !== hcIdx) return r;
       const cur = r.criterios[key];

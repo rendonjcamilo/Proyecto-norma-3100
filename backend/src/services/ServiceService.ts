@@ -3,7 +3,7 @@
  * Handles Norma 3100 service catalog operations and provider-service assignments
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool } from 'pg';
 
 export interface ServiceCatalogItem {
   id: string;
@@ -132,7 +132,7 @@ export class ServiceService {
   async updateServiceStatus(
     serviceId: string,
     status: 'available' | 'discontinued' | 'suspended',
-    updatedBy?: string
+    _updatedBy?: string
   ): Promise<ServiceCatalogItem> {
     const result = await this.pool.query(
       `UPDATE services

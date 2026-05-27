@@ -4,6 +4,7 @@ import { validateToken } from '../services/jwt.service.js';
 import { logger } from '../utils/logger.js';
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: {
@@ -27,7 +28,7 @@ export function setAuthPool(pool: Pool): void {
  * Si la BD no está disponible, permite el paso para evitar bloqueo total del servicio.
  */
 async function isTokenRevoked(jti: string): Promise<boolean> {
-  if (!authPool) return false;
+  if (!authPool) {return false;}
   try {
     const result = await authPool.query(
       'SELECT 1 FROM revoked_tokens WHERE jti = $1 AND expires_at > NOW()',
@@ -86,7 +87,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
       jti: claims.jti,
     };
 
-    logger.debug({ user_id: req.user!.user_id, path: req.path }, 'Auth middleware: token verified');
+    logger.debug({ user_id: req.user.user_id, path: req.path }, 'Auth middleware: token verified');
     next();
   }).catch((err) => {
     logger.error({ error: err instanceof Error ? err.message : err }, 'Auth middleware error');
@@ -130,7 +131,7 @@ export function optionalAuthMiddleware(req: Request, res: Response, next: NextFu
  * Exportado para uso en auth.routes.ts (logout y refresh rotation).
  */
 export async function revokeToken(jti: string, userId: string, expiresAt: Date): Promise<void> {
-  if (!authPool) return;
+  if (!authPool) {return;}
   try {
     await authPool.query(
       `INSERT INTO revoked_tokens (jti, user_id, expires_at)

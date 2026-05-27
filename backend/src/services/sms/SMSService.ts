@@ -29,6 +29,7 @@ export class SMSService {
   private initializeProvider(): void {
     if (this.config.provider === 'twilio') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const twilio = require('twilio');
         this.twilioClient = twilio(this.config.accountSid, this.config.authToken);
       } catch (err) {
@@ -36,6 +37,7 @@ export class SMSService {
       }
     } else if (this.config.provider === 'aws_sns') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const AWS = require('aws-sdk');
         this.snsClient = new AWS.SNS({
           region: this.config.region || 'us-east-1',

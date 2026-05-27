@@ -129,10 +129,10 @@ async function fetchConReintentos(
   for (let intento = 0; intento <= maxReintentos; intento++) {
     try {
       const res = await fetch(url, options);
-      if (res.ok || res.status < 500) return res; // 4xx no se reintenta
+      if (res.ok || res.status < 500) {return res;} // 4xx no se reintenta
       ultimoError = new Error(`HTTP ${res.status}`);
     } catch (err) {
-      if ((err as Error)?.name === 'AbortError') throw err; // timeout: no reintentar
+      if ((err as Error)?.name === 'AbortError') {throw err;} // timeout: no reintentar
       ultimoError = err;
     }
     if (intento < maxReintentos) {
@@ -471,7 +471,7 @@ export class RepsService {
         $limit: String(pageLimit),
         $offset: String(offset),
       });
-      if (whereClause) params.set('$where', whereClause);
+      if (whereClause) {params.set('$where', whereClause);}
       const url = `${DATOS_GOV_REPS_ENDPOINT}?${params.toString()}`;
       const response = await fetchConReintentos(url, { signal: controller.signal, headers: fetchHeaders });
       if (!response.ok) {
@@ -487,23 +487,23 @@ export class RepsService {
 
       if (limit <= SODA_PAGE_SIZE) {
         const page = await fetchPage(limit, 0);
-        if (page === null) throw new Error('REPS API error: datos.gov.co no respondió correctamente');
+        if (page === null) {throw new Error('REPS API error: datos.gov.co no respondió correctamente');}
         rawResults = page;
       } else {
         let offset = 0;
         while (rawResults.length < limit) {
           const batchSize = Math.min(SODA_PAGE_SIZE, limit - rawResults.length);
           const batch = await fetchPage(batchSize, offset);
-          if (batch === null) break; // datos.gov.co error en offset alto — devolver lo que tenemos
+          if (batch === null) {break;} // datos.gov.co error en offset alto — devolver lo que tenemos
           rawResults.push(...batch);
-          if (batch.length < batchSize) break;
+          if (batch.length < batchSize) {break;}
           offset += batchSize;
         }
       }
 
       clearTimeout(timeout);
 
-      if (!Array.isArray(rawResults)) return { data: [], total: 0 };
+      if (!Array.isArray(rawResults)) {return { data: [], total: 0 };}
 
       // Nota: el dataset c36g-9fc2 de datos.gov.co NO incluye fecha de vencimiento
       // de habilitación. El campo fecha_vencimiento siempre vendrá null desde esta fuente.
@@ -568,11 +568,11 @@ export class RepsService {
   // distinta en el dataset de datos.gov.co.
   private clasePrestadorToSodaWhere(clase: string): string {
     const n = this.stripAccents(clase);
-    if (n.includes('INSTITUCI'))     return `upper(claseprestador) like 'INSTITUCI%'`;
-    if (n.includes('EMPRESA SOCIAL')) return `upper(claseprestador) like 'EMPRESA SOCIAL%'`;
-    if (n.includes('TRANSPORTE'))    return `upper(claseprestador) like 'TRANSPORTE%'`;
-    if (n.includes('PROFESIONAL'))   return `upper(claseprestador) like 'PROFESIONAL%'`;
-    if (n.includes('OBJETO SOCIAL')) return `upper(claseprestador) like 'OBJETO SOCIAL%'`;
+    if (n.includes('INSTITUCI'))     {return `upper(claseprestador) like 'INSTITUCI%'`;}
+    if (n.includes('EMPRESA SOCIAL')) {return `upper(claseprestador) like 'EMPRESA SOCIAL%'`;}
+    if (n.includes('TRANSPORTE'))    {return `upper(claseprestador) like 'TRANSPORTE%'`;}
+    if (n.includes('PROFESIONAL'))   {return `upper(claseprestador) like 'PROFESIONAL%'`;}
+    if (n.includes('OBJETO SOCIAL')) {return `upper(claseprestador) like 'OBJETO SOCIAL%'`;}
     // Fallback para valores no mapeados: exact match normalizado
     const safe = n.replace(/'/g, "''");
     return `${this.sodaNoAccent('claseprestador')} = '${safe}'`;
@@ -593,8 +593,8 @@ export class RepsService {
     const partes = raw.split(/[/\-,;|\s]+/);
     for (const parte of partes) {
       const digits = parte.replace(/\D/g, '');
-      if (digits.length === 10 && digits.startsWith('3')) return digits;
-      if (digits.length === 12 && digits.startsWith('573')) return digits.slice(2);
+      if (digits.length === 10 && digits.startsWith('3')) {return digits;}
+      if (digits.length === 12 && digits.startsWith('573')) {return digits.slice(2);}
     }
     return null;
   }

@@ -25,8 +25,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.backend
-          target: development
+          file: ./config/Dockerfile.backend
+          target: builder
           push: false
           load: true
           tags: norma3100-backend:ci

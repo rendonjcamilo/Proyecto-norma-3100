@@ -374,7 +374,7 @@ export const RepsAlertTrigger: React.FC<Props> = ({ onCargarAlerta }) => {
           {!lastResult && trigger.last_run_at && trigger.last_run_por_vencer === 0 && (
             <div className="rat-hint-box">
               💡 El resultado muestra 0 prestadores porque la mayoría no tienen fecha de vencimiento en la caché local.
-              Realiza primero una búsqueda manual en el panel y usa <strong>"Actualizar fechas"</strong> para cargar las fechas del portal MINSALUD.
+              Realiza primero una búsqueda manual en el panel y usa <strong>&quot;Actualizar fechas&quot;</strong> para cargar las fechas del portal MINSALUD.
             </div>
           )}
 

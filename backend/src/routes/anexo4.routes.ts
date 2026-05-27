@@ -109,7 +109,7 @@ export function createAnexo4Router(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const data = await service.getById(req.params.id);
-        if (!data) return res.status(404).json({ error: 'Verificación no encontrada' });
+        if (!data) {return res.status(404).json({ error: 'Verificación no encontrada' });}
         res.json({ data });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -142,7 +142,7 @@ export function createAnexo4Router(pool: Pool): Router {
           observaciones: typeof observaciones === 'string' ? observaciones : undefined,
         });
 
-        if (!data) return res.status(404).json({ error: 'Verificación no encontrada' });
+        if (!data) {return res.status(404).json({ error: 'Verificación no encontrada' });}
         res.json({ data });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -163,7 +163,7 @@ export function createAnexo4Router(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const ok = await service.delete(req.params.id);
-        if (!ok) return res.status(404).json({ error: 'Verificación no encontrada' });
+        if (!ok) {return res.status(404).json({ error: 'Verificación no encontrada' });}
         res.status(204).send();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -184,7 +184,7 @@ export function createAnexo4Router(pool: Pool): Router {
     async (req: Request, res: Response) => {
       try {
         const v = await service.getById(req.params.id);
-        if (!v) return res.status(404).json({ error: 'Verificación no encontrada' });
+        if (!v) {return res.status(404).json({ error: 'Verificación no encontrada' });}
 
         const pdfBuffer = await service.generatePdf(v);
         const fechaStr  = v.fecha instanceof Date ? v.fecha.toISOString().substring(0, 10) : String(v.fecha).substring(0, 10);

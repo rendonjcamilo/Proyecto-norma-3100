@@ -19,14 +19,14 @@ interface Auditor extends User {
   assigned_count?: number;
 }
 
-const STATUS_LABELS: Record<string, string> = {
+const _STATUS_LABELS: Record<string, string> = {
   active: 'Activo',
   inactive: 'Inactivo',
   suspended: 'Suspendido',
   revoked: 'Eliminado',
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const _STATUS_COLORS: Record<string, string> = {
   active: '#00875a',
   inactive: '#6b778c',
   suspended: '#de350b',

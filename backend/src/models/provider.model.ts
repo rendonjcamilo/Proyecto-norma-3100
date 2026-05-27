@@ -3,7 +3,7 @@
  * Represents healthcare organizations in the Norma 3100 compliance system
  */
 
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient } from 'pg';
 
 export interface Provider {
   id: string;

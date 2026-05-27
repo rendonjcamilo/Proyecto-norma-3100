@@ -15,7 +15,7 @@ import { AssessmentService } from '../services/AssessmentService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 
-export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Router {
+export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Router {
   const router = Router();
   const assessmentService = new AssessmentService(pool);
 
@@ -906,7 +906,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const userRole = req.user?.role;
+        const _userRole = req.user?.role;
 
         const result = await pool.query(
           'SELECT id, status FROM assessments WHERE id = $1',
@@ -917,7 +917,7 @@ export function createAssessmentsRouter(pool: Pool, eventStore: EventStore): Rou
           return res.status(404).json({ error: 'Evaluación no encontrada' });
         }
 
-        const assessment = result.rows[0];
+        const _assessment = result.rows[0];
 
         await pool.query('DELETE FROM assessments WHERE id = $1', [id]);
 

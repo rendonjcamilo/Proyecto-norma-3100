@@ -74,7 +74,7 @@ export class HabilitacionAlertService {
 
     for (const provider of providers) {
       const alreadyNotified = await this.wasAlreadyNotifiedForMilestone(provider.id, milestone.type);
-      if (alreadyNotified) continue;
+      if (alreadyNotified) {continue;}
 
       const days = Number(provider.days_remaining);
       const { title, message } = this.buildMessages(provider.legal_name, provider.habilitacion_fecha_vencimiento, days, milestone.days);
@@ -167,17 +167,17 @@ export class HabilitacionAlertService {
     const now = new Date();
     const next8am = new Date(now);
     next8am.setHours(8, 0, 0, 0);
-    if (next8am <= now) next8am.setDate(next8am.getDate() + 1);
+    if (next8am <= now) {next8am.setDate(next8am.getDate() + 1);}
 
     const msUntil8am = next8am.getTime() - now.getTime();
     logger.info(`HabilitacionAlertService: próxima verificación en ${Math.round(msUntil8am / 60000)} minutos`);
 
     setTimeout(() => {
-      this.checkAndNotify();
-      setInterval(() => this.checkAndNotify(), 24 * 60 * 60 * 1000);
+      void this.checkAndNotify();
+      setInterval(() => { void this.checkAndNotify(); }, 24 * 60 * 60 * 1000);
     }, msUntil8am);
 
     // Verificación inicial al arrancar
-    setTimeout(() => this.checkAndNotify(), 5000);
+    setTimeout(() => { void this.checkAndNotify(); }, 5000);
   }
 }

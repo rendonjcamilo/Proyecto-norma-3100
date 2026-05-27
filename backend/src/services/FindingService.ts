@@ -3,7 +3,7 @@
  * Handles findings lifecycle, status workflows, and corrective action planning
  */
 
-import { Pool, QueryResult } from 'pg';
+import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 

@@ -17,18 +17,12 @@ import {
   TableRow,
   TableCell,
   TextRun,
-  HeadingLevel,
   AlignmentType,
-  BorderStyle,
   WidthType,
-  VerticalAlign,
   ImageRun,
   Header,
   Footer,
   ShadingType,
-  HorizontalPositionRelativeFrom,
-  VerticalPositionRelativeFrom,
-  TextWrappingType,
 } from 'docx';
 import sharp from 'sharp';
 import { logger } from '../utils/logger.js';
@@ -437,7 +431,7 @@ export class ReportService {
     standards: NonNullable<ComplianceReportData['standardsBreakdown']>,
   ): void {
     const N = standards.length;
-    if (N === 0) return;
+    if (N === 0) {return;}
 
     const angle = (i: number) => (2 * Math.PI / N) * i - Math.PI / 2;
     const ptX = (i: number, r: number) => cx + r * Math.cos(angle(i));
@@ -932,7 +926,7 @@ export class ReportService {
       [providerId]
     ).catch(() => ({ rows: [] }));
 
-    const totalHallazgosAbiertos = estandares.reduce((s, e) => s + e.noCumple, 0);
+    const _totalHallazgosAbiertos = estandares.reduce((s, e) => s + e.noCumple, 0);
     const totalCumple = estandares.reduce((s, e) => s + e.cumple, 0);
     // Fórmula Norma 3100: solo criterios aplicables (C + NC), NA no entra en el denominador
     const totalAplicables = estandares.reduce((s, e) => s + e.cumple + e.noCumple, 0);
@@ -1312,7 +1306,7 @@ export class ReportService {
             : 'SERVICIO ESPECÍFICO';
 
           const renderSvcHallazgos = (grupos: typeof data.estandaresServicio, titulo: string) => {
-            if (!grupos.some(e => e.hallazgos.length > 0)) return;
+            if (!grupos.some(e => e.hallazgos.length > 0)) {return;}
             y += 20;
             if (y > 650) { doc.addPage(); y = 50; }
             doc.fillColor(COLORS.primary).fontSize(13).font('Helvetica-Bold')
@@ -1558,7 +1552,7 @@ export class ReportService {
 
       // ── ESTÁNDARES ESPECÍFICOS DEL SERVICIO (ionizantes y NO ionizantes separados) ─────
       ...(() => {
-        if (data.estandaresServicio.length === 0) return [];
+        if (data.estandaresServicio.length === 0) {return [];}
         const _svcN = data.servicio?.nombre?.toUpperCase() ?? '';
         const _svcC = data.servicio?.codigo ?? '';
         const _ioniz = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
@@ -1647,7 +1641,7 @@ export class ReportService {
 
       // ── TABLA DE RESULTADOS ESPECÍFICOS POR SERVICIO (ionizantes y NO ionizantes separados) ──
       ...(() => {
-        if (data.estandaresServicio.length === 0) return [];
+        if (data.estandaresServicio.length === 0) {return [];}
         const _svcN2 = data.servicio?.nombre?.toUpperCase() ?? '';
         const _svcC2 = data.servicio?.codigo ?? '';
         const _ioniz2 = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));

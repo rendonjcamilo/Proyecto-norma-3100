@@ -15,13 +15,6 @@ interface AssessmentsPageProps {
   providerId: string;
 }
 
-interface Norma3100Service {
-  code: string;
-  name: string;
-  groupName: string;
-  totalCriteria: number;
-}
-
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
@@ -30,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
   archived: 'Archivada',
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const _STATUS_COLORS: Record<string, string> = {
   draft: '#6b778c',
   in_progress: '#0052cc',
   completed: '#00875a',
@@ -53,7 +46,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [services, setServices] = useState<HealthService[]>([]);
-  const [servicesFiltered, setServicesFiltered] = useState(false);
+  const [_servicesFiltered, setServicesFiltered] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [auditorsProviders, setAuditorsProviders] = useState<any[]>([]);
   const [formData, setFormData] = useState({
@@ -64,7 +57,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
     includeHC: false,
   });
   const [isDeleting, setIsDeleting] = useState(false);
-  const [loadingProviderServices, setLoadingProviderServices] = useState(false);
+  const [_loadingProviderServices, setLoadingProviderServices] = useState(false);
   const [evaluableServices, setEvaluableServices] = useState<EvaluableService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [loadingEvaluable, setLoadingEvaluable] = useState(false);

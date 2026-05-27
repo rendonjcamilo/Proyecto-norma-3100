@@ -169,7 +169,7 @@ export const AuditorNotificationSender: React.FC = () => {
   };
 
   // ── Envío ─────────────────────────────────────────────────────
-  const getRecipientEmail = (): string | null => {
+  const _getRecipientEmail = (): string | null => {
     if (recipientMode === 'direct') return directEmail.trim() || null;
     const prov = providers.find(p => p.id === selectedProvider);
     return prov ? (prov as any).email || null : null;

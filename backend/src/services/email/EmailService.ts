@@ -38,6 +38,7 @@ export class EmailService {
       logger.info('Email provider: Resend initialized');
     } else if (this.config.provider === 'mailgun') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const mailgun = require('mailgun.js');
         this.mailgunClient = new mailgun.default({ key: this.config.apiKey });
       } catch {
@@ -45,6 +46,7 @@ export class EmailService {
       }
     } else if (this.config.provider === 'sendgrid') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const sgMail = require('@sendgrid/mail');
         sgMail.setApiKey(this.config.apiKey);
         this.sendgridClient = sgMail;
@@ -243,7 +245,7 @@ export class EmailService {
     try {
       const result = await this.pool.query(query, [templateName]);
       const row = result.rows[0];
-      if (!row) return null;
+      if (!row) {return null;}
       // Mapear snake_case de BD a camelCase del interface
       return {
         id: row.id,

@@ -323,8 +323,8 @@ export class Anexo4Service {
       registros.forEach(reg => {
         CRITERIOS_IDENTIFICACION.forEach(c => {
           const val = reg.criterios?.[c.key];
-          if (val === 'C')  totalC++;
-          if (val === 'NC') totalNC++;
+          if (val === 'C')  {totalC++;}
+          if (val === 'NC') {totalNC++;}
         });
       });
       const pct = total > 0 ? Math.round((totalC / total) * 100) : 0;

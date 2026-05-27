@@ -94,13 +94,13 @@ export class WebSocketManager {
 
       // Join provider room
       if (providerId) {
-        socket.join(`provider:${providerId}`);
+        void socket.join(`provider:${providerId}`);
         this.addToProviderRoom(providerId, socket.id);
       }
 
       // Join auditor room if applicable
       if (role === 'auditor') {
-        socket.join('auditors');
+        void socket.join('auditors');
       }
 
       logger.info(`WebSocket connected`, {
@@ -127,13 +127,13 @@ export class WebSocketManager {
 
       // Handle subscribe to specific finding
       socket.on('subscribe-finding', (findingId: string) => {
-        socket.join(`finding:${findingId}`);
+        void socket.join(`finding:${findingId}`);
         logger.info(`User subscribed to finding`, { userId, findingId });
       });
 
       // Handle unsubscribe from finding
       socket.on('unsubscribe-finding', (findingId: string) => {
-        socket.leave(`finding:${findingId}`);
+        void socket.leave(`finding:${findingId}`);
         logger.info(`User unsubscribed from finding`, { userId, findingId });
       });
     });
@@ -284,7 +284,7 @@ export class WebSocketManager {
    * Close WebSocket server
    */
   public close(): void {
-    this.io.close();
+    void this.io.close();
     logger.info(`WebSocket server closed`);
   }
 }

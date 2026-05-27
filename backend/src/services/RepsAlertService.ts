@@ -76,7 +76,7 @@ export class RepsAlertService {
     const { rows } = await this.pool.query<AlertTriggerConfig>(
       `SELECT * FROM reps_alert_triggers ORDER BY created_at ASC LIMIT 1`
     );
-    if (rows[0]) return rows[0];
+    if (rows[0]) {return rows[0];}
 
     const { rows: created } = await this.pool.query<AlertTriggerConfig>(
       `INSERT INTO reps_alert_triggers (departamento, municipio, max_providers, dias_antes_vencer, solo_con_celular, hora_local)
@@ -128,7 +128,7 @@ export class RepsAlertService {
       [triggerId]
     );
     const trigger = rows[0];
-    if (!trigger) throw new Error('Trigger no encontrado');
+    if (!trigger) {throw new Error('Trigger no encontrado');}
 
     logger.info({
       msg: 'REPS Alert: iniciando ejecución de trigger',
@@ -224,9 +224,9 @@ export class RepsAlertService {
   scheduleNext(trigger: AlertTriggerConfig): void {
     // Cancelar timer previo si existe
     const existing = this.timers.get(trigger.id);
-    if (existing) clearTimeout(existing);
+    if (existing) {clearTimeout(existing);}
 
-    if (!trigger.is_active) return;
+    if (!trigger.is_active) {return;}
 
     const now = new Date();
     const next = new Date(now);
@@ -255,7 +255,7 @@ export class RepsAlertService {
         'SELECT * FROM reps_alert_triggers WHERE id = $1',
         [trigger.id]
       );
-      if (rows[0]) this.scheduleNext(rows[0]);
+      if (rows[0]) {this.scheduleNext(rows[0]);}
     }, msUntilNext);
 
     this.timers.set(trigger.id, timer);

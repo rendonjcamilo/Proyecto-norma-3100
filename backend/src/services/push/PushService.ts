@@ -29,6 +29,7 @@ export class PushService {
   private initializeProvider(): void {
     if (this.config.provider === 'fcm') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const admin = require('firebase-admin');
         const serviceAccount = JSON.parse(this.config.serviceAccountKey || '{}');
         if (!admin.apps.length) {
@@ -43,6 +44,7 @@ export class PushService {
       }
     } else if (this.config.provider === 'apns') {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const apn = require('apn');
         this.apnsClient = new apn.Provider({
           token: {
@@ -214,6 +216,7 @@ export class PushService {
         });
       }
     } else if (this.config.provider === 'apns' && this.apnsClient && platform === 'ios') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const notification = new (require('apn')).Notification({
         token: deviceToken,
         alert: {

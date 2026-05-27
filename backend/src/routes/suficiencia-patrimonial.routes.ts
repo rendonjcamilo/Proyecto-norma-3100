@@ -12,7 +12,7 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
-import { body, query as queryVal, validationResult } from 'express-validator';
+import { body, query as _queryVal, validationResult } from 'express-validator';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';

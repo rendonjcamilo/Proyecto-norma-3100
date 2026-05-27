@@ -72,7 +72,7 @@ export class RepsEnrichmentService {
       }
     }
     const deduped = unique.slice(0, 20);
-    if (deduped.length === 0) return [];
+    if (deduped.length === 0) {return [];}
 
     const nits = deduped.map((e) => e.nit);
 
@@ -105,7 +105,7 @@ export class RepsEnrichmentService {
     const cachedNits = new Set(cached.map((r) => r.nit));
     const pendientes = deduped.filter((e) => !cachedNits.has(e.nit));
 
-    if (pendientes.length === 0) return cached;
+    if (pendientes.length === 0) {return cached;}
 
     const scraped = await this.processWithConcurrencyEntries(pendientes);
     return [...cached, ...scraped];
@@ -116,7 +116,7 @@ export class RepsEnrichmentService {
    */
   async setManual(nit: string, fechaVencimiento: string, nombrePrestador?: string): Promise<void> {
     const d = new Date(fechaVencimiento);
-    if (isNaN(d.getTime())) throw new Error('Fecha inválida');
+    if (isNaN(d.getTime())) {throw new Error('Fecha inválida');}
 
     await this.pool.query(
       `INSERT INTO reps_enriched
@@ -140,7 +140,7 @@ export class RepsEnrichmentService {
   async getBatchCached(
     nits: string[]
   ): Promise<Map<string, { fecha_vencimiento: string | null; fuente: string }>> {
-    if (nits.length === 0) return new Map();
+    if (nits.length === 0) {return new Map();}
 
     const result = await this.pool.query(
       `SELECT nit, fecha_vencimiento, fuente
@@ -170,12 +170,13 @@ export class RepsEnrichmentService {
     let ptr = 0;
 
     const worker = async (slot: number) => {
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const i = ptr++;
-        if (i >= entries.length) break;
+        if (i >= entries.length) {break;}
         const { nit, codigoHab } = entries[i];
         results[i] = await this.scrapeNit(nit, slot, codigoHab);
-        if (ptr < entries.length) await this.sleep(SLOT_DELAY_MS);
+        if (ptr < entries.length) {await this.sleep(SLOT_DELAY_MS);}
       }
     };
 
@@ -190,7 +191,7 @@ export class RepsEnrichmentService {
     }
 
     try {
-      if (!this.slots[slot] || Date.now() - this.slots[slot]!.createdAt > SESSION_MAX_AGE_MS) {
+      if (!this.slots[slot] || Date.now() - this.slots[slot].createdAt > SESSION_MAX_AGE_MS) {
         this.slots[slot] = { cookie: await this.establishSession(), createdAt: Date.now() };
       }
 
@@ -240,7 +241,7 @@ export class RepsEnrichmentService {
 
     const sessionExpired = !html.includes('tbnits_nit') || html.includes('id="Button1"');
     if (sessionExpired) {
-      if (isRetry) throw new Error('Sesión MINSALUD inválida tras reestablecimiento');
+      if (isRetry) {throw new Error('Sesión MINSALUD inválida tras reestablecimiento');}
       logger.info({ msg: 'REPS HTTP: sesión expirada, reestableciendo', slot });
       this.slots[slot] = { cookie: await this.establishSession(), createdAt: Date.now() };
       return this.getSearchPageHtml(slot, true);
@@ -268,8 +269,8 @@ export class RepsEnrichmentService {
 
     const body = new URLSearchParams();
     body.set('__VIEWSTATE', viewState);
-    if (viewStateGen) body.set('__VIEWSTATEGENERATOR', viewStateGen);
-    if (eventValidation) body.set('__EVENTVALIDATION', eventValidation);
+    if (viewStateGen) {body.set('__VIEWSTATEGENERATOR', viewStateGen);}
+    if (eventValidation) {body.set('__EVENTVALIDATION', eventValidation);}
     body.set(nitName, nit);
     body.set(dvName, this.calcNitDv(nit)); // dígito de verificación
     body.set(`${btnName}.x`, '10');
@@ -312,8 +313,8 @@ export class RepsEnrichmentService {
 
     const body = new URLSearchParams();
     body.set('__VIEWSTATE', viewState);
-    if (viewStateGen) body.set('__VIEWSTATEGENERATOR', viewStateGen);
-    if (eventValidation) body.set('__EVENTVALIDATION', eventValidation);
+    if (viewStateGen) {body.set('__VIEWSTATEGENERATOR', viewStateGen);}
+    if (eventValidation) {body.set('__EVENTVALIDATION', eventValidation);}
     body.set(habName, habCode10);
     body.set(`${btnName}.x`, '10');
     body.set(`${btnName}.y`, '10');
@@ -391,7 +392,7 @@ export class RepsEnrichmentService {
     const btn1Name = this.extractFieldNameById(frameHtml, 'Button1') ?? 'Button1';
 
     const loginBody = new URLSearchParams({ '__VIEWSTATE': vs });
-    if (vsGen) loginBody.set('__VIEWSTATEGENERATOR', vsGen);
+    if (vsGen) {loginBody.set('__VIEWSTATEGENERATOR', vsGen);}
     loginBody.set(btn1Name, 'Continuar');
 
     const r3 = await this.timedFetch(frameUrl, {
@@ -424,7 +425,7 @@ export class RepsEnrichmentService {
         const raw = m[1];
         const iso = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
         const d = new Date(iso);
-        if (!isNaN(d.getTime())) return iso;
+        if (!isNaN(d.getTime())) {return iso;}
       }
     }
     return null;
@@ -443,7 +444,7 @@ export class RepsEnrichmentService {
       const m = html.match(re);
       if (m) {
         const parsed = this.parseDdMmYyyy(m[1]);
-        if (parsed) return parsed;
+        if (parsed) {return parsed;}
       }
     }
 
@@ -454,7 +455,7 @@ export class RepsEnrichmentService {
       const iso = this.parseDdMmYyyy(m[1]);
       if (iso) {
         const ts = new Date(iso).getTime();
-        if (ts > Date.now()) allDates.push({ iso, ts });
+        if (ts > Date.now()) {allDates.push({ iso, ts });}
       }
     }
 
@@ -468,7 +469,7 @@ export class RepsEnrichmentService {
 
   private parseDdMmYyyy(fecha: string): string | null {
     const m = fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!m) return null;
+    if (!m) {return null;}
     const [, dd, mm, yyyy] = m;
     const d = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`);
     return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
@@ -483,17 +484,17 @@ export class RepsEnrichmentService {
         ? (headers as { getSetCookie: () => string[] }).getSetCookie()
         : (headers.get('set-cookie') ?? '').split(/,(?=[^ ])/).filter(Boolean);
 
-    if (newCookies.length === 0) return existing;
+    if (newCookies.length === 0) {return existing;}
 
     const jar: Record<string, string> = {};
     for (const pair of existing.split(';')) {
       const [k, ...v] = pair.trim().split('=');
-      if (k?.trim()) jar[k.trim()] = v.join('=').trim();
+      if (k?.trim()) {jar[k.trim()] = v.join('=').trim();}
     }
     for (const sc of newCookies) {
       const [pair] = sc.split(';');
       const [k, ...v] = pair.split('=');
-      if (k?.trim()) jar[k.trim()] = v.join('=').trim();
+      if (k?.trim()) {jar[k.trim()] = v.join('=').trim();}
     }
     return Object.entries(jar)
       .map(([k, v]) => `${k}=${v}`)

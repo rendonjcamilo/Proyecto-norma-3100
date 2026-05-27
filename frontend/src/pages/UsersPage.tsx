@@ -9,7 +9,7 @@ import { usersApi, providersApi, User, Provider, UserRole } from '@services/api'
 import { formatDate } from '@/utils/dateFormat';
 import styles from './UsersPage.module.css';
 
-const VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
+const _VALID_ROLES: UserRole[] = ['super_admin', 'auditor', 'provider_admin'];
 
 const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: 'Administrador',
@@ -36,7 +36,7 @@ const getPasswordRequirements = (password: string) => ({
   special: /[!@#$%^&*]/.test(password),
 });
 
-const isPasswordValid = (password: string) => {
+const _isPasswordValid = (password: string) => {
   const reqs = getPasswordRequirements(password);
   return reqs.length && reqs.uppercase && reqs.lowercase && reqs.digit && reqs.special;
 };

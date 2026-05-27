@@ -116,7 +116,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     onChange(newResponse);
   };
 
-  const complexityColor: Record<string, string> = {
+  const _complexityColor: Record<string, string> = {
     simple: 'complexity-simple',
     medium: 'complexity-medium',
     complex: 'complexity-complex',

@@ -58,7 +58,7 @@ export class NotificationQueueService {
     `;
 
     try {
-      const result: QueryResult<NotificationQueueItem> = await this.pool.query(query, [
+      const _result: QueryResult<NotificationQueueItem> = await this.pool.query(query, [
         id,
         notificationId,
         channel,
