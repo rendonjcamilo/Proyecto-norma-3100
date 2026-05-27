@@ -26,6 +26,15 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    environment: 'jsdom',
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/__tests__/integration.test.ts',
+      '**/__tests__/E2E.integration.test.ts',
+    ],
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
