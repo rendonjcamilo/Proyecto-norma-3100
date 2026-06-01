@@ -1,5 +1,6 @@
 // Municipios de Colombia por departamento — ortografía oficial
 export const MUNICIPIOS_POR_DEPARTAMENTO: Record<string, string[]> = {
+  'BOGOTÁ D.C.': ['Bogotá D.C.'],
   AMAZONAS: [
     'Leticia',
     'El Encanto',
