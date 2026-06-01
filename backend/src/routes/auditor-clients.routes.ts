@@ -1,20 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
-import { requireRole } from '../middleware/role.middleware.js';
+import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';
 import { AuditorClientService } from '../services/AuditorClientService.js';
 import { logger } from '../utils/logger.js';
+
+const ROLES = ['auditor', 'super_admin'];
 
 export function createAuditorClientsRouter(pool: Pool): Router {
   const router = Router();
   const service = new AuditorClientService(pool);
 
-  // Todos los endpoints requieren rol auditor o super_admin
-  router.use(authMiddleware, requireRole(['auditor', 'super_admin']));
-
   /** GET /api/auditor/clients */
-  router.get('/auditor/clients', async (req: Request, res: Response) => {
+  router.get('/auditor/clients', authMiddleware, rbacMiddleware(ROLES), async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const clients = await service.list(userId);
@@ -26,7 +25,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   });
 
   /** POST /api/auditor/clients */
-  router.post('/auditor/clients', async (req: Request, res: Response) => {
+  router.post('/auditor/clients', authMiddleware, rbacMiddleware(ROLES), async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const { legal_name } = req.body;
@@ -42,7 +41,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   });
 
   /** PUT /api/auditor/clients/:id */
-  router.put('/auditor/clients/:id', validateUuidParam('id'), async (req: Request, res: Response) => {
+  router.put('/auditor/clients/:id', authMiddleware, rbacMiddleware(ROLES), validateUuidParam('id'), async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const { legal_name } = req.body;
@@ -59,7 +58,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   });
 
   /** DELETE /api/auditor/clients/:id */
-  router.delete('/auditor/clients/:id', validateUuidParam('id'), async (req: Request, res: Response) => {
+  router.delete('/auditor/clients/:id', authMiddleware, rbacMiddleware(ROLES), validateUuidParam('id'), async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const deleted = await service.delete(userId, req.params.id);
