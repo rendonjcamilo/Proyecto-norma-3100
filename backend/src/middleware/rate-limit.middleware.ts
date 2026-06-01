@@ -11,7 +11,8 @@ import { logger } from '../utils/logger.js';
 // Passthrough middleware for development (no rate limiting)
 const noOpLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
 
-// Standard API rate limiter: 1000 requests / 15 minutes per IP
+// Standard API rate limiter: 5000 requests / 15 minutes per IP
+// Valor aumentado: usuarios del panel REPS generan muchas peticiones de prospección masiva
 const createApiLimiter = () => {
   if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return noOpLimiter;
@@ -19,7 +20,7 @@ const createApiLimiter = () => {
 
   return rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: 5000,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: {
