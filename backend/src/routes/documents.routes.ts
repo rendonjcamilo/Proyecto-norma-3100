@@ -21,6 +21,21 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+// Permite super_admin y auditor acceder a cualquier prestador.
+// provider_admin solo puede acceder a su propio prestador.
+function requireProviderAccess(req: Request, res: Response, next: Function): void {
+  const user = req.user;
+  if (!user) { res.status(401).json({ error: 'No autenticado' }); return; }
+  if (user.role === 'super_admin' || user.role === 'auditor') { next(); return; }
+  if (user.role === 'provider_admin') {
+    if (req.params.providerId && req.params.providerId !== user.provider_id) {
+      res.status(403).json({ error: 'Sin acceso a este prestador' }); return;
+    }
+    next(); return;
+  }
+  res.status(403).json({ error: 'Acceso denegado' });
+}
+
 export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Router {
   const router = Router();
   const service = new DocumentService(pool, eventStore);
@@ -69,6 +84,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     uploadLimiter,
     rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     validateUuidParam('providerId'),
+    requireProviderAccess,
     upload.single('file'),
     async (req: Request, res: Response) => {
       try {
@@ -115,6 +131,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     '/providers/:providerId/documents',
     authMiddleware,
     validateUuidParam('providerId'),
+    requireProviderAccess,
     async (req: Request, res: Response) => {
       try {
         const docs = await service.getProviderDocuments(req.params.providerId);
@@ -134,6 +151,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     '/providers/:providerId/documents/compliance',
     authMiddleware,
     validateUuidParam('providerId'),
+    requireProviderAccess,
     async (req: Request, res: Response) => {
       try {
         const summary = await service.getComplianceSummary(req.params.providerId);
@@ -156,6 +174,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     '/providers/:providerId/documents/missing',
     authMiddleware,
     validateUuidParam('providerId'),
+    requireProviderAccess,
     async (req: Request, res: Response) => {
       try {
         const missing = await service.getMissingDocuments(req.params.providerId);
@@ -176,6 +195,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     authMiddleware,
     validateUuidParam('providerId'),
     validateUuidParam('catalogId'),
+    requireProviderAccess,
     async (req: Request, res: Response) => {
       try {
         const history = await service.getVersionHistory(req.params.providerId, req.params.catalogId);
@@ -197,6 +217,16 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     validateUuidParam('documentId'),
     async (req: Request, res: Response) => {
       try {
+        const user = req.user!;
+        if (user.role === 'provider_admin') {
+          const { rows } = await pool.query(
+            'SELECT provider_id FROM provider_documents WHERE id = $1',
+            [req.params.documentId]
+          );
+          if (!rows.length || rows[0].provider_id !== user.provider_id) {
+            return res.status(403).json({ error: 'Sin acceso a este documento' });
+          }
+        }
         const file = await service.retrieveFile(req.params.documentId);
         if (!file) {
           return res.status(404).json({ error: 'Document not found' });
