@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
-import { authenticateToken } from '../middleware/auth.middleware.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/role.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';
 import { AuditorClientService } from '../services/AuditorClientService.js';
@@ -11,7 +11,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   const service = new AuditorClientService(pool);
 
   // Todos los endpoints requieren rol auditor o super_admin
-  router.use(authenticateToken, requireRole(['auditor', 'super_admin']));
+  router.use(authMiddleware, requireRole(['auditor', 'super_admin']));
 
   /** GET /api/auditor/clients */
   router.get('/auditor/clients', async (req: Request, res: Response) => {
