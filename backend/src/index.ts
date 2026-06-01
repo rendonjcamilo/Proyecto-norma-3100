@@ -27,6 +27,7 @@ import { createRepsRouter } from './routes/reps.routes.js';
 import { createRepsAlertsRouter } from './routes/reps-alerts.routes.js';
 import { createWhatsAppRouter } from './routes/whatsapp.routes.js';
 import { createAnexo4Router } from './routes/anexo4.routes.js';
+import { createAuditorClientsRouter } from './routes/auditor-clients.routes.js';
 import { RepsAlertService } from './services/RepsAlertService.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
@@ -269,6 +270,9 @@ app.use('/api/notifications', apiLimiter, createNotificationsRouter(pool));
 
 // WhatsApp automático vía Evolution API (Baileys)
 app.use('/api', apiLimiter, createWhatsAppRouter());
+
+// Clientes personales del auditor (agenda de prestadores recurrentes)
+app.use('/api', apiLimiter, createAuditorClientsRouter(pool));
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

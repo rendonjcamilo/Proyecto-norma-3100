@@ -1248,6 +1248,58 @@ export const whatsappApi = {
 };
 
 // ─────────────────────────────────────────────
+// AUDITOR CLIENTS
+// ─────────────────────────────────────────────
+
+export interface AuditorClientData {
+  id: string;
+  user_id: string;
+  rut?: string;
+  legal_name: string;
+  address?: string;
+  city?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  nombre_sede?: string;
+  codigo_habilitacion?: string;
+  tipo_prestador?: string;
+  habilitacion_fecha_vencimiento?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditorClientInput {
+  rut?: string;
+  legal_name: string;
+  address?: string;
+  city?: string;
+  department?: string;
+  email?: string;
+  phone?: string;
+  nombre_sede?: string;
+  codigo_habilitacion?: string;
+  tipo_prestador?: string;
+  habilitacion_fecha_vencimiento?: string;
+  notes?: string;
+}
+
+export const auditorClientsApi = {
+  list: () =>
+    get<{ data: AuditorClientData[]; total: number }>('/api/auditor/clients'),
+
+  create: (data: AuditorClientInput) =>
+    post<{ data: AuditorClientData }>('/api/auditor/clients', data),
+
+  update: (id: string, data: AuditorClientInput) =>
+    put<{ data: AuditorClientData }>(`/api/auditor/clients/${id}`, data),
+
+  delete: (id: string) =>
+    del<void>(`/api/auditor/clients/${id}`),
+};
+
+// ─────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────
 

@@ -27,6 +27,7 @@ import { MultiChannelPreferences } from "./components/Notifications/MultiChannel
 import { NotificationAnalyticsDashboard } from "./components/Notifications/NotificationAnalyticsDashboard";
 import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
 import { AuditorNotificationsPage } from "./pages/notifications/AuditorNotificationsPage";
+import { AuditorClientsPage } from "./pages/AuditorClientsPage";
 import { Sidebar, TopBar } from "./components/Layout";
 import { SuperAdminDashboard } from "./pages/dashboards/SuperAdminDashboard";
 import { AuditorDashboard } from "./pages/dashboards/AuditorDashboard";
@@ -290,6 +291,12 @@ function AppContent(): JSX.Element {
             <Route
               path="/notifications"
               element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
+            />
+
+            {/* AUDITOR CLIENTS */}
+            <Route
+              path="/auditor/clients"
+              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorClientsPage /></ProtectedRoute>}
             />
 
             {/* INVIMA */}
