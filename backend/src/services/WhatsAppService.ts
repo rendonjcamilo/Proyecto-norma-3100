@@ -130,7 +130,8 @@ export class WhatsAppService {
     const instance = instanceName(userId);
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    // Crear instancia si no existe, o recrear si está cerrada
+    // Crear/recrear instancia según estado.
+    // 'connecting' = instancia previa en modo QR — hay que borrar y recrear en modo teléfono (qrcode:false).
     try {
       const instances = await evoFetch<unknown[]>('/instance/fetchInstances');
       const found = Array.isArray(instances)
@@ -146,20 +147,26 @@ export class WhatsAppService {
             ?? ((found.instance as Record<string, unknown>)?.status as string | undefined))
         : undefined;
 
+      logger.info({ msg: 'getPairingCode: instance status', instance, foundStatus });
+
       if (foundStatus === 'open') {
         return { pairingCode: '' }; // ya conectado, no necesita código
+      } else if (found && (foundStatus === 'close' || foundStatus === 'connecting')) {
+        // 'connecting' = instancia en modo QR sin escanear → borrar y recrear para modo teléfono
+        await evoFetch(`/instance/delete/${instance}`, { method: 'DELETE' }).catch(() => null);
+        await sleep(1000);
+        await evoFetch('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({ instanceName: instance, qrcode: false, integration: 'WHATSAPP-BAILEYS' }),
+        });
+        logger.info({ msg: 'getPairingCode: instance recreated for phone mode', instance, prevStatus: foundStatus });
+        await sleep(2500);
       } else if (!found) {
         await evoFetch('/instance/create', {
           method: 'POST',
           body: JSON.stringify({ instanceName: instance, qrcode: false, integration: 'WHATSAPP-BAILEYS' }),
         });
-        await sleep(2500);
-      } else if (foundStatus === 'close') {
-        await evoFetch(`/instance/delete/${instance}`, { method: 'DELETE' }).catch(() => null);
-        await evoFetch('/instance/create', {
-          method: 'POST',
-          body: JSON.stringify({ instanceName: instance, qrcode: false, integration: 'WHATSAPP-BAILEYS' }),
-        });
+        logger.info({ msg: 'getPairingCode: instance created', instance });
         await sleep(2500);
       }
     } catch (err) {
@@ -171,13 +178,36 @@ export class WhatsAppService {
     const data = await evoFetch<Record<string, unknown>>(
       `/instance/connect/${instance}?number=${cleanPhone}`
     );
-    const code = (data?.pairingCode as string | undefined) ?? (data?.code as string | undefined);
-    if (!code) {
-      logger.warn({ msg: 'No pairing code returned', instance, keys: Object.keys(data ?? {}) });
-      throw new Error('Evolution API no retornó el código de vinculación. Intenta con el método QR.');
+
+    // Log completo para diagnóstico — muestra la respuesta real de Evolution API
+    logger.info({
+      msg: 'Evolution API pairing response',
+      instance,
+      keys: Object.keys(data ?? {}),
+      preview: JSON.stringify(data).slice(0, 300),
+    });
+
+    // Extraer código — Evolution v1 lo anida en data.instance, v2 lo devuelve en la raíz
+    const rawCode = (data?.pairingCode as string | undefined)
+      ?? ((data?.instance as Record<string, unknown>)?.pairingCode as string | undefined)
+      ?? (typeof data?.code === 'string' ? (data.code as string) : undefined);
+
+    if (!rawCode) {
+      logger.warn({ msg: 'No pairing code in response', instance, preview: JSON.stringify(data).slice(0, 300) });
+      throw new Error('Evolution API no retornó el código de vinculación. Intenta de nuevo en 30 segundos.');
     }
-    logger.info({ msg: 'Pairing code generated', instance, userId });
-    return { pairingCode: code };
+
+    // Los códigos de WhatsApp son exactamente 8 caracteres alfanuméricos (formato XXXXXXXX o XXXX-XXXX)
+    const stripped = rawCode.replace(/[-\s]/g, '');
+    if (stripped.length !== 8 || !/^[A-Za-z0-9]{8}$/.test(stripped)) {
+      logger.warn({ msg: 'Pairing code format invalid', instance, rawCode, stripped, len: stripped.length });
+      throw new Error('El código recibido no tiene el formato esperado de WhatsApp. Intenta de nuevo.');
+    }
+
+    // Formatear siempre como XXXX-XXXX en mayúsculas para facilitar la lectura
+    const formatted = `${stripped.slice(0, 4)}-${stripped.slice(4, 8)}`.toUpperCase();
+    logger.info({ msg: 'Pairing code generated OK', instance, userId, formatted });
+    return { pairingCode: formatted };
   }
 
   async disconnect(userId: string): Promise<void> {
