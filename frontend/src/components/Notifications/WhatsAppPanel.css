@@ -1703,3 +1703,40 @@
   border-color: #fcd34d;
   color: #78350f;
 }
+
+/* ── Badge "Mensaje enviado hace X días" ──────────────────────── */
+.wap-sent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #86efac;
+}
+
+/* Versión compacta para vista de tabla (inline junto al número) */
+.wap-sent-badge--inline {
+  display: inline-flex;
+  margin-top: 0;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+/* Aviso en el compositor cuando el prestador ya fue contactado */
+.wap-sent-notice {
+  margin: 6px 0 4px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 12.5px;
+  line-height: 1.4;
+}

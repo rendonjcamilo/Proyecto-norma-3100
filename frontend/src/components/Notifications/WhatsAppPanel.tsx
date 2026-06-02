@@ -157,6 +157,9 @@ export const WhatsAppPanel: React.FC = () => {
   const [fromCache, setFromCache] = useState(false);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
 
+  // Mapa phone → info del último envío en los últimos 30 días (para badge "ya contactado")
+  const [recentSends, setRecentSends] = useState<Record<string, { sent_at: string; days_ago: number; provider_name: string | null }>>({});
+
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [tablePage, setTablePage] = useState(0);
   const [sortCol, setSortCol] = useState<'dias' | 'nombre' | 'municipio'>('dias');
@@ -218,6 +221,17 @@ export const WhatsAppPanel: React.FC = () => {
     }
   };
 
+  const fetchRecentSends = useCallback(async (prospects: RepsProspecto[]) => {
+    const phones = prospects.map(p => p.celular ? toWaPhone(p.celular) : '').filter(Boolean);
+    if (!phones.length) return;
+    try {
+      const res = await whatsappApi.getRecentSends(phones);
+      setRecentSends(res.data);
+    } catch {
+      // silencioso — el badge es informativo, no crítico
+    }
+  }, []);
+
   const refreshStatus = async () => {
     setWaStatusLoading(true);
     try {
@@ -278,7 +292,14 @@ export const WhatsAppPanel: React.FC = () => {
       const p = destinatarios[i];
       const phone = toWaPhone(p.celular!);
       try {
-        await whatsappApi.send(phone, buildMensaje(plantilla, p));
+        await whatsappApi.send(phone, buildMensaje(plantilla, p), {
+          provider_nit: p.nit,
+          provider_name: p.nombre_prestador,
+        });
+        setRecentSends(prev => ({
+          ...prev,
+          [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: p.nombre_prestador },
+        }));
       } catch {
         errors++;
       }
@@ -297,8 +318,15 @@ export const WhatsAppPanel: React.FC = () => {
     setAutoSendResult(null);
     setAutoSendError('');
     try {
-      await whatsappApi.send(phone, buildMensaje(plantilla, selected));
+      await whatsappApi.send(phone, buildMensaje(plantilla, selected), {
+        provider_nit: selected.nit,
+        provider_name: selected.nombre_prestador,
+      });
       setAutoSendResult('success');
+      setRecentSends(prev => ({
+        ...prev,
+        [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: selected.nombre_prestador },
+      }));
     } catch (err) {
       setAutoSendResult('error');
       setAutoSendError(err instanceof Error ? err.message : 'Error al enviar');
@@ -433,11 +461,12 @@ export const WhatsAppPanel: React.FC = () => {
     } finally {
       setLoading(false);
     }
-    // Auto-enrich: todos los registros sin fecha en caché
+    // Auto-enrich + verificar envíos recientes en paralelo
     if (fetchedData.length > 0) {
       await doEnrich(fetchedData.map((p) => p.nit).filter(Boolean));
+      fetchRecentSends(fetchedData); // no await — no bloqueante
     }
-  }, [departamento, municipio, clase, soloConCelular, limitResultados, canSearch, doEnrich]);
+  }, [departamento, municipio, clase, soloConCelular, limitResultados, canSearch, doEnrich, fetchRecentSends]);
 
   // ── Ingreso manual de fecha ────────────────────────────────────────────────
 
@@ -982,6 +1011,14 @@ export const WhatsAppPanel: React.FC = () => {
                       }
                       {p.email && <span className="wap-item-email">· {p.email}</span>}
                     </div>
+                    {p.celular && recentSends[toWaPhone(p.celular)] && (
+                      <div className="wap-sent-badge">
+                        ✓ Mensaje enviado hace{' '}
+                        {recentSends[toWaPhone(p.celular)].days_ago === 0
+                          ? 'hoy'
+                          : `${recentSends[toWaPhone(p.celular)].days_ago} día${recentSends[toWaPhone(p.celular)].days_ago !== 1 ? 's' : ''}`}
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -1030,6 +1067,11 @@ export const WhatsAppPanel: React.FC = () => {
                             : p.telefono_raw
                               ? <span className="wap-no-phone">📞 {p.telefono_raw}</span>
                               : <span className="wap-no-phone">—</span>}
+                          {p.celular && recentSends[toWaPhone(p.celular)] && (
+                            <span className="wap-sent-badge wap-sent-badge--inline">
+                              ✓ {recentSends[toWaPhone(p.celular)].days_ago === 0 ? 'hoy' : `${recentSends[toWaPhone(p.celular)].days_ago}d`}
+                            </span>
+                          )}
                         </td>
                         <td className="wap-td">
                           {p.fecha_vencimiento
@@ -1138,6 +1180,19 @@ export const WhatsAppPanel: React.FC = () => {
                   <span className={`wap-chip wap-chip--${chip.color}`}>{chip.label}</span>
                 ); })()}
               </div>
+
+              {/* Aviso si ya fue contactado en los últimos 30 días */}
+              {selected.celular && recentSends[toWaPhone(selected.celular)] && (
+                <div className="wap-sent-notice">
+                  ✓ Ya enviaste un mensaje hace{' '}
+                  <strong>
+                    {recentSends[toWaPhone(selected.celular)].days_ago === 0
+                      ? 'hoy'
+                      : `${recentSends[toWaPhone(selected.celular)].days_ago} día${recentSends[toWaPhone(selected.celular)].days_ago !== 1 ? 's' : ''}`}
+                  </strong>
+                  {' '}— ¿es necesario volver a contactar?
+                </div>
+              )}
 
               {/* Número de WhatsApp */}
               <div className="wap-field">

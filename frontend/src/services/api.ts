@@ -1253,8 +1253,21 @@ export const whatsappApi = {
   disconnect: () =>
     del<{ message: string }>('/api/whatsapp/disconnect'),
 
-  send: (phone: string, message: string) =>
-    post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', { phone, message }),
+  send: (phone: string, message: string, opts?: { provider_nit?: string; provider_name?: string }) =>
+    post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', {
+      phone,
+      message,
+      provider_nit: opts?.provider_nit,
+      provider_name: opts?.provider_name,
+    }),
+
+  getRecentSends: (phones: string[]) => {
+    if (!phones.length) return Promise.resolve({ data: {} as Record<string, { sent_at: string; days_ago: number; provider_name: string | null }> });
+    const params = new URLSearchParams({ phones: phones.join(',') });
+    return get<{ data: Record<string, { sent_at: string; days_ago: number; provider_name: string | null }> }>(
+      `/api/whatsapp/recent-sends?${params.toString()}`
+    );
+  },
 };
 
 // ─────────────────────────────────────────────

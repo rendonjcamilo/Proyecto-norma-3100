@@ -269,7 +269,7 @@ app.use('/api', apiLimiter, createLocationsRouter(pool));
 app.use('/api/notifications', apiLimiter, createNotificationsRouter(pool));
 
 // WhatsApp automático vía Evolution API (Baileys)
-app.use('/api', apiLimiter, createWhatsAppRouter());
+app.use('/api', apiLimiter, createWhatsAppRouter(pool));
 
 // Clientes personales del auditor (agenda de prestadores recurrentes)
 app.use('/api', apiLimiter, createAuditorClientsRouter(pool));
