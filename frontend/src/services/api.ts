@@ -1243,6 +1243,9 @@ export const whatsappApi = {
   getQR: () =>
     get<{ data: WaQR }>('/api/whatsapp/qr'),
 
+  getPairingCode: (phone: string) =>
+    post<{ data: { pairingCode: string } }>('/api/whatsapp/pairing-code', { phone }),
+
   send: (phone: string, message: string) =>
     post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', { phone, message }),
 };

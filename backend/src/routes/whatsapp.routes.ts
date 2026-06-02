@@ -58,6 +58,39 @@ export function createWhatsAppRouter(): Router {
   );
 
   /**
+   * POST /api/whatsapp/pairing-code
+   * Genera código de emparejamiento para vincular WhatsApp por número de teléfono
+   * Body: { phone: string } — número en formato colombiano (ej: 3001234567 o 573001234567)
+   */
+  router.post(
+    '/whatsapp/pairing-code',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Usuario no autenticado' }); }
+      try {
+        const { phone } = req.body as { phone?: string };
+        if (!phone || typeof phone !== 'string' || !phone.trim()) {
+          return res.status(400).json({ error: 'phone es requerido' });
+        }
+        // Normalizar a formato internacional Colombia: 57XXXXXXXXXX
+        const digits = phone.trim().replace(/\D/g, '');
+        const normalized = digits.startsWith('57') ? digits : `57${digits}`;
+        if (normalized.length < 12) {
+          return res.status(400).json({ error: 'Número de teléfono inválido. Usa formato 3XXXXXXXXX o 573XXXXXXXXX' });
+        }
+        const result = await waService.getPairingCode(userId, normalized);
+        res.json({ data: result });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error generating WhatsApp pairing code', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
+  /**
    * POST /api/whatsapp/send
    * Envía un mensaje usando la instancia WhatsApp del auditor autenticado
    * Body: { phone: string, message: string }

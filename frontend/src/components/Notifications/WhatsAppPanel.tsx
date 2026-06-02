@@ -132,6 +132,13 @@ export const WhatsAppPanel: React.FC = () => {
   // Estado de error del QR
   const [waQRError, setWaQRError] = useState('');
 
+  // Vinculación por código (pairing code)
+  const [waLinkTab, setWaLinkTab] = useState<'qr' | 'phone'>('phone');
+  const [waPairPhone, setWaPairPhone] = useState('');
+  const [waPairCode, setWaPairCode] = useState('');
+  const [waPairLoading, setWaPairLoading] = useState(false);
+  const [waPairError, setWaPairError] = useState('');
+
   // Estado de enriquecimiento
   const [enrichStatus, setEnrichStatus] = useState<EnrichStatus>('idle');
   const [enrichProgress, setEnrichProgress] = useState({ done: 0, total: 0, exitosos: 0 });
@@ -181,6 +188,26 @@ export const WhatsAppPanel: React.FC = () => {
       setWaQRError(err instanceof Error ? err.message : 'No se pudo obtener el código QR');
     } finally {
       setWaQRLoading(false);
+    }
+  };
+
+  const requestPairingCode = async () => {
+    const digits = waPairPhone.replace(/\D/g, '');
+    if (digits.length < 10) { setWaPairError('Ingresa un número colombiano válido (ej: 3001234567)'); return; }
+    setWaPairLoading(true);
+    setWaPairError('');
+    setWaPairCode('');
+    try {
+      const res = await whatsappApi.getPairingCode(digits);
+      if (!res.data.pairingCode) {
+        setWaPairError('WhatsApp ya está conectado o el número no es válido.');
+      } else {
+        setWaPairCode(res.data.pairingCode);
+      }
+    } catch (err) {
+      setWaPairError(err instanceof Error ? err.message : 'No se pudo generar el código');
+    } finally {
+      setWaPairLoading(false);
     }
   };
 
@@ -1279,63 +1306,144 @@ export const WhatsAppPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Modal QR — configuración inicial (auditor y super_admin) */}
+      {/* Modal conexión WhatsApp — QR o código por número de teléfono */}
       {waQRModal && canConfigureWa && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{
-            background: 'white', borderRadius: 12, padding: '28px 32px', maxWidth: 380, width: '100%',
+            background: 'white', borderRadius: 14, padding: '28px 32px', maxWidth: 420, width: '100%',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center',
           }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700 }}>Conectar WhatsApp</h3>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280' }}>
-              Escanea este código con la app de WhatsApp en tu teléfono.<br />
-              <strong>WhatsApp → Dispositivos vinculados → Vincular dispositivo</strong>
-            </p>
+            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700 }}>Conectar WhatsApp</h3>
 
-            {waQRError ? (
-              <div style={{ width: 240, height: 'auto', minHeight: 120, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '20px 16px' }}>
-                <span style={{ fontSize: 28 }}>⚠️</span>
-                <span style={{ color: '#991b1b', fontSize: 12, textAlign: 'center', wordBreak: 'break-word' }}>{waQRError}</span>
-                <button
-                  onClick={loadQR}
-                  style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: '1px solid #dc2626', background: '#dc2626', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
-                >
-                  Reintentar
-                </button>
-              </div>
-            ) : waQR?.qrcode ? (
-              <img
-                src={waQR.qrcode.startsWith('data:') ? waQR.qrcode : `data:image/png;base64,${waQR.qrcode}`}
-                alt="QR WhatsApp"
-                style={{ width: 240, height: 240, borderRadius: 8, border: '1px solid #e5e7eb' }}
-              />
-            ) : (
-              <div style={{ width: 240, height: 240, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: 8 }}>
-                <span style={{ color: '#6b7280', fontSize: 13 }}>Generando QR…</span>
-              </div>
-            )}
-
-            <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+            {/* Pestañas */}
+            <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1.5px solid #e5e7eb', marginBottom: 20 }}>
               <button
-                onClick={refreshStatus}
-                style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #16a34a', background: '#16a34a', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                onClick={() => { setWaLinkTab('phone'); setWaPairCode(''); setWaPairError(''); }}
+                style={{ flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: waLinkTab === 'phone' ? '#16a34a' : '#f9fafb', color: waLinkTab === 'phone' ? 'white' : '#6b7280', transition: 'all .15s' }}
               >
-                Ya escaneé — verificar
+                📱 Número de teléfono
               </button>
               <button
-                onClick={() => { setWaQRModal(false); setWaQRError(''); }}
-                style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                onClick={() => { setWaLinkTab('qr'); setWaQRError(''); if (!waQR) loadQR(); }}
+                style={{ flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderLeft: '1.5px solid #e5e7eb', background: waLinkTab === 'qr' ? '#16a34a' : '#f9fafb', color: waLinkTab === 'qr' ? 'white' : '#6b7280', transition: 'all .15s' }}
               >
-                Cerrar
+                📷 Código QR
               </button>
             </div>
 
-            <p style={{ marginTop: 14, fontSize: 11, color: '#9ca3af' }}>
-              El QR expira en ~30 segundos. Si vence, cierra y vuelve a abrir.
-            </p>
+            {/* Pestaña: Número de teléfono */}
+            {waLinkTab === 'phone' && (
+              <div>
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280', textAlign: 'left' }}>
+                  Ingresa el número de WhatsApp que quieres vincular. Se generará un código de 8 caracteres.
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="tel"
+                    value={waPairPhone}
+                    onChange={e => setWaPairPhone(e.target.value)}
+                    placeholder="3001234567"
+                    maxLength={15}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 7, border: '1.5px solid #d1d5db', fontSize: 14, outline: 'none' }}
+                    onKeyDown={e => e.key === 'Enter' && requestPairingCode()}
+                  />
+                  <button
+                    onClick={requestPairingCode}
+                    disabled={waPairLoading}
+                    style={{ padding: '9px 16px', borderRadius: 7, border: 'none', background: '#16a34a', color: 'white', fontWeight: 700, cursor: waPairLoading ? 'not-allowed' : 'pointer', fontSize: 13, opacity: waPairLoading ? 0.7 : 1 }}
+                  >
+                    {waPairLoading ? '...' : 'Generar'}
+                  </button>
+                </div>
+
+                {waPairError && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 7, padding: '10px 12px', marginBottom: 12, fontSize: 12, color: '#991b1b' }}>
+                    {waPairError}
+                  </div>
+                )}
+
+                {waPairCode && (
+                  <div style={{ background: '#f0fdf4', border: '2px solid #16a34a', borderRadius: 10, padding: '16px 20px', marginBottom: 16 }}>
+                    <p style={{ margin: '0 0 8px', fontSize: 12, color: '#166534', fontWeight: 600 }}>Código de vinculación:</p>
+                    <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: 6, color: '#15803d', fontFamily: 'monospace' }}>
+                      {waPairCode}
+                    </div>
+                    <p style={{ margin: '12px 0 0', fontSize: 11, color: '#166534', lineHeight: 1.5 }}>
+                      En WhatsApp: <strong>Configuración → Dispositivos vinculados → Vincular dispositivo → Vincular con número de teléfono</strong> → ingresa el código de arriba.
+                    </p>
+                  </div>
+                )}
+
+                {waPairCode && (
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <button
+                      onClick={refreshStatus}
+                      style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #16a34a', background: '#16a34a', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Ya vinculé — verificar
+                    </button>
+                    <button
+                      onClick={() => { setWaQRModal(false); setWaPairCode(''); setWaPairPhone(''); }}
+                      style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                )}
+
+                {!waPairCode && (
+                  <button
+                    onClick={() => { setWaQRModal(false); setWaPairPhone(''); }}
+                    style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
+                  >
+                    Cerrar
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Pestaña: QR */}
+            {waLinkTab === 'qr' && (
+              <div>
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>
+                  Escanea con la app de WhatsApp.<br />
+                  <strong>WhatsApp → Dispositivos vinculados → Vincular dispositivo</strong>
+                </p>
+
+                {waQRError ? (
+                  <div style={{ margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '20px 16px' }}>
+                    <span style={{ fontSize: 28 }}>⚠️</span>
+                    <span style={{ color: '#991b1b', fontSize: 12, textAlign: 'center' }}>{waQRError}</span>
+                    <button onClick={loadQR} style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: '1px solid #dc2626', background: '#dc2626', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                      Reintentar
+                    </button>
+                  </div>
+                ) : waQR?.qrcode ? (
+                  <img
+                    src={waQR.qrcode.startsWith('data:') ? waQR.qrcode : `data:image/png;base64,${waQR.qrcode}`}
+                    alt="QR WhatsApp"
+                    style={{ width: 240, height: 240, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                  />
+                ) : (
+                  <div style={{ width: 240, height: 240, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: 8 }}>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>Generando QR…</span>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  <button onClick={refreshStatus} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #16a34a', background: '#16a34a', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                    Ya escaneé — verificar
+                  </button>
+                  <button onClick={() => { setWaQRModal(false); setWaQRError(''); }} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: 'transparent', color: '#374151', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                    Cerrar
+                  </button>
+                </div>
+                <p style={{ marginTop: 14, fontSize: 11, color: '#9ca3af' }}>El QR expira en ~30 segundos. Si vence, cierra y vuelve a abrir.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

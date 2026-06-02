@@ -126,6 +126,60 @@ export class WhatsAppService {
     throw new Error('Evolution API no generó el código QR. Espera 30 segundos e intenta de nuevo.');
   }
 
+  async getPairingCode(userId: string, phone: string): Promise<{ pairingCode: string }> {
+    const instance = instanceName(userId);
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    // Crear instancia si no existe, o recrear si está cerrada
+    try {
+      const instances = await evoFetch<unknown[]>('/instance/fetchInstances');
+      const found = Array.isArray(instances)
+        ? (instances as Record<string, unknown>[]).find((i) => {
+            const name = (i.name as string | undefined)
+              ?? ((i.instance as Record<string, unknown>)?.instanceName as string | undefined);
+            return name === instance;
+          })
+        : null;
+
+      const foundStatus = found
+        ? ((found.connectionStatus as string | undefined)
+            ?? ((found.instance as Record<string, unknown>)?.status as string | undefined))
+        : undefined;
+
+      if (foundStatus === 'open') {
+        return { pairingCode: '' }; // ya conectado, no necesita código
+      } else if (!found) {
+        await evoFetch('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({ instanceName: instance, qrcode: false, integration: 'WHATSAPP-BAILEYS' }),
+        });
+        await sleep(2500);
+      } else if (foundStatus === 'close') {
+        await evoFetch(`/instance/delete/${instance}`, { method: 'DELETE' }).catch(() => null);
+        await evoFetch('/instance/create', {
+          method: 'POST',
+          body: JSON.stringify({ instanceName: instance, qrcode: false, integration: 'WHATSAPP-BAILEYS' }),
+        });
+        await sleep(2500);
+      }
+    } catch (err) {
+      logger.warn({ msg: 'Could not verify/create Evolution instance for pairing', instance, error: String(err) });
+    }
+
+    // Solicitar pairing code con número de teléfono
+    const cleanPhone = phone.replace(/\D/g, '');
+    const data = await evoFetch<Record<string, unknown>>(
+      `/instance/connect/${instance}?number=${cleanPhone}`
+    );
+    const code = (data?.pairingCode as string | undefined) ?? (data?.code as string | undefined);
+    if (!code) {
+      logger.warn({ msg: 'No pairing code returned', instance, keys: Object.keys(data ?? {}) });
+      throw new Error('Evolution API no retornó el código de vinculación. Intenta con el método QR.');
+    }
+    logger.info({ msg: 'Pairing code generated', instance, userId });
+    return { pairingCode: code };
+  }
+
   async sendText(userId: string, phone: string, message: string): Promise<WaSendResult> {
     const instance = instanceName(userId);
     const state = await this.getConnectionState(userId);
