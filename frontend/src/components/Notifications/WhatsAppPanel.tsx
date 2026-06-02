@@ -134,6 +134,7 @@ export const WhatsAppPanel: React.FC = () => {
 
   // Desconexión manual
   const [waDisconnecting, setWaDisconnecting] = useState(false);
+  const [waDisconnectModal, setWaDisconnectModal] = useState(false);
 
   // Vinculación por código (pairing code)
   const [waLinkTab, setWaLinkTab] = useState<'qr' | 'phone'>('phone');
@@ -228,8 +229,8 @@ export const WhatsAppPanel: React.FC = () => {
   };
 
   const disconnectWa = async () => {
-    if (!window.confirm('¿Deseas desvincular WhatsApp? Deberás volver a conectarlo para enviar mensajes automáticos.')) return;
     setWaDisconnecting(true);
+    setWaDisconnectModal(false);
     try {
       await whatsappApi.disconnect();
       setWaStatus({ state: 'close', connected: false });
@@ -1165,7 +1166,7 @@ export const WhatsAppPanel: React.FC = () => {
                     WhatsApp conectado — envío automático disponible
                     {canConfigureWa && (
                       <button
-                        onClick={disconnectWa}
+                        onClick={() => setWaDisconnectModal(true)}
                         disabled={waDisconnecting}
                         title="Desvincular WhatsApp"
                         style={{ marginLeft: 8, fontSize: '11px', padding: '2px 8px', borderRadius: 4, border: '1px solid #dc2626', background: 'transparent', color: '#dc2626', cursor: waDisconnecting ? 'not-allowed' : 'pointer', opacity: waDisconnecting ? 0.6 : 1 }}
@@ -1328,6 +1329,45 @@ export const WhatsAppPanel: React.FC = () => {
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal confirmación desvinculación WhatsApp */}
+      {waDisconnectModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: '32px 28px', maxWidth: 380, width: '100%', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+
+            {/* Ícono */}
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff1f2', border: '2px solid #fecdd3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
+              📵
+            </div>
+
+            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#111827' }}>
+              Desvincular WhatsApp
+            </h3>
+            <p style={{ margin: '0 0 6px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
+              Se cerrará la sesión de WhatsApp vinculada a tu cuenta en HabilitaPro.
+            </p>
+            <p style={{ margin: '0 0 24px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
+              Los mensajes automáticos y el envío masivo dejarán de funcionar hasta que vuelvas a conectar.
+            </p>
+
+            {/* Separador */}
+            <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 20, display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setWaDisconnectModal(false)}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'white', color: '#374151', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={disconnectWa}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: '#dc2626', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              >
+                Sí, desvincular
+              </button>
+            </div>
           </div>
         </div>
       )}
