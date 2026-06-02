@@ -473,7 +473,8 @@ export const WhatsAppPanel: React.FC = () => {
     const phone = manualPhone || (selected.celular ? toWaPhone(selected.celular) : '');
     if (!phone) return;
     const mensaje = buildMensaje(plantilla, selected);
-    window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
+    // Nombre fijo 'wa_web': el navegador reutiliza la pestaña existente en vez de abrir una nueva
+    window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(mensaje)}`, 'wa_web');
   };
 
   const handleEnviarWhatsAppApp = () => {
