@@ -230,6 +230,7 @@ export const RepsAlertTrigger: React.FC<Props> = ({ onCargarAlerta }) => {
                   <option value={1000}>1000</option>
                   <option value={2000}>2000</option>
                   <option value={3000}>3000</option>
+                  <option value={5000}>5000</option>
                 </select>
               </div>
 
