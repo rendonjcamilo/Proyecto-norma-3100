@@ -132,6 +132,9 @@ export const WhatsAppPanel: React.FC = () => {
   // Estado de error del QR
   const [waQRError, setWaQRError] = useState('');
 
+  // Desconexión manual
+  const [waDisconnecting, setWaDisconnecting] = useState(false);
+
   // Vinculación por código (pairing code)
   const [waLinkTab, setWaLinkTab] = useState<'qr' | 'phone'>('phone');
   const [waPairPhone, setWaPairPhone] = useState('');
@@ -221,6 +224,19 @@ export const WhatsAppPanel: React.FC = () => {
       setWaStatus({ state: 'unknown', connected: false });
     } finally {
       setWaStatusLoading(false);
+    }
+  };
+
+  const disconnectWa = async () => {
+    if (!window.confirm('¿Deseas desvincular WhatsApp? Deberás volver a conectarlo para enviar mensajes automáticos.')) return;
+    setWaDisconnecting(true);
+    try {
+      await whatsappApi.disconnect();
+      setWaStatus({ state: 'close', connected: false });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al desvincular WhatsApp');
+    } finally {
+      setWaDisconnecting(false);
     }
   };
 
@@ -1147,6 +1163,16 @@ export const WhatsAppPanel: React.FC = () => {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: '#16a34a' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
                     WhatsApp conectado — envío automático disponible
+                    {canConfigureWa && (
+                      <button
+                        onClick={disconnectWa}
+                        disabled={waDisconnecting}
+                        title="Desvincular WhatsApp"
+                        style={{ marginLeft: 8, fontSize: '11px', padding: '2px 8px', borderRadius: 4, border: '1px solid #dc2626', background: 'transparent', color: '#dc2626', cursor: waDisconnecting ? 'not-allowed' : 'pointer', opacity: waDisconnecting ? 0.6 : 1 }}
+                      >
+                        {waDisconnecting ? 'Desvinculando…' : 'Desvincular'}
+                      </button>
+                    )}
                   </span>
                 ) : (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600, color: '#dc2626' }}>

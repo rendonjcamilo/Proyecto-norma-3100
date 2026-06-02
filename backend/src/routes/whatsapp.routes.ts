@@ -91,6 +91,28 @@ export function createWhatsAppRouter(): Router {
   );
 
   /**
+   * DELETE /api/whatsapp/disconnect
+   * Cierra la sesión de WhatsApp del auditor autenticado (logout sin borrar instancia)
+   */
+  router.delete(
+    '/whatsapp/disconnect',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Usuario no autenticado' }); }
+      try {
+        await waService.disconnect(userId);
+        res.json({ message: 'WhatsApp desvinculado correctamente' });
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error({ msg: 'Error disconnecting WhatsApp', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    }
+  );
+
+  /**
    * POST /api/whatsapp/send
    * Envía un mensaje usando la instancia WhatsApp del auditor autenticado
    * Body: { phone: string, message: string }

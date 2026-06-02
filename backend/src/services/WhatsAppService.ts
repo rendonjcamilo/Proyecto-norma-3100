@@ -180,6 +180,12 @@ export class WhatsAppService {
     return { pairingCode: code };
   }
 
+  async disconnect(userId: string): Promise<void> {
+    const instance = instanceName(userId);
+    await evoFetch(`/instance/logout/${instance}`, { method: 'DELETE' });
+    logger.info({ msg: 'WhatsApp instance logged out', instance, userId });
+  }
+
   async sendText(userId: string, phone: string, message: string): Promise<WaSendResult> {
     const instance = instanceName(userId);
     const state = await this.getConnectionState(userId);

@@ -1246,6 +1246,9 @@ export const whatsappApi = {
   getPairingCode: (phone: string) =>
     post<{ data: { pairingCode: string } }>('/api/whatsapp/pairing-code', { phone }),
 
+  disconnect: () =>
+    del<{ message: string }>('/api/whatsapp/disconnect'),
+
   send: (phone: string, message: string) =>
     post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', { phone, message }),
 };
