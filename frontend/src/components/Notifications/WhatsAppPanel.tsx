@@ -154,6 +154,9 @@ export const WhatsAppPanel: React.FC = () => {
     nit: string; nombre: string; fecha: string; saving: boolean;
   } | null>(null);
 
+  const [fromCache, setFromCache] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [tablePage, setTablePage] = useState(0);
   const [sortCol, setSortCol] = useState<'dias' | 'nombre' | 'municipio'>('dias');
@@ -392,11 +395,13 @@ export const WhatsAppPanel: React.FC = () => {
 
   // ── Búsqueda ──────────────────────────────────────────────────────────────
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (force = false) => {
     if (!canSearch) return;
     setLoading(true);
     setError('');
     setSelected(null);
+    setFromCache(false);
+    setCachedAt(null);
     setEnrichStatus('idle');
     setEnrichProgress({ done: 0, total: 0, exitosos: 0 });
     setEnrichErrors([]);
@@ -408,15 +413,18 @@ export const WhatsAppPanel: React.FC = () => {
         clase: clase || undefined,
         soloConCelular,
         limit: limitResultados,
+        force: force === true,
       });
       fetchedData = res.data || [];
       setProspectos(fetchedData);
       setTotalEncontrados(res.total ?? fetchedData.length);
+      setFromCache(res.from_cache ?? false);
+      setCachedAt(res.cached_at ?? null);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.toLowerCase().includes('jwt') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('unauthorized')) {
         setError('Sesión expirada — vuelve a iniciar sesión para consultar el REPS.');
-      } else if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('504') || msg.toLowerCase().includes('504')) {
+      } else if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('504')) {
         setError('La consulta tardó demasiado. Reduce el número de resultados o afina los filtros e intenta de nuevo.');
       } else {
         setError('No se pudo conectar con datos.gov.co. Verifica tu conexión e intenta de nuevo.');
@@ -630,7 +638,8 @@ export const WhatsAppPanel: React.FC = () => {
             <option value={500}>500 registros</option>
             <option value={1000}>1000 registros</option>
             <option value={2000}>2000 registros</option>
-            <option value={3000}>3000 registros (máx.)</option>
+            <option value={3000}>3000 registros</option>
+            <option value={5000}>5000 registros</option>
           </select>
         </div>
 
@@ -647,7 +656,7 @@ export const WhatsAppPanel: React.FC = () => {
 
         <button
           className="wap-search-btn"
-          onClick={cargar}
+          onClick={() => cargar()}
           disabled={loading || !canSearch}
           title={!canSearch ? 'Selecciona al menos departamento o municipio' : ''}
         >
@@ -662,6 +671,27 @@ export const WhatsAppPanel: React.FC = () => {
       {!canSearch && (
         <div className="wap-hint-required">
           Selecciona al menos un departamento o escribe un municipio para iniciar la búsqueda.
+        </div>
+      )}
+
+      {/* Banner de caché — aparece cuando los resultados vienen de Redis */}
+      {prospectos.length > 0 && fromCache && cachedAt && (
+        <div className="wap-cache-banner">
+          <span className="wap-cache-icon">⚡</span>
+          <span className="wap-cache-text">
+            Resultados en caché · consultado {(() => {
+              const mins = Math.round((Date.now() - new Date(cachedAt).getTime()) / 60000);
+              return mins < 60 ? `hace ${mins} min` : `hace ${Math.round(mins / 60)} h`;
+            })()}
+          </span>
+          <button
+            className="wap-cache-refresh"
+            onClick={() => cargar(true)}
+            disabled={loading}
+            title="Actualizar datos desde datos.gov.co"
+          >
+            {loading ? <div className="wap-spinner-sm" /> : '↺ Actualizar'}
+          </button>
         </div>
       )}
 
@@ -825,7 +855,7 @@ export const WhatsAppPanel: React.FC = () => {
           {!loading && error && (
             <div className="wap-state wap-state--error">
               <span>⚠️ {error}</span>
-              <button onClick={cargar}>Reintentar</button>
+              <button onClick={() => cargar()}>Reintentar</button>
             </div>
           )}
 

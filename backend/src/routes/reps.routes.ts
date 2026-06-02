@@ -5,11 +5,12 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
-import { RepsService } from '../services/RepsService.js';
+import { RepsService, RepsProspecto } from '../services/RepsService.js';
 import { RepsEnrichmentService } from '../services/RepsEnrichmentService.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { logger } from '../utils/logger.js';
+import { getSharedCache } from '../modules/cache/redis.js';
 
 export function createRepsRouter(pool: Pool): Router {
   const router = Router();
@@ -171,15 +172,51 @@ export function createRepsRouter(pool: Pool): Router {
         const clasePrestador = req.query.clase ? String(req.query.clase).trim() : undefined;
         const soloConCelular = req.query.soloConCelular === 'true';
         const limitRaw = parseInt(String(req.query.limit ?? '100'), 10);
-        const limit = isNaN(limitRaw) ? 100 : Math.min(Math.max(limitRaw, 1), 3000);
+        const limit = isNaN(limitRaw) ? 100 : Math.min(Math.max(limitRaw, 1), 5000);
         const diasHastaVencer = req.query.diasHastaVencer
           ? Math.min(Math.max(parseInt(String(req.query.diasHastaVencer), 10) || 0, 0), 365)
           : undefined;
+        const forceRefresh = req.query.force === 'true';
 
         if (!departamento && !municipio) {
           return res.status(400).json({ error: 'Selecciona al menos departamento o municipio para buscar' });
         }
 
+        // Clave de caché: combinación de todos los parámetros de búsqueda normalizados
+        const cacheKey = `reps:soda:${(departamento || '').toLowerCase()}:${(municipio || '').toLowerCase()}:${(clasePrestador || '').toLowerCase()}:${soloConCelular}:${limit}`;
+        const cache = await getSharedCache();
+
+        // Intentar servir desde caché (a menos que sea una recarga forzada)
+        if (cache && !forceRefresh) {
+          const cached = await cache.get<{ data: RepsProspecto[]; total: number; cached_at: string }>(cacheKey);
+          if (cached) {
+            // El enriquecimiento de fechas es instantáneo (BD interna) — siempre fresco
+            const nits = cached.data.map((p) => p.nit).filter(Boolean);
+            const enrichedMap = nits.length > 0 ? await enrichmentService.getBatchCached(nits) : new Map();
+            const todayMs = new Date().setUTCHours(0, 0, 0, 0);
+            const data = cached.data.map((p) => {
+              const enriched = enrichedMap.get(p.nit);
+              if (enriched?.fecha_vencimiento) {
+                const dias = Math.floor((new Date(enriched.fecha_vencimiento).getTime() - todayMs) / 86_400_000);
+                return { ...p, fecha_vencimiento: enriched.fecha_vencimiento, dias_hasta_vencer: dias };
+              }
+              return p;
+            });
+            logger.info({ msg: 'REPS prospectos desde caché', cacheKey, total: cached.total });
+            return res.json({
+              data,
+              total: cached.total,
+              from_cache: true,
+              cached_at: cached.cached_at,
+              departamento_filtrado: departamento || null,
+              municipio_filtrado: municipio || null,
+              clase_filtrada: clasePrestador || null,
+              campo_vencimiento: 'reps_enriched_cache',
+            });
+          }
+        }
+
+        // Cache miss o refresh forzado — consultar datos.gov.co SODA API
         const resultado = await repsService.buscarProspectosReps({
           departamento,
           municipio,
@@ -189,38 +226,49 @@ export function createRepsRouter(pool: Pool): Router {
           limit,
         });
 
-        // Merge automático con caché de fechas de vencimiento
+        // Guardar en caché antes del enriquecimiento (los datos de SODA son los que tardan)
+        if (cache) {
+          await cache.set(cacheKey, {
+            data: resultado.data,
+            total: resultado.total,
+            cached_at: new Date().toISOString(),
+          }, 6 * 60 * 60); // 6 horas de TTL
+        }
+
+        // Merge con fechas de vencimiento MINSALUD (BD interna — instantáneo)
         if (resultado.data.length > 0) {
           const nits = resultado.data.map((p) => p.nit).filter(Boolean);
           const enrichedMap = await enrichmentService.getBatchCached(nits);
-
           const todayMidnight = new Date();
           todayMidnight.setUTCHours(0, 0, 0, 0);
           const todayMs = todayMidnight.getTime();
           resultado.data = resultado.data.map((p) => {
-            const cached = enrichedMap.get(p.nit);
-            if (cached?.fecha_vencimiento) {
+            const enriched = enrichedMap.get(p.nit);
+            if (enriched?.fecha_vencimiento) {
               const dias = Math.floor(
-                (new Date(cached.fecha_vencimiento).getTime() - todayMs) / 86_400_000
+                (new Date(enriched.fecha_vencimiento).getTime() - todayMs) / 86_400_000
               );
-              return { ...p, fecha_vencimiento: cached.fecha_vencimiento, dias_hasta_vencer: dias };
+              return { ...p, fecha_vencimiento: enriched.fecha_vencimiento, dias_hasta_vencer: dias };
             }
             return p;
           });
         }
 
         logger.info({
-          msg: 'REPS prospectos consultados',
+          msg: 'REPS prospectos consultados (SODA)',
           departamento,
           municipio,
           clasePrestador,
           soloConCelular,
           total: resultado.total,
+          cached: !!cache,
         });
 
         res.json({
           data: resultado.data,
           total: resultado.total,
+          from_cache: false,
+          cached_at: null,
           departamento_filtrado: departamento || null,
           municipio_filtrado: municipio || null,
           clase_filtrada: clasePrestador || null,

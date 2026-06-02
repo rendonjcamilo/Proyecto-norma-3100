@@ -1004,6 +1004,7 @@ export const repsApi = {
     soloConCelular?: boolean;
     diasHastaVencer?: number;
     limit?: number;
+    force?: boolean;
   }) => {
     const params = new URLSearchParams();
     if (opts.departamento) params.set('departamento', opts.departamento);
@@ -1012,9 +1013,12 @@ export const repsApi = {
     if (opts.soloConCelular) params.set('soloConCelular', 'true');
     if (opts.diasHastaVencer) params.set('diasHastaVencer', String(opts.diasHastaVencer));
     if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+    if (opts.force) params.set('force', 'true');
     return get<{
       data: RepsProspecto[];
       total: number;
+      from_cache: boolean;
+      cached_at: string | null;
       departamento_filtrado: string | null;
       municipio_filtrado: string | null;
       clase_filtrada: string | null;

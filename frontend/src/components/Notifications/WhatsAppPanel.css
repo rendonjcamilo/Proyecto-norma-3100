@@ -728,6 +728,51 @@
   border: 1px solid #fecaca;
 }
 
+/* ── Banner de caché ─────────────────────────────────────────────── */
+.wap-cache-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fefce8;
+  border: 1px solid #fde047;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  color: #713f12;
+}
+
+.wap-cache-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.wap-cache-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.wap-cache-refresh {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #92400e;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.wap-cache-refresh:hover:not(:disabled) {
+  background: #fef3c7;
+}
+.wap-cache-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ── Barra de enriquecimiento ───────────────────────────────────── */
 .wap-enrich-bar {
   display: flex;

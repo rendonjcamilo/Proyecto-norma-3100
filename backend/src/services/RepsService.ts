@@ -461,7 +461,7 @@ export class RepsService {
     logger.debug({ msg: 'REPS SODA query', where: whereClause, limit });
 
     const controller = new AbortController();
-    const timeoutMs = limit <= 200 ? 25000 : limit <= 1000 ? 90000 : 300000;
+    const timeoutMs = limit <= 200 ? 25000 : limit <= 1000 ? 90000 : limit <= 3000 ? 300000 : 480000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const fetchHeaders = { Accept: 'application/json', 'User-Agent': 'Norma3100-ComplianceSystem/1.0' };
