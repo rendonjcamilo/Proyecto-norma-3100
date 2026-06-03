@@ -320,99 +320,107 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       {/* === KPI SUMMARY === */}
       {summary && (
         <section className="docs-kpis">
-          {/* Card principal */}
+          {/* Card principal — layout horizontal */}
           <div className="kpi-card kpi-main">
-            <div className="kpi-main-header">
-              <div className="kpi-main-icon-wrap">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="kpi-main-left">
+              <div className="kpi-main-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14 2 14 8 20 8"/>
                   <polyline points="9 15 11 17 15 13"/>
                 </svg>
+                Cumplimiento Documental
               </div>
-              <div>
-                <div className="kpi-main-title">Cumplimiento Documental</div>
-                <div className="kpi-main-sub">Resolución 3100 de 2019</div>
+              <div className="kpi-bar">
+                <div
+                  className="kpi-bar-fill"
+                  style={{
+                    width: `${summary.compliance_percentage}%`,
+                    background: summary.compliance_percentage >= 80
+                      ? 'linear-gradient(90deg,#10b981,#34d399)'
+                      : summary.compliance_percentage >= 50
+                      ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
+                      : 'linear-gradient(90deg,#ef4444,#f87171)',
+                  }}
+                />
+              </div>
+              <div className="kpi-main-footer">
+                <span className="kpi-main-count">{summary.compliant_count} de {summary.total_required}</span>
+                {' '}documentos conformes
               </div>
             </div>
-            <div
-              className="kpi-value-big"
-              style={{
-                color: summary.compliance_percentage >= 80 ? '#10b981'
-                  : summary.compliance_percentage >= 50 ? '#f59e0b' : '#ef4444',
-              }}
-            >
-              {Math.round(summary.compliance_percentage)}%
-            </div>
-            <div className="kpi-bar">
+            <div className="kpi-main-right">
               <div
-                className="kpi-bar-fill"
+                className="kpi-value-big"
                 style={{
-                  width: `${summary.compliance_percentage}%`,
-                  background: summary.compliance_percentage >= 80
-                    ? 'linear-gradient(90deg,#10b981,#34d399)'
-                    : summary.compliance_percentage >= 50
-                    ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
-                    : 'linear-gradient(90deg,#ef4444,#f87171)',
+                  color: summary.compliance_percentage >= 80 ? '#34d399'
+                    : summary.compliance_percentage >= 50 ? '#fbbf24' : '#f87171',
                 }}
-              />
-            </div>
-            <div className="kpi-main-footer">
-              <span className="kpi-main-count">{summary.compliant_count} de {summary.total_required}</span>
-              <span className="kpi-main-count-label">documentos conformes</span>
+              >
+                {Math.round(summary.compliance_percentage)}%
+              </div>
+              <div className="kpi-main-sub">Res. 3100/2019</div>
             </div>
           </div>
 
           {/* Conformes */}
           <div className="kpi-card kpi-stat kpi-stat-green">
             <div className="kpi-stat-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <div className="kpi-stat-value">{summary.compliant_count}</div>
-            <div className="kpi-stat-label">Conformes</div>
-            <div className="kpi-stat-sub">de {summary.total_required} requeridos</div>
+            <div className="kpi-stat-body">
+              <div className="kpi-stat-value">{summary.compliant_count}</div>
+              <div className="kpi-stat-label">Conformes</div>
+              <div className="kpi-stat-sub">de {summary.total_required} requeridos</div>
+            </div>
           </div>
 
           {/* Vencidos */}
           <div className="kpi-card kpi-stat kpi-stat-red">
             <div className="kpi-stat-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
             </div>
-            <div className="kpi-stat-value">{summary.expired_count}</div>
-            <div className="kpi-stat-label">Vencidos</div>
-            <div className="kpi-stat-sub">requieren acción</div>
+            <div className="kpi-stat-body">
+              <div className="kpi-stat-value">{summary.expired_count}</div>
+              <div className="kpi-stat-label">Vencidos</div>
+              <div className="kpi-stat-sub">requieren acción</div>
+            </div>
           </div>
 
           {/* Próx. a vencer */}
           <div className="kpi-card kpi-stat kpi-stat-orange">
             <div className="kpi-stat-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
             </div>
-            <div className="kpi-stat-value">{summary.expiring_soon_count}</div>
-            <div className="kpi-stat-label">Próx. a vencer</div>
-            <div className="kpi-stat-sub">en los próximos 30 días</div>
+            <div className="kpi-stat-body">
+              <div className="kpi-stat-value">{summary.expiring_soon_count}</div>
+              <div className="kpi-stat-label">Próx. vencer</div>
+              <div className="kpi-stat-sub">próximos 30 días</div>
+            </div>
           </div>
 
           {/* Pendientes */}
           <div className="kpi-card kpi-stat kpi-stat-indigo">
             <div className="kpi-stat-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
               </svg>
             </div>
-            <div className="kpi-stat-value">{summary.pending_count}</div>
-            <div className="kpi-stat-label">Pendientes</div>
-            <div className="kpi-stat-sub">sin cargar aún</div>
+            <div className="kpi-stat-body">
+              <div className="kpi-stat-value">{summary.pending_count}</div>
+              <div className="kpi-stat-label">Pendientes</div>
+              <div className="kpi-stat-sub">sin cargar aún</div>
+            </div>
           </div>
         </section>
       )}
