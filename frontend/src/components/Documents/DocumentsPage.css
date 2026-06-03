@@ -339,7 +339,7 @@
 /* === FILTERS === */
 .docs-filters {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
   margin-bottom: 20px;
   flex-wrap: wrap;
@@ -348,8 +348,8 @@
 .search-wrapper {
   position: relative;
   flex: 1;
-  min-width: 280px;
-  max-width: 400px;
+  min-width: 260px;
+  max-width: 420px;
 }
 
 .search-wrapper svg {
@@ -370,6 +370,7 @@
   border-radius: 8px;
   background: #fff;
   transition: all 0.2s;
+  box-sizing: border-box;
 }
 
 .docs-search:focus {
@@ -378,32 +379,88 @@
   box-shadow: 0 0 0 3px rgba(98, 85, 160, 0.15);
 }
 
-.chip-group {
+/* === DROPDOWN CATEGORÍA === */
+.docs-category-select-wrap {
+  position: relative;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  min-width: 260px;
 }
 
-.chip {
-  padding: 6px 14px;
-  font-size: 12px;
+.docs-category-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #6255A0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.docs-category-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: #6255A0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.docs-category-select {
+  width: 100%;
+  padding: 10px 36px 10px 38px;
+  font-size: 13.5px;
   font-weight: 500;
+  color: #2d2d4e;
+  background: #fff;
+  border: 1.5px solid #dfe1e6;
+  border-radius: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.docs-category-select:hover {
+  border-color: #6255A0;
+}
+
+.docs-category-select:focus {
+  border-color: #6255A0;
+  box-shadow: 0 0 0 3px rgba(98, 85, 160, 0.15);
+}
+
+/* Botón limpiar filtro */
+.docs-filter-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid #dfe1e6;
+  border-radius: 8px;
   background: #f4f5f7;
-  border: 1px solid transparent;
-  border-radius: 20px;
   color: #42526e;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
-.chip:hover {
-  background: #ebecf0;
+.docs-filter-clear svg {
+  width: 14px;
+  height: 14px;
 }
 
-.chip-active {
-  background: #6255A0;
-  color: #fff;
-  border-color: #4d4080;
+.docs-filter-clear:hover {
+  border-color: #ef4444;
+  background: #fff1f1;
+  color: #ef4444;
 }
 
 /* === TABLE === */

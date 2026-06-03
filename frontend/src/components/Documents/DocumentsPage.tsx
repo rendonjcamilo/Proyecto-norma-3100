@@ -138,6 +138,12 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     return ['all', ...Array.from(set).sort()];
   }, [catalog]);
 
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    catalog.forEach((c) => counts.set(c.category, (counts.get(c.category) || 0) + 1));
+    return counts;
+  }, [catalog]);
+
   const documentsByCatalogId = useMemo(() => {
     const map = new Map<string, ProviderDocument>();
     documents.forEach((d) => map.set(d.document_catalog_id, d));
@@ -443,17 +449,38 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             className="docs-search"
           />
         </div>
-        <div className="chip-group">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              className={`chip ${selectedCategory === cat ? 'chip-active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat === 'all' ? 'Todas' : cat}
-            </button>
-          ))}
+
+        <div className="docs-category-select-wrap">
+          <svg className="docs-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          <select
+            className="docs-category-select"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            <option value="all">Todas las categorías ({catalog.length})</option>
+            {categories.filter(c => c !== 'all').map((cat) => (
+              <option key={cat} value={cat}>
+                {cat} ({categoryCounts.get(cat) || 0})
+              </option>
+            ))}
+          </select>
+          <svg className="docs-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
+
+        {selectedCategory !== 'all' && (
+          <button className="docs-filter-clear" onClick={() => setSelectedCategory('all')} title="Limpiar filtro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        )}
       </section>
 
       {/* === TARJETAS DE DOCUMENTOS === */}
