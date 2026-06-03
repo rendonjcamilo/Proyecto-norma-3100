@@ -47,7 +47,7 @@ $COMPOSE_CMD up -d --remove-orphans
 
 # 5. Esperar a que el backend esté saludable
 log "Esperando a que el backend esté disponible..."
-MAX_WAIT=120
+MAX_WAIT=300
 WAITED=0
 until $COMPOSE_CMD exec -T backend curl -sf http://localhost:3001/health > /dev/null 2>&1; do
   if [ $WAITED -ge $MAX_WAIT ]; then
@@ -55,9 +55,9 @@ until $COMPOSE_CMD exec -T backend curl -sf http://localhost:3001/health > /dev/
     $COMPOSE_CMD logs backend --tail=50
     exit 1
   fi
-  sleep 5
-  WAITED=$((WAITED + 5))
-  log "Esperando... (${WAITED}s)"
+  sleep 10
+  WAITED=$((WAITED + 10))
+  log "Esperando... (${WAITED}s / ${MAX_WAIT}s)"
 done
 
 # 6. Ejecutar migraciones de base de datos
