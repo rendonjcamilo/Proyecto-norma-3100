@@ -722,6 +722,75 @@
   text-transform: uppercase;
 }
 
+.docs-badge-drive {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  background: rgba(66, 133, 244, 0.1);
+  color: #1a73e8;
+  border: 1px solid rgba(66, 133, 244, 0.25);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* Toggle de modo de subida (archivo / Drive) */
+.docs-upload-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--bg-tertiary, #f1f5f9);
+  border-radius: 10px;
+}
+
+.docs-upload-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary, #64748b);
+  transition: all 0.15s ease;
+}
+
+.docs-upload-tab:hover {
+  background: var(--bg-secondary, #e2e8f0);
+  color: var(--text-primary, #1e293b);
+}
+
+.docs-upload-tab-active {
+  background: #fff;
+  color: var(--primary, #6366f1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.docs-drive-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1e293b);
+  font-family: monospace;
+}
+
+.docs-drive-input:focus {
+  outline: none;
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+}
+
 /* Action buttons */
 .docs-btn-action {
   flex: 1;

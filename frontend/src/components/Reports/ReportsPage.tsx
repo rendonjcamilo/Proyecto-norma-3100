@@ -314,7 +314,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
           {/* Document compliance (if available) */}
           {summary.documentCompliance && (
             <div className="preview-docs">
-              <h3>Matriz Documental</h3>
+              <h3>Gestión Documental</h3>
               <div className="docs-stats">
                 <div className="doc-stat">
                   <span>Requeridos</span>

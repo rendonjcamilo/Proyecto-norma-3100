@@ -44,6 +44,15 @@ export interface UploadDocumentInput {
   uploaded_by: string;
 }
 
+export interface LinkExternalDocumentInput {
+  provider_id: string;
+  document_catalog_id: string;
+  external_url: string;
+  issue_date?: Date;
+  expiry_date?: Date;
+  uploaded_by: string;
+}
+
 export class DocumentService {
   private model: DocumentModel;
 
@@ -178,6 +187,7 @@ export class DocumentService {
   async retrieveFile(documentId: string): Promise<{ buffer: Buffer; filename: string; mime_type: string } | null> {
     const doc = await this.model.getDocumentById(documentId);
     if (!doc) {return null;}
+    if (!doc.storage_path || !doc.checksum_sha256) {return null;}
 
     const absolutePath = path.join(STORAGE_ROOT, doc.storage_path);
     try {
@@ -195,13 +205,74 @@ export class DocumentService {
       }
       return {
         buffer,
-        filename: doc.original_filename,
-        mime_type: doc.mime_type,
+        filename: doc.original_filename ?? doc.filename ?? 'documento',
+        mime_type: doc.mime_type ?? 'application/octet-stream',
       };
     } catch (err) {
       logger.error({ msg: 'Failed to retrieve document file', document_id: documentId, error: err });
       return null;
     }
+  }
+
+  /**
+   * Vincula un documento externo (Google Drive) sin subir archivo
+   */
+  async linkExternalDocument(input: LinkExternalDocumentInput): Promise<ProviderDocument> {
+    // Validar dominio permitido (solo Google Drive / Docs)
+    const allowedHosts = ['drive.google.com', 'docs.google.com'];
+    let parsedHost: string;
+    try {
+      parsedHost = new URL(input.external_url).hostname;
+    } catch {
+      throw new Error('URL inválida');
+    }
+    if (!allowedHosts.includes(parsedHost)) {
+      throw new Error('Solo se permiten enlaces de Google Drive o Google Docs');
+    }
+
+    const catalogItems = await this.model.getAllCatalogItems();
+    const catalogItem = catalogItems.find(c => c.id === input.document_catalog_id);
+    if (!catalogItem) {
+      throw new Error('Documento no encontrado en el catálogo');
+    }
+
+    let expiryDate = input.expiry_date;
+    if (!expiryDate && catalogItem.expiry_months && input.issue_date) {
+      const d = new Date(input.issue_date);
+      d.setMonth(d.getMonth() + catalogItem.expiry_months);
+      expiryDate = d;
+    }
+
+    const document = await this.model.createDocument({
+      provider_id: input.provider_id,
+      document_catalog_id: input.document_catalog_id,
+      external_url: input.external_url,
+      issue_date: input.issue_date,
+      expiry_date: expiryDate,
+      uploaded_by: input.uploaded_by,
+    });
+
+    await this.eventStore.append({
+      aggregateId: document.id,
+      aggregateType: 'provider_document',
+      eventType: 'DocumentLinked',
+      payload: {
+        provider_id: input.provider_id,
+        document_code: catalogItem.code,
+        version: document.version,
+        external_url: input.external_url,
+      },
+      userId: input.uploaded_by,
+    });
+
+    logger.info({
+      msg: 'External document linked',
+      document_id: document.id,
+      provider_id: input.provider_id,
+      code: catalogItem.code,
+    });
+
+    return document;
   }
 
   async validateProviderDocument(

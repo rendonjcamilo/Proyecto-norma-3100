@@ -10,7 +10,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
 import { validateUuidParam } from '../middleware/sanitize.middleware.js';
-import { DocumentService } from '../services/DocumentService.js';
+import { DocumentService, LinkExternalDocumentInput } from '../services/DocumentService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { DocumentStatus } from '../models/document.model.js';
 import { logger } from '../utils/logger.js';
@@ -117,6 +117,51 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
         res.status(201).json({ data: document });
       } catch (err) {
         logger.error({ msg: 'Failed to upload document', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        res.status(400).json({ error: message });
+      }
+    }
+  );
+
+  /**
+   * POST /api/providers/:providerId/documents/link
+   * Vincular documento externo desde Google Drive (sin subir archivo)
+   * Body: { document_catalog_id, external_url, issue_date?, expiry_date? }
+   */
+  router.post(
+    '/providers/:providerId/documents/link',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'provider_admin']),
+    validateUuidParam('providerId'),
+    requireProviderAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const { document_catalog_id, external_url, issue_date, expiry_date } = req.body as {
+          document_catalog_id?: string;
+          external_url?: string;
+          issue_date?: string;
+          expiry_date?: string;
+        };
+        if (!document_catalog_id) {
+          return res.status(400).json({ error: 'document_catalog_id es requerido' });
+        }
+        if (!external_url || typeof external_url !== 'string' || !external_url.trim()) {
+          return res.status(400).json({ error: 'external_url es requerido' });
+        }
+
+        const input: LinkExternalDocumentInput = {
+          provider_id: req.params.providerId,
+          document_catalog_id,
+          external_url: external_url.trim(),
+          issue_date: issue_date ? new Date(issue_date) : undefined,
+          expiry_date: expiry_date ? new Date(expiry_date) : undefined,
+          uploaded_by: req.user?.user_id || 'system',
+        };
+
+        const document = await service.linkExternalDocument(input);
+        res.status(201).json({ data: document });
+      } catch (err) {
+        logger.error({ msg: 'Failed to link external document', error: err });
         const message = err instanceof Error ? err.message : 'Internal server error';
         res.status(400).json({ error: message });
       }

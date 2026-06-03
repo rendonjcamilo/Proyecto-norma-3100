@@ -32,12 +32,13 @@ export interface ProviderDocument {
   provider_id: string;
   document_catalog_id: string;
   location_id?: string;
-  filename: string;
-  original_filename: string;
-  mime_type: string;
-  file_size_bytes: number;
-  storage_path: string;
-  checksum_sha256: string;
+  filename?: string | null;
+  original_filename?: string | null;
+  mime_type?: string | null;
+  file_size_bytes?: number | null;
+  storage_path?: string | null;
+  checksum_sha256?: string | null;
+  external_url?: string | null;
   issue_date?: Date;
   expiry_date?: Date;
   status: DocumentStatus;
@@ -75,12 +76,15 @@ export interface CreateDocumentInput {
   provider_id: string;
   document_catalog_id: string;
   location_id?: string;
-  filename: string;
-  original_filename: string;
-  mime_type: string;
-  file_size_bytes: number;
-  storage_path: string;
-  checksum_sha256: string;
+  // Campos de archivo — requeridos cuando se sube un archivo
+  filename?: string;
+  original_filename?: string;
+  mime_type?: string;
+  file_size_bytes?: number;
+  storage_path?: string;
+  checksum_sha256?: string;
+  // Enlace externo — alternativa al archivo
+  external_url?: string;
   issue_date?: Date;
   expiry_date?: Date;
   uploaded_by: string;
@@ -142,20 +146,22 @@ export class DocumentModel {
       `INSERT INTO provider_documents (
         provider_id, document_catalog_id, location_id,
         filename, original_filename, mime_type, file_size_bytes,
-        storage_path, checksum_sha256, issue_date, expiry_date,
+        storage_path, checksum_sha256, external_url,
+        issue_date, expiry_date,
         status, version, previous_version_id, uploaded_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
       [
         input.provider_id,
         input.document_catalog_id,
         input.location_id || null,
-        input.filename,
-        input.original_filename,
-        input.mime_type,
-        input.file_size_bytes,
-        input.storage_path,
-        input.checksum_sha256,
+        input.filename ?? null,
+        input.original_filename ?? null,
+        input.mime_type ?? null,
+        input.file_size_bytes ?? null,
+        input.storage_path ?? null,
+        input.checksum_sha256 ?? null,
+        input.external_url ?? null,
         input.issue_date || null,
         input.expiry_date || null,
         'pending',

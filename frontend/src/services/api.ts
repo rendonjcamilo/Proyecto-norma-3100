@@ -650,6 +650,9 @@ export const documentsApi = {
 
   validate: (docId: string, status: 'compliant' | 'rejected' | 'under_review' | 'pending', notes?: string) =>
     request<{ data: Document }>('PATCH', `/api/documents/${docId}/validate`, { status, notes }),
+
+  linkExternal: (providerId: string, data: { document_catalog_id: string; external_url: string; issue_date?: string; expiry_date?: string }) =>
+    post<{ data: Document }>(`/api/providers/${providerId}/documents/link`, data),
 };
 
 // ─────────────────────────────────────────────

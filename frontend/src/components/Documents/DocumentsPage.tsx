@@ -29,10 +29,11 @@ interface ProviderDocument {
   id: string;
   provider_id: string;
   document_catalog_id: string;
-  filename: string;
-  original_filename: string;
-  mime_type: string;
-  file_size_bytes: number;
+  filename?: string | null;
+  original_filename?: string | null;
+  mime_type?: string | null;
+  file_size_bytes?: number | null;
+  external_url?: string | null;
   status: 'pending' | 'compliant' | 'expired' | 'rejected' | 'under_review';
   issue_date?: string;
   expiry_date?: string;
@@ -92,6 +93,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [uploading, setUploading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadMode, setUploadMode] = useState<'file' | 'drive'>('file');
+  const [driveUrl, setDriveUrl] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
   const { user } = useAuth();
@@ -198,6 +201,50 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     }
   };
 
+  const handleLinkDrive = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!uploadModal) return;
+
+    const url = driveUrl.trim();
+    let host = '';
+    try { host = new URL(url).hostname; } catch { /* inválida */ }
+    if (host !== 'drive.google.com' && host !== 'docs.google.com') {
+      showToast('error', 'Solo se aceptan enlaces de Google Drive o Google Docs');
+      return;
+    }
+
+    const form = event.currentTarget;
+    const issueDateEl = form.querySelector<HTMLInputElement>('input[name="issue_date"]');
+    const expiryDateEl = form.querySelector<HTMLInputElement>('input[name="expiry_date"]');
+
+    try {
+      setUploading(true);
+      await documentsApi.linkExternal(providerId, {
+        document_catalog_id: uploadModal.id,
+        external_url: url,
+        issue_date: issueDateEl?.value || undefined,
+        expiry_date: expiryDateEl?.value || undefined,
+      });
+      showToast('success', `Documento "${uploadModal.name}" enlazado desde Drive`);
+      setUploadModal(null);
+      setDriveUrl('');
+      setUploadMode('file');
+      await loadData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar el enlace';
+      showToast('error', msg);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const resetUploadModal = () => {
+    setUploadModal(null);
+    setFileError(null);
+    setDriveUrl('');
+    setUploadMode('file');
+  };
+
   const handleDownload = async (docId: string, originalName: string) => {
     try {
       const fileBlob = await documentsApi.download(docId);
@@ -248,7 +295,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             <svg width="6" height="6" viewBox="0 0 6 6" fill="none"><circle cx="3" cy="3" r="3" fill="#818cf8"/></svg>
             {isAuditor ? 'Verificación Documental' : 'Gestión Documental'}
           </span>
-          <h1 className="aud-hero-title">Matriz Documental</h1>
+          <h1 className="aud-hero-title">Gestión Documental</h1>
           <p className="aud-hero-subtitle">
             {providerName} · {catalog.length} documentos requeridos — Resolución 3100 de 2019
           </p>
@@ -406,6 +453,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
                 <div className="docs-card-badges">
                   {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
+                  {doc?.external_url && <span className="docs-badge-drive">Drive</span>}
                   {doc && doc.validation_notes && (
                     <span className="docs-badge-notes" title={doc.validation_notes}>Con observaciones</span>
                   )}
@@ -429,11 +477,27 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 </div>
 
                 <div className="prov-card-actions">
-                  {doc && (
+                  {doc && doc.external_url && (
+                    <a
+                      className="prov-btn-edit docs-btn-action"
+                      href={doc.external_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Ver en Google Drive"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                      Ver en Drive
+                    </a>
+                  )}
+                  {doc && !doc.external_url && doc.original_filename && (
                     <button
                       className="prov-btn-edit docs-btn-action"
                       title="Descargar"
-                      onClick={() => handleDownload(doc.id, doc.original_filename)}
+                      onClick={() => handleDownload(doc.id, doc.original_filename!)}
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -480,11 +544,11 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
       {/* === MODAL SUBIR DOCUMENTO (prestador) === */}
       {uploadModal && (
-        <div className="modal-overlay" onClick={() => { setUploadModal(null); setFileError(null); }}>
+        <div className="modal-overlay" onClick={resetUploadModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <header className="modal-header">
-              <h3>Subir Documento</h3>
-              <button className="modal-close" onClick={() => { setUploadModal(null); setFileError(null); }}>×</button>
+              <h3>Adjuntar Documento</h3>
+              <button className="modal-close" onClick={resetUploadModal}>×</button>
             </header>
             <div className="modal-body">
               <div className="modal-doc-info">
@@ -492,47 +556,106 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 <div className="modal-doc-name">{uploadModal.name}</div>
                 <div className="modal-doc-cat">{uploadModal.category}</div>
               </div>
-              <form onSubmit={handleUpload}>
-                <div className="field">
-                  <label>Archivo</label>
-                  <input
-                    type="file"
-                    name="file"
-                    required
-                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
-                    onChange={handleFileChange}
-                  />
-                  {fileError
-                    ? <small className="docs-file-error">{fileError}</small>
-                    : <small>PDF, imágenes o documentos Office. Máximo 5MB.</small>
-                  }
-                </div>
-                <div className="field-row">
+
+              {/* Toggle Archivo / Drive */}
+              <div className="docs-upload-tabs">
+                <button
+                  type="button"
+                  className={`docs-upload-tab${uploadMode === 'file' ? ' docs-upload-tab-active' : ''}`}
+                  onClick={() => setUploadMode('file')}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  Subir archivo
+                </button>
+                <button
+                  type="button"
+                  className={`docs-upload-tab${uploadMode === 'drive' ? ' docs-upload-tab-active' : ''}`}
+                  onClick={() => setUploadMode('drive')}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                  Enlace de Drive
+                </button>
+              </div>
+
+              {uploadMode === 'file' ? (
+                <form onSubmit={handleUpload}>
                   <div className="field">
-                    <label>Fecha de emisión</label>
-                    <input type="date" name="issue_date" />
-                  </div>
-                  <div className="field">
-                    <label>Fecha de vencimiento</label>
+                    <label>Archivo</label>
                     <input
-                      type="date"
-                      name="expiry_date"
-                      placeholder={uploadModal.expiry_months ? 'Auto-calculada' : 'Opcional'}
+                      type="file"
+                      name="file"
+                      required
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+                      onChange={handleFileChange}
                     />
-                    {uploadModal.expiry_months && (
-                      <small>Si no se proporciona, se calcula automáticamente (+{uploadModal.expiry_months} meses)</small>
-                    )}
+                    {fileError
+                      ? <small className="docs-file-error">{fileError}</small>
+                      : <small>PDF, imágenes o documentos Office. Máximo 5MB.</small>
+                    }
                   </div>
-                </div>
-                <div className="modal-actions">
-                  <button type="button" className="btn-secondary" onClick={() => { setUploadModal(null); setFileError(null); }}>
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn-primary" disabled={uploading || !!fileError}>
-                    {uploading ? 'Subiendo...' : 'Subir documento'}
-                  </button>
-                </div>
-              </form>
+                  <div className="field-row">
+                    <div className="field">
+                      <label>Fecha de emisión</label>
+                      <input type="date" name="issue_date" />
+                    </div>
+                    <div className="field">
+                      <label>Fecha de vencimiento</label>
+                      <input type="date" name="expiry_date" />
+                      {uploadModal.expiry_months && (
+                        <small>Auto-calculada si no se proporciona (+{uploadModal.expiry_months} meses)</small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn-secondary" onClick={resetUploadModal}>Cancelar</button>
+                    <button type="submit" className="btn-primary" disabled={uploading || !!fileError}>
+                      {uploading ? 'Subiendo...' : 'Subir documento'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleLinkDrive}>
+                  <div className="field">
+                    <label>Enlace de Google Drive</label>
+                    <input
+                      type="url"
+                      value={driveUrl}
+                      onChange={(e) => setDriveUrl(e.target.value)}
+                      placeholder="https://drive.google.com/file/d/..."
+                      required
+                      className="docs-drive-input"
+                    />
+                    <small>Pega el enlace compartido del archivo en Google Drive o Google Docs.</small>
+                  </div>
+                  <div className="field-row">
+                    <div className="field">
+                      <label>Fecha de emisión</label>
+                      <input type="date" name="issue_date" />
+                    </div>
+                    <div className="field">
+                      <label>Fecha de vencimiento</label>
+                      <input type="date" name="expiry_date" />
+                      {uploadModal.expiry_months && (
+                        <small>Auto-calculada si no se proporciona (+{uploadModal.expiry_months} meses)</small>
+                      )}
+                    </div>
+                  </div>
+                  <div className="modal-actions">
+                    <button type="button" className="btn-secondary" onClick={resetUploadModal}>Cancelar</button>
+                    <button type="submit" className="btn-primary" disabled={uploading || !driveUrl.trim()}>
+                      {uploading ? 'Guardando...' : 'Guardar enlace'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </div>

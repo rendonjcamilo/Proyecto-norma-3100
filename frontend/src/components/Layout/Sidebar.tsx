@@ -44,7 +44,7 @@ const navigation: NavSection[] = [
     roles: ['super_admin', 'auditor', 'provider_admin'],
     items: [
       { to: '/invima', icon: 'invima', label: 'Registros INVIMA', roles: ['auditor', 'provider_admin'] },
-      { to: '/documents', icon: 'documents', label: 'Matriz Documental', roles: ['auditor', 'provider_admin'] },
+      { to: '/documents', icon: 'documents', label: 'Gestión Documental', roles: ['auditor', 'provider_admin'] },
       { to: '/anexo4', icon: 'hc', label: 'Verificación H.C.', roles: ['auditor'] },
     ],
   },
