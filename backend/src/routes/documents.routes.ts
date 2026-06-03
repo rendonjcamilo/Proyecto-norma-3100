@@ -131,7 +131,7 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
   router.post(
     '/providers/:providerId/documents/link',
     authMiddleware,
-    rbacMiddleware(['super_admin', 'provider_admin']),
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
     validateUuidParam('providerId'),
     requireProviderAccess,
     async (req: Request, res: Response) => {

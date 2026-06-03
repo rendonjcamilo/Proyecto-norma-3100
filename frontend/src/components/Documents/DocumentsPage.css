@@ -450,6 +450,194 @@
   color: #ef4444;
 }
 
+/* Toggle cuadrícula / lista */
+.docs-view-toggle {
+  display: flex;
+  border: 1.5px solid #dfe1e6;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.docs-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f4f5f7;
+  border: none;
+  color: #6b778c;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.docs-view-btn:first-child {
+  border-right: 1px solid #dfe1e6;
+}
+
+.docs-view-btn:hover {
+  background: #ebecf0;
+  color: #2d2d4e;
+}
+
+.docs-view-btn-active {
+  background: #6255A0;
+  color: #fff;
+}
+
+.docs-view-btn-active:hover {
+  background: #4d4080;
+  color: #fff;
+}
+
+/* === VISTA LISTA (tabla) === */
+.docs-list-wrapper {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(9,30,66,0.05);
+}
+
+.docs-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.docs-list-table thead {
+  background: #f8f9fb;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+.docs-list-table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b778c;
+  white-space: nowrap;
+}
+
+.docs-list-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: middle;
+}
+
+.docs-list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.docs-list-table tbody tr:hover {
+  background: #f8f9fb;
+}
+
+.docs-list-row-missing td {
+  opacity: 0.7;
+}
+
+.docs-list-code {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #6255A0;
+  background: rgba(98,85,160,0.08);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.docs-list-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.docs-list-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.docs-list-cat {
+  color: #64748b;
+  font-size: 12px;
+  max-width: 180px;
+}
+
+.docs-list-date {
+  color: #475569;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.docs-list-ver {
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.docs-list-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.docs-list-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8f9fb;
+  color: #475569;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.docs-list-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.docs-list-btn-upload {
+  border-color: rgba(98,85,160,0.3);
+  color: #6255A0;
+  background: rgba(98,85,160,0.05);
+}
+
+.docs-list-btn-upload:hover {
+  background: rgba(98,85,160,0.12);
+  border-color: #6255A0;
+  color: #4d4080;
+}
+
+.docs-list-btn-validate {
+  border-color: rgba(16,185,129,0.3);
+  color: #059669;
+  background: rgba(16,185,129,0.05);
+}
+
+.docs-list-btn-validate:hover {
+  background: rgba(16,185,129,0.12);
+  border-color: #10b981;
+  color: #047857;
+}
+
 /* === TABLE === */
 .docs-table-wrapper {
   background: #fff;

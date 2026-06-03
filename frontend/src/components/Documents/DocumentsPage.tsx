@@ -95,6 +95,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [fileError, setFileError] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'file' | 'drive'>('file');
   const [driveUrl, setDriveUrl] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
   const { user } = useAuth();
@@ -489,6 +490,31 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             </svg>
           </button>
         )}
+
+        <div className="docs-view-toggle">
+          <button
+            className={`docs-view-btn${viewMode === 'grid' ? ' docs-view-btn-active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Vista cuadrícula"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </button>
+          <button
+            className={`docs-view-btn${viewMode === 'list' ? ' docs-view-btn-active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Vista lista"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </section>
 
       {/* === TARJETAS DE DOCUMENTOS === */}
@@ -503,7 +529,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           <h3>Sin resultados</h3>
           <p>No se encontraron documentos con los filtros aplicados</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
+        /* ── VISTA CUADRÍCULA ── */
         <div className="prov-grid docs-grid">
           {filteredCatalog.map((item) => {
             const doc = documentsByCatalogId.get(item.id);
@@ -523,7 +550,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             return (
               <div key={item.id} className={`prov-card docs-card${!doc ? ' docs-card-missing' : ''}`}>
                 <div className="prov-card-accent" style={{ background: accentColor }} />
-
                 <div className="prov-card-top">
                   <div className="prov-card-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -538,18 +564,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     {STATUS_LABELS[status] || status}
                   </span>
                 </div>
-
                 <div className="docs-card-code">{item.code}</div>
                 <div className="prov-card-name docs-card-name">{item.name}</div>
-
                 <div className="docs-card-badges">
                   {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
                   {doc?.external_url && <span className="docs-badge-drive">Drive</span>}
-                  {doc && doc.validation_notes && (
-                    <span className="docs-badge-notes" title={doc.validation_notes}>Con observaciones</span>
-                  )}
+                  {doc?.validation_notes && <span className="docs-badge-notes" title={doc.validation_notes}>Con observaciones</span>}
                 </div>
-
                 <div className="prov-card-info">
                   <div className="prov-info-row">
                     <span className="prov-info-label">Categoría</span>
@@ -557,69 +578,40 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </div>
                   <div className="prov-info-row">
                     <span className="prov-info-label">Vigencia</span>
-                    <span className="prov-info-value">
-                      {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}
-                    </span>
+                    <span className="prov-info-value">{doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}</span>
                   </div>
                   <div className="prov-info-row">
                     <span className="prov-info-label">Versión</span>
                     <span className="prov-info-value prov-mono">{doc ? `v${doc.version}` : '—'}</span>
                   </div>
                 </div>
-
                 <div className="prov-card-actions">
-                  {doc && doc.external_url && (
-                    <a
-                      className="prov-btn-edit docs-btn-action"
-                      href={doc.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Ver en Google Drive"
-                    >
+                  {doc?.external_url && (
+                    <a className="prov-btn-edit docs-btn-action" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en Google Drive">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                       </svg>
                       Ver en Drive
                     </a>
                   )}
                   {doc && !doc.external_url && doc.original_filename && (
-                    <button
-                      className="prov-btn-edit docs-btn-action"
-                      title="Descargar"
-                      onClick={() => handleDownload(doc.id, doc.original_filename!)}
-                    >
+                    <button className="prov-btn-edit docs-btn-action" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
                       Descargar
                     </button>
                   )}
-                  {/* Botón subir — solo para prestador */}
-                  {!isAuditor && can('documents', 'create') && (
-                    <button
-                      className="docs-btn-upload docs-btn-action"
-                      title={doc ? 'Actualizar versión' : 'Subir'}
-                      onClick={() => setUploadModal(item)}
-                    >
+                  {can('documents', 'create') && (
+                    <button className="docs-btn-upload docs-btn-action" title={doc ? 'Actualizar versión' : 'Subir documento'} onClick={() => setUploadModal(item)}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                       </svg>
                       {doc ? 'Actualizar' : 'Subir'}
                     </button>
                   )}
-                  {/* Botón validar — solo para auditor */}
                   {isAuditor && doc && (
-                    <button
-                      className="docs-btn-validate docs-btn-action"
-                      title="Validar documento"
-                      onClick={() => setValidateModal({ doc, item })}
-                    >
+                    <button className="docs-btn-validate docs-btn-action" title="Validar documento" onClick={() => setValidateModal({ doc, item })}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
@@ -630,6 +622,98 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               </div>
             );
           })}
+        </div>
+      ) : (
+        /* ── VISTA LISTA ── */
+        <div className="docs-list-wrapper">
+          <table className="docs-list-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Documento</th>
+                <th>Categoría</th>
+                <th>Estado</th>
+                <th>Vigencia</th>
+                <th>Ver.</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCatalog.map((item) => {
+                const doc = documentsByCatalogId.get(item.id);
+                const status = (doc?.computed_status || doc?.status || 'pending') as string;
+                const statusClass = status === 'compliant' ? 'prov-status-active'
+                  : status === 'expired' || status === 'rejected' ? 'docs-status-danger'
+                  : status === 'under_review' || status === 'expiring_soon' ? 'docs-status-warn'
+                  : 'prov-status-inactive';
+
+                return (
+                  <tr key={item.id} className={!doc ? 'docs-list-row-missing' : ''}>
+                    <td>
+                      <span className="docs-list-code">{item.code}</span>
+                    </td>
+                    <td>
+                      <div className="docs-list-name">{item.name}</div>
+                      <div className="docs-list-badges">
+                        {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
+                        {doc?.external_url && <span className="docs-badge-drive">Drive</span>}
+                        {doc?.validation_notes && <span className="docs-badge-notes" title={doc.validation_notes}>Observaciones</span>}
+                      </div>
+                    </td>
+                    <td className="docs-list-cat">{item.category}</td>
+                    <td>
+                      <span className={`prov-status ${statusClass}`} style={{ color: STATUS_COLORS[status] || '#6b778c' }}>
+                        <span className="prov-status-dot" style={{ background: STATUS_COLORS[status] || '#6b778c' }} />
+                        {STATUS_LABELS[status] || status}
+                      </span>
+                    </td>
+                    <td className="docs-list-date">
+                      {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? '—' : '—'}
+                    </td>
+                    <td className="docs-list-ver">
+                      {doc ? `v${doc.version}` : '—'}
+                    </td>
+                    <td>
+                      <div className="docs-list-actions">
+                        {doc?.external_url && (
+                          <a className="docs-list-btn" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en Drive">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                            Drive
+                          </a>
+                        )}
+                        {doc && !doc.external_url && doc.original_filename && (
+                          <button className="docs-list-btn" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Descargar
+                          </button>
+                        )}
+                        {can('documents', 'create') && (
+                          <button className="docs-list-btn docs-list-btn-upload" title={doc ? 'Actualizar' : 'Subir'} onClick={() => setUploadModal(item)}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            {doc ? 'Actualizar' : 'Subir'}
+                          </button>
+                        )}
+                        {isAuditor && doc && (
+                          <button className="docs-list-btn docs-list-btn-validate" title="Validar" onClick={() => setValidateModal({ doc, item })}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Validar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
