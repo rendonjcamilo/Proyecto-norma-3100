@@ -88,30 +88,202 @@
 /* === KPI CARDS === */
 .docs-kpis {
   display: grid;
-  grid-template-columns: 2fr repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: 1.8fr repeat(4, 1fr);
+  gap: 14px;
   margin-bottom: 24px;
 }
 
+/* Base card */
 .kpi-card {
-  background: var(--surface-raised);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.2s;
+  background: #fff;
+  border: 1px solid #e8eaf0;
+  border-radius: 14px;
+  padding: 22px 20px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
 .kpi-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 4px 16px rgba(9, 30, 66, 0.08);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(98,85,160,0.10);
+  transform: translateY(-2px);
 }
 
+/* ── Card principal ─────────────────────────── */
 .kpi-main {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-bold);
+  background: linear-gradient(145deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+  border: none;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
+.kpi-main:hover {
+  box-shadow: 0 8px 32px rgba(67,56,202,0.35);
+}
+
+.kpi-main-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.kpi-main-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #c7d2fe;
+}
+
+.kpi-main-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #c7d2fe;
+  line-height: 1.2;
+}
+
+.kpi-main-sub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.kpi-value-big {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 14px;
+}
+
+.kpi-bar {
+  height: 7px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.kpi-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
+.kpi-main-footer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.kpi-main-count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.kpi-main-count-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.55);
+}
+
+/* ── Cards secundarias ─────────────────────── */
+.kpi-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 3px solid transparent;
+}
+
+.kpi-stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.kpi-stat-value {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-stat-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.kpi-stat-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+/* Green — Conformes */
+.kpi-stat-green {
+  border-top-color: #10b981;
+}
+.kpi-stat-green .kpi-stat-icon {
+  background: rgba(16,185,129,0.1);
+  color: #10b981;
+}
+.kpi-stat-green .kpi-stat-value { color: #059669; }
+.kpi-stat-green .kpi-stat-label { color: #065f46; }
+
+/* Red — Vencidos */
+.kpi-stat-red {
+  border-top-color: #ef4444;
+}
+.kpi-stat-red .kpi-stat-icon {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+.kpi-stat-red .kpi-stat-value { color: #dc2626; }
+.kpi-stat-red .kpi-stat-label { color: #7f1d1d; }
+
+/* Orange — Próx. a vencer */
+.kpi-stat-orange {
+  border-top-color: #f59e0b;
+}
+.kpi-stat-orange .kpi-stat-icon {
+  background: rgba(245,158,11,0.1);
+  color: #f59e0b;
+}
+.kpi-stat-orange .kpi-stat-value { color: #d97706; }
+.kpi-stat-orange .kpi-stat-label { color: #78350f; }
+
+/* Indigo — Pendientes */
+.kpi-stat-indigo {
+  border-top-color: #6366f1;
+}
+.kpi-stat-indigo .kpi-stat-icon {
+  background: rgba(99,102,241,0.1);
+  color: #6366f1;
+}
+.kpi-stat-indigo .kpi-stat-value { color: #4338ca; }
+.kpi-stat-indigo .kpi-stat-label { color: #312e81; }
+
+/* Legado — mantener para compatibilidad */
 .kpi-label {
   font-size: 11px;
   font-weight: 600;
@@ -120,40 +292,16 @@
   color: var(--text-secondary);
   margin-bottom: 8px;
 }
-
 .kpi-value {
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
 }
-
-.kpi-value-big {
-  font-size: 48px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
 .kpi-sublabel {
   margin-top: 8px;
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.kpi-bar {
-  height: 8px;
-  background: var(--border-default);
-  border-radius: 4px;
-  margin-top: 16px;
-  overflow: hidden;
-}
-
-.kpi-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s ease;
 }
 
 /* === ALERT === */
@@ -613,7 +761,7 @@
 }
 
 /* === RESPONSIVE === */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .docs-kpis {
     grid-template-columns: 1fr 1fr;
   }
@@ -630,7 +778,13 @@
     flex-direction: column;
   }
   .docs-kpis {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+  .kpi-main {
+    grid-column: 1 / -1;
+  }
+  .kpi-value-big {
+    font-size: 40px;
   }
   .field-row {
     grid-template-columns: 1fr;
