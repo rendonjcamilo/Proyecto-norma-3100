@@ -267,8 +267,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           showToast('success', newStatus === 'compliant' ? `"${item.name}" marcado como conforme` : `"${item.name}" marcado como pendiente`);
         }
         await loadData();
-      } catch {
-        showToast('error', 'Error al actualizar el estado');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error al actualizar el estado';
+        showToast('error', msg);
       }
       return;
     }
