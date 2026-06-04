@@ -1240,6 +1240,41 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
+.docs-onedrive-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.docs-onedrive-picker-btn:hover:not(:disabled) { background: #006cbf; }
+.docs-onedrive-picker-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.docs-drive-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.8rem;
+}
+.docs-drive-divider::before,
+.docs-drive-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #e2e8f0);
+}
+
 .docs-drive-input {
   width: 100%;
   padding: 8px 12px;

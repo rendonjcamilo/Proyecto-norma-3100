@@ -6,6 +6,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentsApi, downloadBlob } from '../../services/api';
+import { openOneDrivePicker } from '../../services/onedrivePicker';
 import { useRolePermission } from '../../hooks/useRolePermission';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '@/utils/dateFormat';
@@ -95,6 +96,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [fileError, setFileError] = useState<string | null>(null);
   const [uploadMode, setUploadMode] = useState<'file' | 'drive'>('file');
   const [driveUrl, setDriveUrl] = useState('');
+  const [pickerLoading, setPickerLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
@@ -244,6 +246,22 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       showToast('error', msg);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleOpenOneDrivePicker = async () => {
+    setPickerLoading(true);
+    try {
+      const file = await openOneDrivePicker();
+      if (file) {
+        setDriveUrl(file.url);
+        showToast('success', `"${file.name}" seleccionado desde OneDrive`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al abrir OneDrive';
+      showToast('error', msg);
+    } finally {
+      setPickerLoading(false);
     }
   };
 
@@ -850,16 +868,28 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               ) : (
                 <form onSubmit={handleLinkDrive}>
                   <div className="field">
-                    <label>Enlace de OneDrive</label>
+                    <label>Seleccionar archivo desde OneDrive</label>
+                    <button
+                      type="button"
+                      className="docs-onedrive-picker-btn"
+                      onClick={handleOpenOneDrivePicker}
+                      disabled={pickerLoading}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-4.9-6H7a4 4 0 0 0-4 4z"/>
+                      </svg>
+                      {pickerLoading ? 'Abriendo OneDrive...' : 'Seleccionar desde OneDrive'}
+                    </button>
+                    <div className="docs-drive-divider"><span>o pega el enlace manualmente</span></div>
                     <input
                       type="url"
                       value={driveUrl}
                       onChange={(e) => setDriveUrl(e.target.value)}
-                      placeholder="https://onedrive.live.com/..."
+                      placeholder="https://onedrive.live.com/... o https://1drv.ms/..."
                       required
                       className="docs-drive-input"
                     />
-                    <small>Pega el enlace compartido del archivo en OneDrive o SharePoint.</small>
+                    <small>Solo se aceptan enlaces de OneDrive o SharePoint.</small>
                   </div>
                   <div className="field-row">
                     <div className="field">

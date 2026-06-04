@@ -26,6 +26,7 @@
   "author": "SAP Developer",
   "license": "MIT",
   "dependencies": {
+    "@azure/msal-browser": "^5.11.0",
     "axios": "^1.6.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
