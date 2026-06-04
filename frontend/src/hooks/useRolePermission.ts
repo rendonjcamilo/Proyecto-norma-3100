@@ -40,11 +40,11 @@ const PERMISSIONS: Record<string, PermissionConfig> = {
     canManage: ['super_admin', 'auditor'],
   },
   documents: {
-    canCreate: ['super_admin', 'provider_admin'],
-    canEdit: ['super_admin'],
+    canCreate: ['super_admin', 'auditor', 'provider_admin'],
+    canEdit: ['super_admin', 'auditor'],
     canDelete: ['super_admin'],
     canView: ['super_admin', 'auditor', 'provider_admin'],
-    canManage: ['super_admin'],
+    canManage: ['super_admin', 'auditor'],
   },
   reports: {
     canCreate: ['super_admin', 'auditor'],
