@@ -37,7 +37,12 @@ git fetch origin main
 git reset --hard origin/main
 log "Código actualizado al commit: $(git rev-parse --short HEAD)"
 
-# 3. Construir nuevas imágenes
+# 3. Limpiar imágenes antiguas para liberar espacio en disco
+log "Liberando espacio: eliminando imágenes Docker no usadas..."
+docker image prune -f || true
+docker builder prune -f || true
+
+# 4. Construir nuevas imágenes
 log "Construyendo imágenes Docker..."
 $COMPOSE_CMD build
 
