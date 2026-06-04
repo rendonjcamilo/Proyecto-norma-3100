@@ -728,35 +728,31 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     <td>
                       <div className="docs-list-actions">
                         {doc?.external_url && (
-                          <a className="docs-list-btn" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en OneDrive">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <a className="docs-list-btn docs-list-btn-icon" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en OneDrive">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                             </svg>
-                            Drive
                           </a>
                         )}
                         {doc && !doc.external_url && doc.original_filename && (
-                          <button className="docs-list-btn" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <button className="docs-list-btn docs-list-btn-icon" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                             </svg>
-                            Descargar
                           </button>
                         )}
                         {can('documents', 'create') && (
-                          <button className="docs-list-btn docs-list-btn-upload" title={doc ? 'Actualizar' : 'Subir'} onClick={() => setUploadModal(item)}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <button className="docs-list-btn docs-list-btn-icon docs-list-btn-upload" title={doc ? 'Actualizar versión' : 'Subir documento'} onClick={() => setUploadModal(item)}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                             </svg>
-                            {doc ? 'Actualizar' : 'Subir'}
                           </button>
                         )}
                         {isAuditor && doc && (
-                          <button className="docs-list-btn docs-list-btn-validate" title="Validar" onClick={() => setValidateModal({ doc, item })}>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <button className="docs-list-btn docs-list-btn-icon docs-list-btn-validate" title="Validar documento" onClick={() => setValidateModal({ doc, item })}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
-                            Validar
                           </button>
                         )}
                       </div>
