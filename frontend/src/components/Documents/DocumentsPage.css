@@ -452,11 +452,11 @@
 
 /* === CHECKBOX DE ESTADO (chulo / x) === */
 .docs-check-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 2px solid #cbd5e1;
-  background: #f8fafc;
+  background: #f1f5f9;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -464,6 +464,7 @@
   transition: all 0.18s ease;
   flex-shrink: 0;
   outline: none;
+  color: #94a3b8;
 }
 
 .docs-check-btn:hover {
