@@ -333,7 +333,19 @@ export class DocumentService {
     const current = existing.find((d) => d.document_catalog_id === documentCatalogId);
 
     if (current?.status === 'not_applicable') {
-      // Revertir a pendiente
+      // Si es un placeholder sin archivo, eliminarlo para que vuelva a "faltante"
+      if (!current.filename) {
+        await this.model.deleteDocument(current.id);
+        await this.eventStore.append({
+          aggregateId: current.id,
+          aggregateType: 'provider_document',
+          eventType: 'DocumentNotApplicableReverted',
+          payload: { document_catalog_id: documentCatalogId },
+          userId: auditorId,
+        });
+        return { ...current, status: 'pending' } as ProviderDocument;
+      }
+      // Si tenía archivo, revertir a pendiente
       const reverted = await this.model.validateDocument(current.id, 'pending', undefined, auditorId);
       await this.eventStore.append({
         aggregateId: current.id,

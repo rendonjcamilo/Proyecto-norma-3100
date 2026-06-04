@@ -64,6 +64,7 @@ export interface DocumentComplianceSummary {
   provider_id: string;
   provider_name: string;
   total_required: number;
+  not_applicable_count: number;
   compliant_count: number;
   expired_count: number;
   expiring_soon_count: number;
