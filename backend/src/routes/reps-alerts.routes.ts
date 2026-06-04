@@ -52,7 +52,7 @@ export function createRepsAlertsRouter(pool: Pool, alertService: RepsAlertServic
           departamento: typeof departamento === 'string' ? (departamento || null) : undefined,
           municipio: typeof municipio === 'string' ? (municipio || null) : undefined,
           clase_prestador: typeof clase_prestador === 'string' ? (clase_prestador || null) : undefined,
-          max_providers: max_providers !== undefined ? Math.min(Math.max(parseInt(String(max_providers)), 1), 3000) : undefined,
+          max_providers: max_providers !== undefined ? Math.min(Math.max(parseInt(String(max_providers)), 1), 5000) : undefined,
           dias_antes_vencer: dias_antes_vencer !== undefined ? Math.min(Math.max(parseInt(String(dias_antes_vencer)), 1), 365) : undefined,
           solo_con_celular: solo_con_celular !== undefined ? Boolean(solo_con_celular) : undefined,
           hora_local: hora_local !== undefined ? Math.min(Math.max(parseInt(String(hora_local)), 0), 23) : undefined,

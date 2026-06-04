@@ -57,7 +57,7 @@ export const RepsAlertTrigger: React.FC<Props> = ({ onCargarAlerta }) => {
   // Campos del formulario — espejo del trigger
   const [dept, setDept] = useState('');
   const [muni, setMuni] = useState('');
-  const [maxP, setMaxP] = useState(500);
+  const [maxP, setMaxP] = useState(5000);
   const [dias, setDias] = useState(30);
   const [celular, setCelular] = useState(true);
   const [hora, setHora] = useState(9);
