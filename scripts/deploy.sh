@@ -31,13 +31,9 @@ fi
 
 cd "$APP_DIR"
 
-# 2. Obtener últimos cambios del repositorio
-log "Actualizando código desde repositorio..."
-git fetch origin main
-git reset --hard origin/main
-log "Código actualizado al commit: $(git rev-parse --short HEAD)"
+log "Commit en VPS: $(git rev-parse --short HEAD)"
 
-# 3. Limpiar caché de build y imágenes antiguas para liberar espacio
+# 2. Limpiar caché de build y imágenes antiguas para liberar espacio
 log "Liberando espacio en disco antes del build..."
 docker image prune -af || true
 docker builder prune -af || true

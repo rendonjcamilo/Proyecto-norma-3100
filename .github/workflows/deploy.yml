@@ -42,6 +42,19 @@ jobs:
       url: https://app.habilitapro.com
 
     steps:
+      - name: Pull latest code on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 147.93.45.4
+          username: root
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          command_timeout: 2m
+          script: |
+            cd /opt/norma3100
+            git fetch origin main
+            git reset --hard origin/main
+            echo "Código actualizado: $(git rev-parse --short HEAD)"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
