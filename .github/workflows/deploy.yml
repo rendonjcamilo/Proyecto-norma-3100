@@ -51,8 +51,14 @@ jobs:
           command_timeout: 20m
           envs: GITHUB_TOKEN
           script: |
+            set -e
+            echo "[DEBUG] Disco: $(df -h / | tail -1)"
+            echo "[DEBUG] Memoria: $(free -h | grep Mem)"
+            echo "[DEBUG] Token disponible: $([ -n "$GITHUB_TOKEN" ] && echo 'SI' || echo 'NO')"
             cd /opt/norma3100
-            git fetch https://x-access-token:$GITHUB_TOKEN@github.com/rendonjcamilo/Proyecto-norma-3100.git main
+            echo "[DEBUG] Iniciando git fetch..."
+            git fetch https://x-access-token:$GITHUB_TOKEN@github.com/rendonjcamilo/Proyecto-norma-3100.git main 2>&1
+            echo "[DEBUG] git fetch exitoso"
             git reset --hard FETCH_HEAD
             git clean -fd
             echo "Código en VPS: $(git rev-parse --short HEAD)"
