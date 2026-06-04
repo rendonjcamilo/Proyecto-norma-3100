@@ -24,7 +24,7 @@ export interface DocumentCatalog {
   updated_at: Date;
 }
 
-export type DocumentStatus = 'pending' | 'compliant' | 'expired' | 'rejected' | 'under_review';
+export type DocumentStatus = 'pending' | 'compliant' | 'expired' | 'rejected' | 'under_review' | 'not_applicable';
 export type ComputedDocumentStatus = DocumentStatus | 'expiring_soon';
 
 export interface ProviderDocument {
@@ -214,6 +214,17 @@ export class DocumentModel {
       [status, notes || null, validatorId, id]
     );
     return result.rows[0] || null;
+  }
+
+  async insertNotApplicable(providerId: string, documentCatalogId: string, auditorId: string): Promise<ProviderDocument> {
+    const result: QueryResult<ProviderDocument> = await this.pool.query(
+      `INSERT INTO provider_documents
+        (provider_id, document_catalog_id, status, version, uploaded_by, validated_by, validated_at)
+       VALUES ($1, $2, 'not_applicable', 1, $3, $3, NOW())
+       RETURNING *`,
+      [providerId, documentCatalogId, auditorId]
+    );
+    return result.rows[0];
   }
 
   async deleteDocument(id: string): Promise<boolean> {

@@ -36,7 +36,7 @@ interface ProviderDocument {
   mime_type?: string | null;
   file_size_bytes?: number | null;
   external_url?: string | null;
-  status: 'pending' | 'compliant' | 'expired' | 'rejected' | 'under_review';
+  status: 'pending' | 'compliant' | 'expired' | 'rejected' | 'under_review' | 'not_applicable';
   issue_date?: string;
   expiry_date?: string;
   version: number;
@@ -71,6 +71,7 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: 'Rechazado',
   under_review: 'En revisión',
   expiring_soon: 'Próx. vencer',
+  not_applicable: 'No aplica',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -80,6 +81,7 @@ const STATUS_COLORS: Record<string, string> = {
   rejected: '#de350b',
   under_review: '#ff8b00',
   expiring_soon: '#ff8b00',
+  not_applicable: '#94a3b8',
 };
 
 export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName }) => {
@@ -295,6 +297,18 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       showToast('error', msg);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleToggleNotApplicable = async (item: DocumentCatalogItem, doc: ProviderDocument | undefined) => {
+    try {
+      await documentsApi.toggleNotApplicable(providerId, item.id);
+      const isNow = doc?.status !== 'not_applicable';
+      showToast('success', isNow ? `"${item.name}" marcado como No Aplica` : `"${item.name}" revertido a Pendiente`);
+      await loadData();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar estado';
+      showToast('error', msg);
     }
   };
 
@@ -784,9 +798,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   <tr key={item.id} className={!doc ? 'docs-list-row-missing' : ''}>
                     <td style={{ textAlign: 'center' }}>
                       <button
-                        className={`docs-check-btn${status === 'compliant' ? ' docs-check-ok' : status === 'rejected' || status === 'expired' ? ' docs-check-no' : status === 'under_review' || status === 'expiring_soon' ? ' docs-check-warn' : ' docs-check-empty'}`}
-                        onClick={() => handleQuickToggle(item, doc)}
-                        title={status === 'compliant' ? 'Conforme — clic para revertir' : !doc ? 'Sin documento — clic para subir' : 'Clic para marcar conforme'}
+                        className={`docs-check-btn${status === 'compliant' ? ' docs-check-ok' : status === 'rejected' || status === 'expired' ? ' docs-check-no' : status === 'under_review' || status === 'expiring_soon' ? ' docs-check-warn' : status === 'not_applicable' ? ' docs-check-na' : ' docs-check-empty'}`}
+                        onClick={() => status !== 'not_applicable' && handleQuickToggle(item, doc)}
+                        title={status === 'not_applicable' ? 'No aplica' : status === 'compliant' ? 'Conforme — clic para revertir' : !doc ? 'Sin documento — clic para subir' : 'Clic para marcar conforme'}
                       >
                         {status === 'compliant' && (
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -799,6 +813,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                         )}
                         {(status === 'pending' || !doc) && (
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        )}
+                        {status === 'not_applicable' && (
+                          <span style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '-0.5px' }}>N/A</span>
                         )}
                       </button>
                     </td>
@@ -853,6 +870,15 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
+                          </button>
+                        )}
+                        {isAuditor && (
+                          <button
+                            className={`docs-list-btn docs-list-btn-na${status === 'not_applicable' ? ' docs-list-btn-na-active' : ''}`}
+                            title={status === 'not_applicable' ? 'Revertir a Pendiente' : 'Marcar como No Aplica'}
+                            onClick={() => handleToggleNotApplicable(item, doc)}
+                          >
+                            N/A
                           </button>
                         )}
                       </div>

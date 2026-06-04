@@ -358,6 +358,31 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
   );
 
   /**
+   * PATCH /api/providers/:providerId/documents/:catalogId/not-applicable
+   * Toggle not_applicable status (auditor only). Excluye del cálculo de cumplimiento.
+   */
+  router.patch(
+    '/providers/:providerId/documents/:catalogId/not-applicable',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor']),
+    validateUuidParam('providerId'),
+    validateUuidParam('catalogId'),
+    async (req: Request, res: Response) => {
+      try {
+        const result = await service.toggleNotApplicable(
+          req.params.providerId,
+          req.params.catalogId,
+          req.user?.user_id || 'system'
+        );
+        res.json({ data: result });
+      } catch (err) {
+        logger.error({ msg: 'Failed to toggle not_applicable', error: err });
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
    * GET /api/documents/expiring
    * List documents expiring soon (days ahead configurable)
    */

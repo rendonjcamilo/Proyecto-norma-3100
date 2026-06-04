@@ -562,6 +562,13 @@
   box-shadow: 0 2px 6px rgba(245,158,11,0.30);
 }
 
+.docs-check-na {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #64748b;
+  cursor: default;
+}
+
 /* Toggle cuadrícula / lista */
 .docs-view-toggle {
   display: flex;
@@ -757,6 +764,31 @@
   background: rgba(16,185,129,0.12);
   border-color: #10b981;
   color: #047857;
+}
+
+.docs-list-btn-na {
+  border-color: #cbd5e1;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 6px;
+}
+.docs-list-btn-na:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+.docs-list-btn-na-active {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #475569;
+}
+.docs-list-btn-na-active:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
 }
 
 /* === TABLE === */

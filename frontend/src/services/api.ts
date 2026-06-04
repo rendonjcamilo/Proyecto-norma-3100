@@ -656,6 +656,9 @@ export const documentsApi = {
 
   markCompliant: (providerId: string, document_catalog_id: string) =>
     post<{ data: Document }>(`/api/providers/${providerId}/documents/mark-compliant`, { document_catalog_id }),
+
+  toggleNotApplicable: (providerId: string, catalogId: string) =>
+    request<{ data: Document }>('PATCH', `/api/providers/${providerId}/documents/${catalogId}/not-applicable`, {}),
 };
 
 // ─────────────────────────────────────────────

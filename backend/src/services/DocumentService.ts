@@ -323,6 +323,55 @@ export class DocumentService {
     return result;
   }
 
+  async toggleNotApplicable(
+    providerId: string,
+    documentCatalogId: string,
+    auditorId: string
+  ): Promise<ProviderDocument> {
+    // Buscar si ya existe un registro para este documento
+    const existing = await this.model.getLatestForProvider(providerId);
+    const current = existing.find((d) => d.document_catalog_id === documentCatalogId);
+
+    if (current?.status === 'not_applicable') {
+      // Revertir a pendiente
+      const reverted = await this.model.validateDocument(current.id, 'pending', undefined, auditorId);
+      await this.eventStore.append({
+        aggregateId: current.id,
+        aggregateType: 'provider_document',
+        eventType: 'DocumentNotApplicableReverted',
+        payload: { document_catalog_id: documentCatalogId },
+        userId: auditorId,
+      });
+      return reverted!;
+    }
+
+    // Crear o actualizar como not_applicable
+    let docId: string;
+    if (current) {
+      const updated = await this.model.validateDocument(current.id, 'not_applicable', undefined, auditorId);
+      docId = updated!.id;
+      await this.eventStore.append({
+        aggregateId: docId,
+        aggregateType: 'provider_document',
+        eventType: 'DocumentMarkedNotApplicable',
+        payload: { document_catalog_id: documentCatalogId },
+        userId: auditorId,
+      });
+      return updated!;
+    }
+
+    // No existe registro — crearlo directamente con status not_applicable
+    const created = await this.model.insertNotApplicable(providerId, documentCatalogId, auditorId);
+    await this.eventStore.append({
+      aggregateId: created.id,
+      aggregateType: 'provider_document',
+      eventType: 'DocumentMarkedNotApplicable',
+      payload: { document_catalog_id: documentCatalogId },
+      userId: auditorId,
+    });
+    return created;
+  }
+
   async getProviderDocuments(providerId: string): Promise<ProviderDocumentWithCatalog[]> {
     return this.model.getLatestForProvider(providerId);
   }
