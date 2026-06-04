@@ -270,6 +270,12 @@
 .kpi-stat-indigo .kpi-stat-value { color: #4338ca; }
 .kpi-stat-indigo .kpi-stat-label { color: #312e81; }
 
+/* Gris — No Aplica */
+.kpi-stat-na { border-left: 3px solid #94a3b8; }
+.kpi-stat-na .kpi-stat-icon { background: rgba(148,163,184,0.12); color: #64748b; }
+.kpi-stat-na .kpi-stat-value { color: #475569; }
+.kpi-stat-na .kpi-stat-label { color: #334155; }
+
 /* Legado — mantener para compatibilidad */
 .kpi-label {
   font-size: 11px;
