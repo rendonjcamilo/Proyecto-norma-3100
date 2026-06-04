@@ -49,7 +49,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
         return res.status(400).json({ error: 'El nombre del prestador es obligatorio' });
       }
       const client = await service.update(userId, req.params.id, req.body);
-      if (!client) return res.status(404).json({ error: 'Cliente no encontrado' });
+      if (!client) { return res.status(404).json({ error: 'Cliente no encontrado' }); }
       res.json({ data: client });
     } catch (err) {
       logger.error({ msg: 'Error actualizando cliente del auditor', error: err });
@@ -62,7 +62,7 @@ export function createAuditorClientsRouter(pool: Pool): Router {
     try {
       const userId = (req as any).user.id;
       const deleted = await service.delete(userId, req.params.id);
-      if (!deleted) return res.status(404).json({ error: 'Cliente no encontrado' });
+      if (!deleted) { return res.status(404).json({ error: 'Cliente no encontrado' }); }
       res.status(204).send();
     } catch (err) {
       logger.error({ msg: 'Error eliminando cliente del auditor', error: err });

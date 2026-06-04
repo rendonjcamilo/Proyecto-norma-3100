@@ -282,7 +282,7 @@ export class DocumentService {
   }): Promise<ProviderDocument> {
     const catalogItems = await this.model.getAllCatalogItems();
     const catalogItem = catalogItems.find(c => c.id === input.document_catalog_id);
-    if (!catalogItem) throw new Error('Documento no encontrado en el catálogo');
+    if (!catalogItem) { throw new Error('Documento no encontrado en el catálogo'); }
 
     const document = await this.model.createDocument({
       provider_id: input.provider_id,

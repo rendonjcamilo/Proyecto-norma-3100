@@ -11,8 +11,8 @@ let _cache: CacheManager | null = null;
 let _connecting = false;
 
 export async function getSharedCache(): Promise<CacheManager | null> {
-  if (_cache) return _cache;
-  if (_connecting || !process.env.REDIS_URL) return null;
+  if (_cache) { return _cache; }
+  if (_connecting || !process.env.REDIS_URL) { return null; }
   _connecting = true;
   try {
     const client = createClient({ url: process.env.REDIS_URL }) as RedisClientType;

@@ -23,7 +23,7 @@ const upload = multer({
 
 // Permite super_admin y auditor acceder a cualquier prestador.
 // provider_admin solo puede acceder a su propio prestador.
-function requireProviderAccess(req: Request, res: Response, next: Function): void {
+function requireProviderAccess(req: Request, res: Response, next: (err?: unknown) => void): void {
   const user = req.user;
   if (!user) { res.status(401).json({ error: 'No autenticado' }); return; }
   if (user.role === 'super_admin' || user.role === 'auditor') { next(); return; }
