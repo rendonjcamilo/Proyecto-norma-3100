@@ -99,6 +99,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [driveUrl, setDriveUrl] = useState('');
   const [pickerLoading, setPickerLoading] = useState(false);
   const [googlePickerLoading, setGooglePickerLoading] = useState(false);
+  const [driveFile, setDriveFile] = useState<File | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
@@ -219,26 +220,33 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     event.preventDefault();
     if (!uploadModal) return;
     const form = event.currentTarget;
+
     const fileInput = form.querySelector<HTMLInputElement>('input[type="file"]');
-    const file = fileInput?.files?.[0];
+    const file = driveFile || fileInput?.files?.[0];
 
     if (!file) {
       showToast('error', 'Debes seleccionar un archivo');
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      showToast('error', 'El archivo supera el límite de 5MB');
+      showToast('error', `El archivo supera el límite de 5MB (actual: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
       return;
     }
 
-    const formData = new FormData(form);
+    const formData = new FormData();
+    formData.append('file', file);
     formData.append('document_catalog_id', uploadModal.id);
+    const issueDateEl = form.querySelector<HTMLInputElement>('input[name="issue_date"]');
+    const expiryDateEl = form.querySelector<HTMLInputElement>('input[name="expiry_date"]');
+    if (issueDateEl?.value) formData.append('issue_date', issueDateEl.value);
+    if (expiryDateEl?.value) formData.append('expiry_date', expiryDateEl.value);
 
     try {
       setUploading(true);
       await documentsApi.upload(providerId, formData);
       showToast('success', `Documento "${uploadModal.name}" subido correctamente`);
       setUploadModal(null);
+      setDriveFile(null);
       await loadData();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al subir el documento';
@@ -295,8 +303,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     try {
       const file = await openGoogleDrivePicker();
       if (file) {
-        setDriveUrl(file.url);
-        showToast('success', `"${file.name}" seleccionado desde Google Drive`);
+        if (file.size > MAX_FILE_SIZE) {
+          showToast('error', `El archivo supera el límite de 5MB (actual: ${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+          return;
+        }
+        setDriveFile(file);
+        setFileError(null);
+        showToast('success', `"${file.name}" listo para subir`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al abrir Google Drive';
@@ -326,6 +339,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     setUploadModal(null);
     setFileError(null);
     setDriveUrl('');
+    setDriveFile(null);
     setUploadMode('file');
   };
 
@@ -896,7 +910,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     <polyline points="15 3 21 3 21 9"/>
                     <line x1="10" y1="14" x2="21" y2="3"/>
                   </svg>
-                  Enlace en la nube
+                  Enlace de OneDrive
                 </button>
               </div>
 
@@ -904,17 +918,44 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 <form onSubmit={handleUpload}>
                   <div className="field">
                     <label>Archivo</label>
-                    <input
-                      type="file"
-                      name="file"
-                      required
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
-                      onChange={handleFileChange}
-                    />
-                    {fileError
-                      ? <small className="docs-file-error">{fileError}</small>
-                      : <small>PDF, imágenes o documentos Office. Máximo 5MB.</small>
-                    }
+                    <button
+                      type="button"
+                      className="docs-gdrive-picker-btn"
+                      onClick={handleOpenGoogleDrivePicker}
+                      disabled={googlePickerLoading || uploading}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                        <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5A9 9 0 0 0 0 53h27.5z" fill="#00ac47"/>
+                        <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
+                        <path d="M43.65 25L57.4 1.2A9 9 0 0 0 53.65 0H33.65a9 9 0 0 0-3.75.8z" fill="#00832d"/>
+                        <path d="M59.8 53H87.3a9 9 0 0 0-1.2-4.5L60.7 4.5a9 9 0 0 0-3.3-3.3L43.65 25z" fill="#2684fc"/>
+                        <path d="M27.5 53l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h51c1.6 0 3.15-.45 4.5-1.2L59.8 53z" fill="#ffba00"/>
+                      </svg>
+                      {googlePickerLoading ? 'Descargando desde Drive...' : 'Seleccionar desde Google Drive'}
+                    </button>
+
+                    {driveFile ? (
+                      <div className="docs-selected-file">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>{driveFile.name} ({(driveFile.size / 1024).toFixed(0)} KB)</span>
+                        <button type="button" className="docs-clear-file" onClick={() => setDriveFile(null)}>×</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="docs-drive-divider"><span>o selecciona desde tu computador</span></div>
+                        <input
+                          type="file"
+                          name="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+                          onChange={handleFileChange}
+                        />
+                        {fileError
+                          ? <small className="docs-file-error">{fileError}</small>
+                          : <small>PDF, imágenes o documentos Office. Máximo 5MB.</small>
+                        }
+                      </>
+                    )}
                   </div>
                   <div className="field-row">
                     <div className="field">
@@ -931,7 +972,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </div>
                   <div className="modal-actions">
                     <button type="button" className="btn-secondary" onClick={resetUploadModal}>Cancelar</button>
-                    <button type="submit" className="btn-primary" disabled={uploading || !!fileError}>
+                    <button type="submit" className="btn-primary" disabled={uploading || !!fileError || googlePickerLoading}>
                       {uploading ? 'Subiendo...' : 'Subir documento'}
                     </button>
                   </div>
@@ -939,47 +980,25 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               ) : (
                 <form onSubmit={handleLinkDrive}>
                   <div className="field">
-                    <label>Seleccionar archivo desde la nube</label>
-                    <div className="docs-cloud-pickers">
-                      <button
-                        type="button"
-                        className="docs-gdrive-picker-btn"
-                        onClick={handleOpenGoogleDrivePicker}
-                        disabled={googlePickerLoading || pickerLoading}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                          <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5A9 9 0 0 0 0 53h27.5z" fill="#00ac47"/>
-                          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
-                          <path d="M43.65 25L57.4 1.2A9 9 0 0 0 53.65 0H33.65a9 9 0 0 0-3.75.8z" fill="#00832d"/>
-                          <path d="M59.8 53H87.3a9 9 0 0 0-1.2-4.5L60.7 4.5a9 9 0 0 0-3.3-3.3L43.65 25z" fill="#2684fc"/>
-                          <path d="M27.5 53l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h51c1.6 0 3.15-.45 4.5-1.2L59.8 53z" fill="#ffba00"/>
-                        </svg>
-                        {googlePickerLoading ? 'Abriendo Drive...' : 'Seleccionar desde Google Drive'}
-                      </button>
-                      <button
-                        type="button"
-                        className="docs-onedrive-picker-btn"
-                        onClick={handleOpenOneDrivePicker}
-                        disabled={pickerLoading || googlePickerLoading}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-4.9-6H7a4 4 0 0 0-4 4z"/>
-                        </svg>
-                        {pickerLoading ? 'Abriendo OneDrive...' : 'Seleccionar desde OneDrive'}
-                      </button>
-                    </div>
+                    <label>Seleccionar archivo desde OneDrive</label>
+                    <button
+                      type="button"
+                      className="docs-onedrive-picker-btn"
+                      onClick={handleOpenOneDrivePicker}
+                      disabled={pickerLoading}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-4.9-6H7a4 4 0 0 0-4 4z"/>
+                      </svg>
+                      {pickerLoading ? 'Abriendo OneDrive...' : 'Seleccionar desde OneDrive'}
+                    </button>
                     {driveUrl && (
                       <div className="docs-selected-file">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="20 6 9 17 4 12"/></svg>
-                        Archivo seleccionado: <a href={driveUrl} target="_blank" rel="noopener noreferrer">{driveUrl.slice(0, 50)}…</a>
+                        <a href={driveUrl} target="_blank" rel="noopener noreferrer">{driveUrl.slice(0, 55)}…</a>
                       </div>
                     )}
-                    <input
-                      type="hidden"
-                      value={driveUrl}
-                      required
-                    />
+                    <input type="hidden" value={driveUrl} required />
                   </div>
                   <div className="field-row">
                     <div className="field">
