@@ -54,11 +54,12 @@ jobs:
             set -e
             echo "=== PRE-DEPLOY CLEANUP ==="
             echo "Disco antes: $(df -h / | tail -1)"
+            cd /opt/norma3100
+            docker compose down 2>/dev/null || true
             docker system prune -af --volumes=false 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
             echo "Disco después de limpieza: $(df -h / | tail -1)"
             echo "=== GIT UPDATE ==="
-            cd /opt/norma3100
             git fetch https://x-access-token:$GITHUB_TOKEN@github.com/rendonjcamilo/Proyecto-norma-3100.git main
             git reset --hard FETCH_HEAD
             git clean -fd
