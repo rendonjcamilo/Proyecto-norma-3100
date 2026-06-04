@@ -55,7 +55,7 @@ jobs:
             echo "=== PRE-DEPLOY CLEANUP ==="
             echo "Disco antes: $(df -h / | tail -1)"
             cd /opt/norma3100
-            docker compose down 2>/dev/null || true
+            docker compose -f /opt/norma3100/docker-compose.prod.yml --env-file /opt/norma3100/.env.production down 2>/dev/null || true
             docker system prune -af --volumes=false 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
             echo "Disco después de limpieza: $(df -h / | tail -1)"
