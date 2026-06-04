@@ -56,6 +56,7 @@ interface ComplianceSummary {
   expiring_soon_count: number;
   pending_count: number;
   rejected_count: number;
+  not_applicable_count: number;
   compliance_percentage: number;
 }
 
@@ -545,7 +546,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               </svg>
             </div>
             <div className="kpi-stat-body">
-              <div className="kpi-stat-value">{summary.pending_count + missing.length}</div>
+              <div className="kpi-stat-value">{
+                (summary.total_required - (summary.not_applicable_count || 0))
+                - summary.compliant_count
+                - summary.expired_count
+                - summary.expiring_soon_count
+                - summary.rejected_count
+              }</div>
               <div className="kpi-stat-label">Pendientes</div>
               <div className="kpi-stat-sub">sin gestionar</div>
             </div>
