@@ -7,6 +7,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { documentsApi, downloadBlob } from '../../services/api';
 import { openOneDrivePicker } from '../../services/onedrivePicker';
+import { openGoogleDrivePicker } from '../../services/googleDrivePicker';
 import { useRolePermission } from '../../hooks/useRolePermission';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '@/utils/dateFormat';
@@ -97,6 +98,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [uploadMode, setUploadMode] = useState<'file' | 'drive'>('file');
   const [driveUrl, setDriveUrl] = useState('');
   const [pickerLoading, setPickerLoading] = useState(false);
+  const [googlePickerLoading, setGooglePickerLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const { can } = useRolePermission();
@@ -253,10 +255,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     const url = driveUrl.trim();
     let host = '';
     try { host = new URL(url).hostname; } catch { /* inválida */ }
-    const oneDriveHosts = ['onedrive.live.com', '1drv.ms', 'sharepoint.com', 'onedrive.com'];
-    const isOneDrive = oneDriveHosts.some(h => host === h || host.endsWith('.' + h));
-    if (!isOneDrive) {
-      showToast('error', 'Solo se aceptan enlaces de OneDrive o SharePoint');
+    const allowedHosts = [
+      'onedrive.live.com', '1drv.ms', 'sharepoint.com', 'onedrive.com',
+      'drive.google.com', 'docs.google.com', 'sheets.google.com', 'slides.google.com',
+    ];
+    const isAllowed = allowedHosts.some(h => host === h || host.endsWith('.' + h));
+    if (!isAllowed) {
+      showToast('error', 'Solo se aceptan enlaces de Google Drive, OneDrive o SharePoint');
       return;
     }
 
@@ -272,7 +277,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         issue_date: issueDateEl?.value || undefined,
         expiry_date: expiryDateEl?.value || undefined,
       });
-      showToast('success', `Documento "${uploadModal.name}" enlazado desde OneDrive`);
+      showToast('success', `Documento "${uploadModal.name}" enlazado correctamente`);
       setUploadModal(null);
       setDriveUrl('');
       setUploadMode('file');
@@ -282,6 +287,22 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       showToast('error', msg);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleOpenGoogleDrivePicker = async () => {
+    setGooglePickerLoading(true);
+    try {
+      const file = await openGoogleDrivePicker();
+      if (file) {
+        setDriveUrl(file.url);
+        showToast('success', `"${file.name}" seleccionado desde Google Drive`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al abrir Google Drive';
+      showToast('error', msg);
+    } finally {
+      setGooglePickerLoading(false);
     }
   };
 
@@ -875,7 +896,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     <polyline points="15 3 21 3 21 9"/>
                     <line x1="10" y1="14" x2="21" y2="3"/>
                   </svg>
-                  Enlace de OneDrive
+                  Enlace en la nube
                 </button>
               </div>
 
@@ -918,28 +939,47 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               ) : (
                 <form onSubmit={handleLinkDrive}>
                   <div className="field">
-                    <label>Seleccionar archivo desde OneDrive</label>
-                    <button
-                      type="button"
-                      className="docs-onedrive-picker-btn"
-                      onClick={handleOpenOneDrivePicker}
-                      disabled={pickerLoading}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-4.9-6H7a4 4 0 0 0-4 4z"/>
-                      </svg>
-                      {pickerLoading ? 'Abriendo OneDrive...' : 'Seleccionar desde OneDrive'}
-                    </button>
-                    <div className="docs-drive-divider"><span>o pega el enlace manualmente</span></div>
+                    <label>Seleccionar archivo desde la nube</label>
+                    <div className="docs-cloud-pickers">
+                      <button
+                        type="button"
+                        className="docs-gdrive-picker-btn"
+                        onClick={handleOpenGoogleDrivePicker}
+                        disabled={googlePickerLoading || pickerLoading}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                          <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5A9 9 0 0 0 0 53h27.5z" fill="#00ac47"/>
+                          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
+                          <path d="M43.65 25L57.4 1.2A9 9 0 0 0 53.65 0H33.65a9 9 0 0 0-3.75.8z" fill="#00832d"/>
+                          <path d="M59.8 53H87.3a9 9 0 0 0-1.2-4.5L60.7 4.5a9 9 0 0 0-3.3-3.3L43.65 25z" fill="#2684fc"/>
+                          <path d="M27.5 53l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h51c1.6 0 3.15-.45 4.5-1.2L59.8 53z" fill="#ffba00"/>
+                        </svg>
+                        {googlePickerLoading ? 'Abriendo Drive...' : 'Seleccionar desde Google Drive'}
+                      </button>
+                      <button
+                        type="button"
+                        className="docs-onedrive-picker-btn"
+                        onClick={handleOpenOneDrivePicker}
+                        disabled={pickerLoading || googlePickerLoading}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 1 0-4.9-6H7a4 4 0 0 0-4 4z"/>
+                        </svg>
+                        {pickerLoading ? 'Abriendo OneDrive...' : 'Seleccionar desde OneDrive'}
+                      </button>
+                    </div>
+                    {driveUrl && (
+                      <div className="docs-selected-file">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Archivo seleccionado: <a href={driveUrl} target="_blank" rel="noopener noreferrer">{driveUrl.slice(0, 50)}…</a>
+                      </div>
+                    )}
                     <input
-                      type="url"
+                      type="hidden"
                       value={driveUrl}
-                      onChange={(e) => setDriveUrl(e.target.value)}
-                      placeholder="https://onedrive.live.com/... o https://1drv.ms/..."
                       required
-                      className="docs-drive-input"
                     />
-                    <small>Solo se aceptan enlaces de OneDrive o SharePoint.</small>
                   </div>
                   <div className="field-row">
                     <div className="field">
