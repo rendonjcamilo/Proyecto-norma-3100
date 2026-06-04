@@ -255,15 +255,17 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   };
 
   const handleQuickToggle = async (item: DocumentCatalogItem, doc: ProviderDocument | undefined) => {
-    if (!doc) {
-      setUploadModal(item);
-      return;
-    }
     if (isAuditor) {
-      const newStatus = doc.status === 'compliant' ? 'pending' : 'compliant';
       try {
-        await documentsApi.validate(doc.id, newStatus as 'compliant' | 'pending', undefined);
-        showToast('success', newStatus === 'compliant' ? `"${item.name}" marcado como conforme` : `"${item.name}" marcado como pendiente`);
+        if (!doc) {
+          // Sin archivo: crear registro conforme directamente
+          await documentsApi.markCompliant(providerId, item.id);
+          showToast('success', `"${item.name}" marcado como conforme`);
+        } else {
+          const newStatus = doc.status === 'compliant' ? 'pending' : 'compliant';
+          await documentsApi.validate(doc.id, newStatus as 'compliant' | 'pending', undefined);
+          showToast('success', newStatus === 'compliant' ? `"${item.name}" marcado como conforme` : `"${item.name}" marcado como pendiente`);
+        }
         await loadData();
       } catch {
         showToast('error', 'Error al actualizar el estado');

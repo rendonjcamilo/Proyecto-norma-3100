@@ -653,6 +653,9 @@ export const documentsApi = {
 
   linkExternal: (providerId: string, data: { document_catalog_id: string; external_url: string; issue_date?: string; expiry_date?: string }) =>
     post<{ data: Document }>(`/api/providers/${providerId}/documents/link`, data),
+
+  markCompliant: (providerId: string, document_catalog_id: string) =>
+    post<{ data: Document }>(`/api/providers/${providerId}/documents/mark-compliant`, { document_catalog_id }),
 };
 
 // ─────────────────────────────────────────────

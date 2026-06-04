@@ -218,16 +218,16 @@ export class DocumentService {
    * Vincula un documento externo (Google Drive) sin subir archivo
    */
   async linkExternalDocument(input: LinkExternalDocumentInput): Promise<ProviderDocument> {
-    // Validar dominio permitido (solo Google Drive / Docs)
-    const allowedHosts = ['drive.google.com', 'docs.google.com'];
+    const oneDriveHosts = ['onedrive.live.com', '1drv.ms', 'sharepoint.com', 'onedrive.com'];
     let parsedHost: string;
     try {
       parsedHost = new URL(input.external_url).hostname;
     } catch {
       throw new Error('URL inválida');
     }
-    if (!allowedHosts.includes(parsedHost)) {
-      throw new Error('Solo se permiten enlaces de Google Drive o Google Docs');
+    const isOneDrive = oneDriveHosts.some(h => parsedHost === h || parsedHost.endsWith('.' + h));
+    if (!isOneDrive) {
+      throw new Error('Solo se permiten enlaces de OneDrive o SharePoint');
     }
 
     const catalogItems = await this.model.getAllCatalogItems();
@@ -273,6 +273,35 @@ export class DocumentService {
     });
 
     return document;
+  }
+
+  async markCompliantWithoutFile(input: {
+    provider_id: string;
+    document_catalog_id: string;
+    uploaded_by: string;
+  }): Promise<ProviderDocument> {
+    const catalogItems = await this.model.getAllCatalogItems();
+    const catalogItem = catalogItems.find(c => c.id === input.document_catalog_id);
+    if (!catalogItem) throw new Error('Documento no encontrado en el catálogo');
+
+    const document = await this.model.createDocument({
+      provider_id: input.provider_id,
+      document_catalog_id: input.document_catalog_id,
+      uploaded_by: input.uploaded_by,
+    });
+
+    const validated = await this.model.validateDocument(document.id, 'compliant', undefined, input.uploaded_by);
+
+    await this.eventStore.append({
+      aggregateId: document.id,
+      aggregateType: 'provider_document',
+      eventType: 'DocumentMarkedCompliant',
+      payload: { provider_id: input.provider_id, document_code: catalogItem.code, version: document.version },
+      userId: input.uploaded_by,
+    });
+
+    logger.info({ msg: 'Document marked compliant without file', document_id: document.id, code: catalogItem.code });
+    return validated!;
   }
 
   async validateProviderDocument(

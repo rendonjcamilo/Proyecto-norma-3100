@@ -124,8 +124,39 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
   );
 
   /**
+   * POST /api/providers/:providerId/documents/mark-compliant
+   * Marcar documento como conforme sin subir archivo (para verificaciones presenciales)
+   * Body: { document_catalog_id }
+   */
+  router.post(
+    '/providers/:providerId/documents/mark-compliant',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor']),
+    validateUuidParam('providerId'),
+    requireProviderAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const { document_catalog_id } = req.body;
+        if (!document_catalog_id) {
+          return res.status(400).json({ error: 'document_catalog_id es requerido' });
+        }
+        const document = await service.markCompliantWithoutFile({
+          provider_id: req.params.providerId,
+          document_catalog_id,
+          uploaded_by: req.user?.user_id || 'system',
+        });
+        res.status(201).json({ data: document });
+      } catch (err) {
+        logger.error({ msg: 'Failed to mark document compliant', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        res.status(400).json({ error: message });
+      }
+    }
+  );
+
+  /**
    * POST /api/providers/:providerId/documents/link
-   * Vincular documento externo desde Google Drive (sin subir archivo)
+   * Vincular documento externo desde OneDrive (sin subir archivo)
    * Body: { document_catalog_id, external_url, issue_date?, expiry_date? }
    */
   router.post(
