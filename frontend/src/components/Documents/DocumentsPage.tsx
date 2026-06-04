@@ -86,7 +86,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [documents, setDocuments] = useState<ProviderDocument[]>([]);
   const [summary, setSummary] = useState<ComplianceSummary | null>(null);
   const [missing, setMissing] = useState<DocumentCatalogItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploadModal, setUploadModal] = useState<DocumentCatalogItem | null>(null);
@@ -138,14 +138,16 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
-    return ['all', ...Array.from(set).sort()];
+    return Array.from(set).sort();
   }, [catalog]);
 
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    catalog.forEach((c) => counts.set(c.category, (counts.get(c.category) || 0) + 1));
-    return counts;
-  }, [catalog]);
+  // Inicializar expandedCategories con la primera categoría al cargar
+  useEffect(() => {
+    if (categories.length > 0 && expandedCategories.size === 0) {
+      setExpandedCategories(new Set([categories[0]]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
 
   const documentsByCatalogId = useMemo(() => {
     const map = new Map<string, ProviderDocument>();
@@ -153,20 +155,54 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     return map;
   }, [documents]);
 
-  const filteredCatalog = useMemo(() => {
-    return catalog.filter((item) => {
-      if (selectedCategory !== 'all' && item.category !== selectedCategory) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return (
-          item.code.toLowerCase().includes(q) ||
+  const catalogByCategory = useMemo(() => {
+    const map = new Map<string, DocumentCatalogItem[]>();
+    const q = searchQuery.toLowerCase();
+    catalog.forEach((item) => {
+      if (q) {
+        const match = item.code.toLowerCase().includes(q) ||
           item.name.toLowerCase().includes(q) ||
-          item.category.toLowerCase().includes(q)
-        );
+          item.category.toLowerCase().includes(q);
+        if (!match) { return; }
       }
-      return true;
+      const list = map.get(item.category) || [];
+      list.push(item);
+      map.set(item.category, list);
     });
-  }, [catalog, selectedCategory, searchQuery]);
+    return map;
+  }, [catalog, searchQuery]);
+
+  const complianceByCategory = useMemo(() => {
+    const map = new Map<string, { compliant: number; total: number }>();
+    catalog.forEach((item) => {
+      const prev = map.get(item.category) || { compliant: 0, total: 0 };
+      const doc = documentsByCatalogId.get(item.id);
+      const status = doc?.computed_status || doc?.status || 'pending';
+      map.set(item.category, {
+        total: prev.total + 1,
+        compliant: prev.compliant + (status === 'compliant' ? 1 : 0),
+      });
+    });
+    return map;
+  }, [catalog, documentsByCatalogId]);
+
+  const filteredCatalog = useMemo(() => {
+    if (!searchQuery) { return catalog; }
+    const q = searchQuery.toLowerCase();
+    return catalog.filter((item) =>
+      item.code.toLowerCase().includes(q) ||
+      item.name.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q)
+    );
+  }, [catalog, searchQuery]);
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) { next.delete(cat); } else { next.add(cat); }
+      return next;
+    });
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileError(null);
@@ -494,44 +530,12 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           </svg>
           <input
             type="text"
-            placeholder="Buscar por código, nombre o categoría..."
+            placeholder="Buscar por código o nombre de documento..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="docs-search"
           />
         </div>
-
-        <div className="docs-category-select-wrap">
-          <svg className="docs-category-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-            <line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
-            <line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          <select
-            className="docs-category-select"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="all">Todas las categorías ({catalog.length})</option>
-            {categories.filter(c => c !== 'all').map((cat) => (
-              <option key={cat} value={cat}>
-                {cat} ({categoryCounts.get(cat) || 0})
-              </option>
-            ))}
-          </select>
-          <svg className="docs-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </div>
-
-        {selectedCategory !== 'all' && (
-          <button className="docs-filter-clear" onClick={() => setSelectedCategory('all')} title="Limpiar filtro">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        )}
 
         <div className="docs-view-toggle">
           <button
@@ -559,7 +563,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         </div>
       </section>
 
-      {/* === TARJETAS DE DOCUMENTOS === */}
+      {/* === ACORDEÓN DE CATEGORÍAS === */}
       {filteredCatalog.length === 0 ? (
         <div className="prov-empty">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
@@ -571,10 +575,52 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           <h3>Sin resultados</h3>
           <p>No se encontraron documentos con los filtros aplicados</p>
         </div>
-      ) : viewMode === 'grid' ? (
-        /* ── VISTA CUADRÍCULA ── */
-        <div className="prov-grid docs-grid">
-          {filteredCatalog.map((item) => {
+      ) : (
+        <div className="docs-accordion">
+          {categories.map((cat) => {
+            const catItems = (searchQuery ? (catalogByCategory.get(cat) || []) : catalog.filter(i => i.category === cat));
+            if (catItems.length === 0) { return null; }
+            const isExpanded = expandedCategories.has(cat) || !!searchQuery;
+            const compliance = complianceByCategory.get(cat) || { compliant: 0, total: 0 };
+            const pct = compliance.total > 0 ? Math.round((compliance.compliant / compliance.total) * 100) : 0;
+            const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
+
+            return (
+              <div key={cat} className={`docs-cat-group${isExpanded ? ' docs-cat-group-open' : ''}`}>
+                {/* Encabezado de categoría */}
+                <button
+                  className="docs-cat-header"
+                  onClick={() => toggleCategory(cat)}
+                  type="button"
+                >
+                  <div className="docs-cat-header-left">
+                    <svg
+                      className="docs-cat-chevron"
+                      style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                      width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                    >
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                    <span className="docs-cat-name">{cat}</span>
+                    <span className="docs-cat-count">{catItems.length} documentos</span>
+                  </div>
+                  <div className="docs-cat-header-right">
+                    <div className="docs-cat-progress">
+                      <div className="docs-cat-progress-bar">
+                        <div className="docs-cat-progress-fill" style={{ width: `${pct}%`, background: barColor }} />
+                      </div>
+                      <span className="docs-cat-pct" style={{ color: barColor }}>{pct}%</span>
+                    </div>
+                    <span className="docs-cat-stat">{compliance.compliant}/{compliance.total} conformes</span>
+                  </div>
+                </button>
+
+                {/* Contenido de la categoría */}
+                {isExpanded && (
+                  viewMode === 'grid' ? (
+                    <div className="prov-grid docs-grid docs-cat-body">
+                      {catItems.map((item) => {
             const doc = documentsByCatalogId.get(item.id);
             const status = (doc?.computed_status || doc?.status || 'pending') as string;
             const accentColor = status === 'compliant'
@@ -673,26 +719,25 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 </div>
               </div>
             );
-          })}
-        </div>
-      ) : (
-        /* ── VISTA LISTA ── */
-        <div className="docs-list-wrapper">
-          <table className="docs-list-table">
-            <thead>
-              <tr>
-                <th style={{ width: 44 }}></th>
-                <th>Código</th>
-                <th>Documento</th>
-                <th>Categoría</th>
-                <th>Estado</th>
-                <th>Vigencia</th>
-                <th>Ver.</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCatalog.map((item) => {
+                      })}
+                    </div>
+                  ) : (
+                    /* ── VISTA LISTA ── */
+                    <div className="docs-list-wrapper docs-cat-body">
+                      <table className="docs-list-table">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 44 }}></th>
+                            <th>Código</th>
+                            <th>Documento</th>
+                            <th>Estado</th>
+                            <th>Vigencia</th>
+                            <th>Ver.</th>
+                            <th>Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {catItems.map((item) => {
                 const doc = documentsByCatalogId.get(item.id);
                 const status = (doc?.computed_status || doc?.status || 'pending') as string;
                 const statusClass = status === 'compliant' ? 'prov-status-active'
@@ -733,7 +778,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                         {doc?.validation_notes && <span className="docs-badge-notes" title={doc.validation_notes}>Observaciones</span>}
                       </div>
                     </td>
-                    <td className="docs-list-cat">{item.category}</td>
                     <td>
                       <span className={`prov-status ${statusClass}`} style={{ color: STATUS_COLORS[status] || '#6b778c' }}>
                         <span className="prov-status-dot" style={{ background: STATUS_COLORS[status] || '#6b778c' }} />
@@ -780,9 +824,15 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
-          </table>
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
