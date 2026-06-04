@@ -215,8 +215,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     const url = driveUrl.trim();
     let host = '';
     try { host = new URL(url).hostname; } catch { /* inválida */ }
-    if (host !== 'drive.google.com' && host !== 'docs.google.com') {
-      showToast('error', 'Solo se aceptan enlaces de Google Drive o Google Docs');
+    const oneDriveHosts = ['onedrive.live.com', '1drv.ms', 'sharepoint.com', 'onedrive.com'];
+    const isOneDrive = oneDriveHosts.some(h => host === h || host.endsWith('.' + h));
+    if (!isOneDrive) {
+      showToast('error', 'Solo se aceptan enlaces de OneDrive o SharePoint');
       return;
     }
 
@@ -232,7 +234,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         issue_date: issueDateEl?.value || undefined,
         expiry_date: expiryDateEl?.value || undefined,
       });
-      showToast('success', `Documento "${uploadModal.name}" enlazado desde Drive`);
+      showToast('success', `Documento "${uploadModal.name}" enlazado desde OneDrive`);
       setUploadModal(null);
       setDriveUrl('');
       setUploadMode('file');
@@ -591,7 +593,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 <div className="prov-card-name docs-card-name">{item.name}</div>
                 <div className="docs-card-badges">
                   {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
-                  {doc?.external_url && <span className="docs-badge-drive">Drive</span>}
+                  {doc?.external_url && <span className="docs-badge-drive">OneDrive</span>}
                   {doc?.validation_notes && <span className="docs-badge-notes" title={doc.validation_notes}>Con observaciones</span>}
                 </div>
                 <div className="prov-card-info">
@@ -610,11 +612,11 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 </div>
                 <div className="prov-card-actions">
                   {doc?.external_url && (
-                    <a className="prov-btn-edit docs-btn-action" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en Google Drive">
+                    <a className="prov-btn-edit docs-btn-action" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en OneDrive">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                       </svg>
-                      Ver en Drive
+                      Ver en OneDrive
                     </a>
                   )}
                   {doc && !doc.external_url && doc.original_filename && (
@@ -694,7 +696,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                       <div className="docs-list-name">{item.name}</div>
                       <div className="docs-list-badges">
                         {item.is_mandatory && <span className="docs-badge-mandatory">Obligatorio</span>}
-                        {doc?.external_url && <span className="docs-badge-drive">Drive</span>}
+                        {doc?.external_url && <span className="docs-badge-drive">OneDrive</span>}
                         {doc?.validation_notes && <span className="docs-badge-notes" title={doc.validation_notes}>Observaciones</span>}
                       </div>
                     </td>
@@ -714,7 +716,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     <td>
                       <div className="docs-list-actions">
                         {doc?.external_url && (
-                          <a className="docs-list-btn" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en Drive">
+                          <a className="docs-list-btn" href={doc.external_url} target="_blank" rel="noopener noreferrer" title="Ver en OneDrive">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                             </svg>
@@ -770,7 +772,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 <div className="modal-doc-cat">{uploadModal.category}</div>
               </div>
 
-              {/* Toggle Archivo / Drive */}
+              {/* Toggle Archivo / OneDrive */}
               <div className="docs-upload-tabs">
                 <button
                   type="button"
@@ -794,7 +796,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     <polyline points="15 3 21 3 21 9"/>
                     <line x1="10" y1="14" x2="21" y2="3"/>
                   </svg>
-                  Enlace de Drive
+                  Enlace de OneDrive
                 </button>
               </div>
 
@@ -837,16 +839,16 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               ) : (
                 <form onSubmit={handleLinkDrive}>
                   <div className="field">
-                    <label>Enlace de Google Drive</label>
+                    <label>Enlace de OneDrive</label>
                     <input
                       type="url"
                       value={driveUrl}
                       onChange={(e) => setDriveUrl(e.target.value)}
-                      placeholder="https://drive.google.com/file/d/..."
+                      placeholder="https://onedrive.live.com/..."
                       required
                       className="docs-drive-input"
                     />
-                    <small>Pega el enlace compartido del archivo en Google Drive o Google Docs.</small>
+                    <small>Pega el enlace compartido del archivo en OneDrive o SharePoint.</small>
                   </div>
                   <div className="field-row">
                     <div className="field">
