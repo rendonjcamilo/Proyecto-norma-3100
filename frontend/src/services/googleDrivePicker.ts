@@ -96,6 +96,7 @@ export async function openGoogleDrivePicker(): Promise<File | null> {
       .addView(google.picker.ViewId.RECENTLY_PICKED)
       .setOAuthToken(token)
       .setDeveloperKey(API_KEY)
+      .setLocale('es')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .setCallback((data: any) => {
         if (data.action === google.picker.Action.PICKED && data.docs?.length > 0) {
