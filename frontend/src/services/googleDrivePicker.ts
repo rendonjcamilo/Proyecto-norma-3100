@@ -91,12 +91,34 @@ export async function openGoogleDrivePicker(): Promise<File | null> {
 
   // Paso 1: usuario elige el archivo en el picker
   const picked = await new Promise<{ id: string; name: string; mimeType: string } | null>((resolve) => {
+    // Vista "Mi unidad" con navegación por carpetas en modo lista
+    const myDriveView = new google.picker.DocsView()
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false)
+      .setMode(google.picker.DocsViewMode.LIST)
+      .setLabel('Mi unidad');
+
+    // Vista "Compartido conmigo" en modo lista
+    const sharedView = new google.picker.DocsView()
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false)
+      .setOwnedByMe(false)
+      .setMode(google.picker.DocsViewMode.LIST)
+      .setLabel('Compartido conmigo');
+
+    // Vista "Reciente" en modo lista
+    const recentView = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED)
+      .setMode(google.picker.DocsViewMode.LIST)
+      .setLabel('Reciente');
+
     const picker = new google.picker.PickerBuilder()
-      .addView(google.picker.ViewId.DOCS)
-      .addView(google.picker.ViewId.RECENTLY_PICKED)
+      .addView(myDriveView)
+      .addView(sharedView)
+      .addView(recentView)
       .setOAuthToken(token)
       .setDeveloperKey(API_KEY)
       .setLocale('es')
+      .setSize(1051, 650)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .setCallback((data: any) => {
         if (data.action === google.picker.Action.PICKED && data.docs?.length > 0) {
