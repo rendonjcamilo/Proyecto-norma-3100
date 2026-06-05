@@ -380,6 +380,10 @@ export const ProvidersPage: React.FC = () => {
       tipo_prestador: (provider as any).legal_entity_type || '',
       auditor_id: '',
       habilitacion_fecha_vencimiento: fechaVencimiento,
+      admin_first_name: '',
+      admin_last_name: '',
+      admin_email: '',
+      admin_password: '',
     });
     setCreateError(null);
     setServicesSearch('');
