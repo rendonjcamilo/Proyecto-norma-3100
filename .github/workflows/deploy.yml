@@ -42,27 +42,13 @@ jobs:
       url: https://app.habilitapro.com
 
     steps:
-      - name: Wait for VPS SSH port
-        run: |
-          echo "Esperando que el puerto SSH del VPS esté disponible..."
-          for i in $(seq 1 12); do
-            if nc -z -w 10 147.93.45.4 22 2>/dev/null; then
-              echo "Puerto SSH disponible en intento $i"
-              exit 0
-            fi
-            echo "Intento $i/12: puerto no disponible, esperando 15s..."
-            sleep 15
-          done
-          echo "Puerto SSH no disponible después de 3 minutos — abortando"
-          exit 1
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 147.93.45.4
           username: root
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          timeout: 120s
+          timeout: 60s
           command_timeout: 20m
           envs: GITHUB_TOKEN
           script: |
