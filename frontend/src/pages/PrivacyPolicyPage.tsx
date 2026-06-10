@@ -17,7 +17,7 @@ export function PrivacyPolicyPage(): JSX.Element {
           es el responsable del tratamiento de los datos personales recolectados a través de la plataforma
           accesible en <strong>app.habilitapro.com</strong>.
         </p>
-        <p>Contacto para asuntos de privacidad: <strong>privacidad@g2intelligence.co</strong></p>
+        <p>Contacto para asuntos de privacidad: <strong>hola@g2intelligence.co</strong></p>
       </section>
 
       <section style={{ marginBottom: '32px' }}>
@@ -137,7 +137,7 @@ export function PrivacyPolicyPage(): JSX.Element {
           Para cualquier consulta relacionada con el tratamiento de sus datos personales:
         </p>
         <ul style={ul}>
-          <li>Correo: <strong>privacidad@g2intelligence.co</strong></li>
+          <li>Correo: <strong>hola@g2intelligence.co</strong></li>
           <li>Sitio web: <strong>app.habilitapro.com</strong></li>
         </ul>
       </section>

@@ -142,7 +142,7 @@ export function TermsOfServicePage(): JSX.Element {
         <h2 style={h2}>12. Contacto</h2>
         <p>Para consultas sobre estos términos:</p>
         <ul style={ul}>
-          <li>Correo: <strong>legal@g2intelligence.co</strong></li>
+          <li>Correo: <strong>hola@g2intelligence.co</strong></li>
           <li>Sitio web: <strong>app.habilitapro.com</strong></li>
         </ul>
       </section>
