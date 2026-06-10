@@ -28,6 +28,8 @@ import { NotificationAnalyticsDashboard } from "./components/Notifications/Notif
 import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
 import { AuditorNotificationsPage } from "./pages/notifications/AuditorNotificationsPage";
 import { AuditorClientsPage } from "./pages/AuditorClientsPage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
+import { TermsOfServicePage } from "./pages/TermsOfServicePage";
 import { Sidebar, TopBar } from "./components/Layout";
 import { SuperAdminDashboard } from "./pages/dashboards/SuperAdminDashboard";
 import { AuditorDashboard } from "./pages/dashboards/AuditorDashboard";
@@ -327,7 +329,21 @@ function AppContent(): JSX.Element {
 }
 
 function App(): JSX.Element {
-  return (<ThemeProvider><AuthProvider><ProviderProvider><Router><AppContent /></Router></ProviderProvider></AuthProvider></ThemeProvider>);
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <ProviderProvider>
+          <Router>
+            <Routes>
+              <Route path="/privacidad" element={<PrivacyPolicyPage />} />
+              <Route path="/terminos" element={<TermsOfServicePage />} />
+              <Route path="*" element={<AppContent />} />
+            </Routes>
+          </Router>
+        </ProviderProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
 }
 
 export default App;
