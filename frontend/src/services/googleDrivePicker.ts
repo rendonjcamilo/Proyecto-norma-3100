@@ -4,8 +4,8 @@
  * un archivo de su Drive y descargarlo como File para subirlo al servidor.
  */
 
-const CLIENT_ID = '627159564526-hqejq9ch65n8ioq2hbjslv73hu249df7.apps.googleusercontent.com';
-const API_KEY = 'AIzaSyDR3wtLzVIikZ7WOb-FFRb5OZ1zO6ab-Io';
+const CLIENT_ID = '932858732511-mipd1quvs3ok444jpqrfnj6jvmllgfgc.apps.googleusercontent.com';
+const API_KEY = 'AIzaSyCt-OI0HGUHiYsXxfIBRrqEluQs0xBwBdE';
 const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
 
 // Tipos de Google Workspace que se exportan como PDF
