@@ -327,6 +327,69 @@
   font-style: italic;
 }
 
+/* Contenedor de acciones de rama (agrupa "No Aplica rama" y "Negar rama") */
+.branch-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* Botón "No Aplica rama" — visible para todos los usuarios */
+.btn-na-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f5f5f5;
+  color: #595959;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-na-branch:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.na-branch-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.na-branch-confirm span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #595959;
+  white-space: nowrap;
+}
+
+.btn-na-confirm {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #8c8c8c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.btn-na-confirm:hover {
+  background: #595959;
+}
+
 /* Botón "Negar rama" — solo visible para auditores */
 .deny-branch-action {
   display: flex;

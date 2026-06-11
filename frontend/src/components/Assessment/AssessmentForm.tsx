@@ -189,6 +189,24 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     setResponses(newResponses);
   }, [responses, questionnaiireData]);
 
+  /**
+   * Marca como NA todos los criterios evaluables de la rama (padre + descendientes).
+   * Los encabezados de sección dentro de la rama se omiten ya que no son evaluables.
+   */
+  const handleNABranch = useCallback((parentId: string, branchIds: string[]) => {
+    const allCriteria = questionnaiireData.standards.flatMap((s) => s.criteria);
+    const newResponses = new Map(responses);
+
+    for (const id of [parentId, ...branchIds]) {
+      const criterion = allCriteria.find((c) => c.id === id);
+      if (criterion && !criterion.is_section_header) {
+        newResponses.set(id, { criterionId: id, status: 'NA' });
+      }
+    }
+
+    setResponses(newResponses);
+  }, [responses, questionnaiireData]);
+
   const handleDescriptionChange = (criterionId: string, description: string) => {
     const response = responses.get(criterionId);
     if (response) {
@@ -348,6 +366,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 responses={responses}
                 onResponseChange={handleResponseChange}
                 onDenyBranch={handleDenyBranch}
+                onNABranch={handleNABranch}
                 readOnly={readOnly}
                 isAuditor={isAuditor}
               />
@@ -368,6 +387,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 responses={responses}
                 onResponseChange={handleResponseChange}
                 onDenyBranch={handleDenyBranch}
+                onNABranch={handleNABranch}
                 readOnly={readOnly}
                 isAuditor={isAuditor}
               />
@@ -428,6 +448,7 @@ interface StandardGroupProps {
   responses: Map<string, Response>;
   onResponseChange: (criterionId: string, response: Response) => void;
   onDenyBranch: (parentId: string, branchIds: string[]) => void;
+  onNABranch: (parentId: string, branchIds: string[]) => void;
   readOnly?: boolean;
   isAuditor?: boolean;
 }
@@ -439,6 +460,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   responses,
   onResponseChange,
   onDenyBranch,
+  onNABranch,
   readOnly,
   isAuditor = false,
 }) => {
@@ -485,6 +507,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
                 branchSize={branchIds.length}
                 isAuditor={isAuditor}
                 onDenyBranch={branchIds.length > 0 ? () => onDenyBranch(criterion.id, branchIds) : undefined}
+                onNABranch={branchIds.length > 0 ? () => onNABranch(criterion.id, branchIds) : undefined}
               />
             );
           })}

@@ -40,6 +40,7 @@ interface CriterionInputProps {
   branchSize?: number;
   isAuditor?: boolean;
   onDenyBranch?: () => void;
+  onNABranch?: () => void;
 }
 
 // Detecta el nivel jerárquico del número oficial embebido en el nombre
@@ -60,6 +61,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   branchSize = 0,
   isAuditor = false,
   onDenyBranch,
+  onNABranch,
 }) => {
   const subLevel = getSubLevel(criterion.name);
 
@@ -67,6 +69,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     response || { criterionId: criterion.id, status: 'C' }
   );
   const [showDenyConfirm, setShowDenyConfirm] = useState(false);
+  const [showNAConfirm, setShowNAConfirm] = useState(false);
 
   // Sincroniza estado local cuando el padre actualiza la respuesta externamente (ej: negar rama)
   const responseStatus = response?.status;
@@ -89,11 +92,18 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
     onChange(newResponse);
   };
 
-  const handleDenyBranchClick = () => setShowDenyConfirm(true);
+  const handleDenyBranchClick = () => { setShowNAConfirm(false); setShowDenyConfirm(true); };
   const handleDenyBranchCancel = () => setShowDenyConfirm(false);
   const handleDenyBranchConfirm = () => {
     setShowDenyConfirm(false);
     onDenyBranch?.();
+  };
+
+  const handleNABranchClick = () => { setShowDenyConfirm(false); setShowNAConfirm(true); };
+  const handleNABranchCancel = () => setShowNAConfirm(false);
+  const handleNABranchConfirm = () => {
+    setShowNAConfirm(false);
+    onNABranch?.();
   };
 
   const handleSuggest = () => {
@@ -138,27 +148,41 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
               <p className="criterion-description">{criterion.description}</p>
             )}
           </div>
-          {isBranchParent && isAuditor && !readOnly && (
-            <div className="deny-branch-action">
-              {showDenyConfirm ? (
-                <div className="deny-branch-confirm">
-                  <span>¿Negar {branchSize} criterio{branchSize !== 1 ? 's' : ''}?</span>
-                  <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>
-                    Confirmar
-                  </button>
-                  <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>
-                    Cancelar
-                  </button>
+          {isBranchParent && !readOnly && (
+            <div className="branch-actions">
+              {showNAConfirm ? (
+                <div className="na-branch-confirm">
+                  <span>¿Marcar {branchSize} criterio{branchSize !== 1 ? 's' : ''} como NA?</span>
+                  <button type="button" className="btn-na-confirm" onClick={handleNABranchConfirm}>Confirmar</button>
+                  <button type="button" className="btn-deny-cancel" onClick={handleNABranchCancel}>Cancelar</button>
                 </div>
               ) : (
                 <button
                   type="button"
-                  className="btn-deny-branch"
-                  onClick={handleDenyBranchClick}
-                  title={`Marcar los ${branchSize} criterio${branchSize !== 1 ? 's' : ''} de esta rama como No Cumple`}
+                  className="btn-na-branch"
+                  onClick={handleNABranchClick}
+                  title={`Marcar los ${branchSize} criterio${branchSize !== 1 ? 's' : ''} de esta rama como No Aplica`}
                 >
-                  🚫 Negar rama ({branchSize})
+                  ○ No Aplica rama ({branchSize})
                 </button>
+              )}
+              {isAuditor && !showNAConfirm && (
+                showDenyConfirm ? (
+                  <div className="deny-branch-confirm">
+                    <span>¿Negar {branchSize} criterio{branchSize !== 1 ? 's' : ''}?</span>
+                    <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>Confirmar</button>
+                    <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>Cancelar</button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-deny-branch"
+                    onClick={handleDenyBranchClick}
+                    title={`Marcar los ${branchSize} criterio${branchSize !== 1 ? 's' : ''} de esta rama como No Cumple`}
+                  >
+                    🚫 Negar rama ({branchSize})
+                  </button>
+                )
               )}
             </div>
           )}
@@ -184,27 +208,41 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
             </p>
           )}
         </div>
-        {isBranchParent && isAuditor && !readOnly && (
-          <div className="deny-branch-action">
-            {showDenyConfirm ? (
-              <div className="deny-branch-confirm">
-                <span>¿Negar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''}?</span>
-                <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>
-                  Confirmar
-                </button>
-                <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>
-                  Cancelar
-                </button>
+        {isBranchParent && !readOnly && (
+          <div className="branch-actions">
+            {showNAConfirm ? (
+              <div className="na-branch-confirm">
+                <span>¿Marcar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''} como NA?</span>
+                <button type="button" className="btn-na-confirm" onClick={handleNABranchConfirm}>Confirmar</button>
+                <button type="button" className="btn-deny-cancel" onClick={handleNABranchCancel}>Cancelar</button>
               </div>
             ) : (
               <button
                 type="button"
-                className="btn-deny-branch"
-                onClick={handleDenyBranchClick}
-                title={`Marcar este criterio y sus ${branchSize} sub-criterio${branchSize !== 1 ? 's' : ''} como No Cumple`}
+                className="btn-na-branch"
+                onClick={handleNABranchClick}
+                title={`Marcar este criterio y sus ${branchSize} sub-criterio${branchSize !== 1 ? 's' : ''} como No Aplica`}
               >
-                🚫 Negar rama ({branchSize})
+                ○ No Aplica rama ({branchSize})
               </button>
+            )}
+            {isAuditor && !showNAConfirm && (
+              showDenyConfirm ? (
+                <div className="deny-branch-confirm">
+                  <span>¿Negar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''}?</span>
+                  <button type="button" className="btn-deny-confirm" onClick={handleDenyBranchConfirm}>Confirmar</button>
+                  <button type="button" className="btn-deny-cancel" onClick={handleDenyBranchCancel}>Cancelar</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-deny-branch"
+                  onClick={handleDenyBranchClick}
+                  title={`Marcar este criterio y sus ${branchSize} sub-criterio${branchSize !== 1 ? 's' : ''} como No Cumple`}
+                >
+                  🚫 Negar rama ({branchSize})
+                </button>
+              )
             )}
           </div>
         )}
