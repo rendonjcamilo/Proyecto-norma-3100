@@ -142,9 +142,25 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId]);
 
+  const CATEGORY_ORDER = [
+    'Talento Humano',
+    'Infraestructura',
+    'Dotación',
+    'Medicamentos, Dispositivos e Insumos',
+    'Procesos Prioritarios',
+    'Historia Clínica y Registros',
+  ];
+
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a);
+      const ib = CATEGORY_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
   }, [catalog]);
 
   // Inicializar expandedCategories con la primera categoría al cargar
