@@ -1,10 +1,11 @@
 -- =============================================================================
--- CATÁLOGO DE DOCUMENTOS — RESOLUCIÓN 3100 DE 2019
--- Profesional Independiente — 79 criterios documentales
+-- REEMPLAZAR CATÁLOGO DOCUMENTAL — PROFESIONAL INDEPENDIENTE
 -- Basado en: AUDITORIA_PROFESIONAL PROFESIONAL INDEPENDIENTE 2026.xlsx
--- 6 estándares transversales: TH · INF · DOT · MDI · PP · HCR
+-- Hoja: Auditoría Documental (79 criterios documentales)
+-- Resolución 3100 de 2019 — 6 estándares transversales aplicables
 -- =============================================================================
 
+-- Limpiar catálogo anterior y documentos del prestador referenciados
 TRUNCATE TABLE document_catalog CASCADE;
 
 -- =============================================================================
