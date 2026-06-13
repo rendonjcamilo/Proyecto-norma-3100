@@ -146,26 +146,26 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const CATEGORY_ORDER = providerType === 'ips'
     ? [
-        'Condiciones Técnico-Administrativas',
-        'Suficiencia Patrimonial',
         'Talento Humano',
-        'Infraestructura',
-        'Concepto Sanitario',
+        'Historia Clínica y Registros',
         'Dotación y Mantenimiento',
         'Medicamentos, DM e Insumos',
         'Procesos Prioritarios',
-        'Historia Clínica y Registros',
+        'Infraestructura',
         'Interdependencia de Servicios',
+        'Condiciones Técnico-Administrativas',
+        'Suficiencia Patrimonial',
+        'Concepto Sanitario',
         'Reportes Obligatorios',
         'PAMEC',
       ]
     : [
         'Talento Humano',
-        'Infraestructura',
+        'Historia Clínica y Registros',
         'Dotación',
         'Medicamentos, Dispositivos e Insumos',
         'Procesos Prioritarios',
-        'Historia Clínica y Registros',
+        'Infraestructura',
       ];
 
   const categories = useMemo(() => {
