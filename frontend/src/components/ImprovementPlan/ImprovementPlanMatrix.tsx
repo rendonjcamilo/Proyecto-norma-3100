@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { improvementPlanApi, ImprovementPlanItem } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './ImprovementPlanMatrix.css';
@@ -108,20 +109,106 @@ export const ImprovementPlanMatrix: React.FC<Props> = ({ assessmentId, assessmen
     return val.substring(0, 10);
   };
 
-  const exportToCsv = () => {
-    const headers = ['Nº', 'Estándar', 'Criterio', 'Hallazgo Encontrado', 'Actividad de Mejora', 'Responsable', 'Fecha Inicio', 'Fecha Terminación', 'Fecha Ejecución', 'Observaciones', 'Seguimiento 1', 'Seguimiento 2', 'Seguimiento 3'];
-    const rows = items.map(i => [
-      i.numero, i.estandar, i.criterio, i.hallazgo_encontrado,
-      i.actividad_mejora || '', i.responsable || '',
-      formatDate(i.fecha_inicio), formatDate(i.fecha_terminacion), formatDate(i.fecha_ejecucion),
-      i.observaciones || '', i.seguimiento_1 || '', i.seguimiento_2 || '', i.seguimiento_3 || '',
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `plan-mejora-${assessmentId.substring(0, 8)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+  const exportToExcel = () => {
+    const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+    const wb = XLSX.utils.book_new();
+    const wsData: (string | number)[][] = [];
+
+    // Fila 1: título
+    wsData.push(['MATRIZ PLAN DE MEJORAMIENTO', '', '', '', '', '', '', '', '', '', '', '', '']);
+    // Fila 2: vacía
+    wsData.push([]);
+    // Fila 3: encabezados
+    wsData.push(['Nº', 'Estándar', 'Criterio', 'Hallazgo Encontrado', 'Actividad de Mejora', 'Responsable y Cargo', 'Fecha Inicio', 'Fecha Terminación', 'Fecha Ejecución', 'Observaciones', 'Seguimiento 1', 'Seguimiento 2', 'Seguimiento 3']);
+    // Datos
+    items.forEach(i => {
+      wsData.push([
+        i.numero, i.estandar, i.criterio, i.hallazgo_encontrado,
+        i.actividad_mejora || '', i.responsable || '',
+        formatDate(i.fecha_inicio), formatDate(i.fecha_terminacion), formatDate(i.fecha_ejecucion),
+        i.observaciones || '', i.seguimiento_1 || '', i.seguimiento_2 || '', i.seguimiento_3 || '',
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Merge título A1:M1
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 12 } }];
+
+    // Anchos de columna
+    ws['!cols'] = [
+      { wch: 5 },  // Nº
+      { wch: 18 }, // Estándar
+      { wch: 30 }, // Criterio
+      { wch: 40 }, // Hallazgo
+      { wch: 30 }, // Actividad
+      { wch: 22 }, // Responsable
+      { wch: 14 }, // F. Inicio
+      { wch: 14 }, // F. Terminación
+      { wch: 14 }, // F. Ejecución
+      { wch: 28 }, // Observaciones
+      { wch: 25 }, // Seguimiento 1
+      { wch: 25 }, // Seguimiento 2
+      { wch: 25 }, // Seguimiento 3
+    ];
+
+    // Estilos: título
+    if (ws['A1']) {
+      ws['A1'].s = {
+        font: { bold: true, sz: 14, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: '1E293B' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      };
+    }
+
+    // Estilos: encabezados (fila 3, índice 2)
+    COLS.forEach(col => {
+      const cell = `${col}3`;
+      if (ws[cell]) {
+        ws[cell].s = {
+          font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '334155' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: {
+            bottom: { style: 'thin', color: { rgb: '94A3B8' } },
+            right:  { style: 'thin', color: { rgb: '94A3B8' } },
+          },
+        };
+      }
+    });
+
+    // Estilos: filas de datos (a partir de fila 4, índice 3)
+    items.forEach((_, idx) => {
+      const row = idx + 4;
+      const isEven = idx % 2 === 1;
+      COLS.forEach(col => {
+        const cell = `${col}${row}`;
+        if (ws[cell]) {
+          ws[cell].s = {
+            fill: { fgColor: { rgb: isEven ? 'F8FAFC' : 'FFFFFF' } },
+            alignment: { vertical: 'top', wrapText: true },
+            font: { sz: 10 },
+            border: {
+              bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+              right:  { style: 'thin', color: { rgb: 'E2E8F0' } },
+            },
+          };
+        }
+      });
+      // Nº centrado
+      const numCell = `A${row}`;
+      if (ws[numCell]) {
+        ws[numCell].s = { ...ws[numCell].s, alignment: { horizontal: 'center', vertical: 'center' } };
+      }
+      // Estándar en color
+      const stdCell = `B${row}`;
+      if (ws[stdCell]) {
+        ws[stdCell].s = { ...ws[stdCell].s, font: { sz: 10, bold: true, color: { rgb: '4F46E5' } } };
+      }
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Plan de Mejoramiento');
+    XLSX.writeFile(wb, `plan-mejora-${assessmentId.substring(0, 8)}.xlsx`);
   };
 
   if (loading) {
@@ -164,7 +251,7 @@ export const ImprovementPlanMatrix: React.FC<Props> = ({ assessmentId, assessmen
               </button>
             )}
             {items.length > 0 && (
-              <button className="ipm-btn ipm-btn-export" onClick={exportToCsv}>
+              <button className="ipm-btn ipm-btn-export" onClick={exportToExcel}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
@@ -190,7 +277,7 @@ export const ImprovementPlanMatrix: React.FC<Props> = ({ assessmentId, assessmen
                 : 'El plan de mejora se genera automáticamente al enviar la evaluación.'}
             </p>
             {isAuditor && isSubmitted && (
-              <button className="ipm-btn ipm-btn-export" style={{ margin: '12px auto 0', background: '#6366f1', color: '#fff' }} onClick={handleGenerate}>
+              <button className="ipm-btn ipm-btn-regen" style={{ margin: '12px auto 0' }} onClick={handleGenerate}>
                 Generar ahora
               </button>
             )}
