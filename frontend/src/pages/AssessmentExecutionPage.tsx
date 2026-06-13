@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import AssessmentForm from '../components/Assessment/AssessmentForm';
 import { AnexoCuatroEmbed } from '../components/Assessment/AnexoCuatroEmbed';
+import { ImprovementPlanMatrix } from '../components/ImprovementPlan/ImprovementPlanMatrix';
 import {
   assessmentsApi,
   questionnairesApi,
@@ -428,6 +429,14 @@ export const AssessmentExecutionPage: React.FC = () => {
           verificacionId={hcVerificacion.id}
           readOnly={isReadOnly}
           onUpdated={(updated) => setHcVerificacion(updated)}
+        />
+      )}
+
+      {/* Plan de Mejoramiento — visible cuando la evaluación fue enviada */}
+      {isReadOnly && assessment && (
+        <ImprovementPlanMatrix
+          assessmentId={assessment.id}
+          assessmentStatus={assessment.status}
         />
       )}
     </div>

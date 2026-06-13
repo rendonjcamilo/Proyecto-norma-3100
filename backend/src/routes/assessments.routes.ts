@@ -14,10 +14,12 @@ import { rbacMiddleware, providerAccessMiddleware } from '../middleware/role.mid
 import { AssessmentService } from '../services/AssessmentService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
+import { ImprovementPlanService } from '../services/ImprovementPlanService.js';
 
 export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Router {
   const router = Router();
   const assessmentService = new AssessmentService(pool);
+  const improvementPlanService = new ImprovementPlanService(pool);
 
   // ===== ASSESSMENT CRUD =====
 
@@ -616,6 +618,11 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
         logger.info({
           msg: 'Assessment submitted',
           assessment_id: id,
+        });
+
+        // Auto-generar plan de mejora desde hallazgos NC (no bloquea la respuesta)
+        improvementPlanService.generateFromFindings(id, pool).catch((err) => {
+          logger.warn({ msg: 'Could not auto-generate improvement plan', assessment_id: id, error: String(err) });
         });
 
         res.json({

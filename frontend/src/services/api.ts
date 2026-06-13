@@ -1331,6 +1331,38 @@ export const auditorClientsApi = {
     del<void>(`/api/auditor/clients/${id}`),
 };
 
+export interface ImprovementPlanItem {
+  id: string;
+  assessment_id: string;
+  finding_id?: string | null;
+  numero: number;
+  estandar: string;
+  criterio: string;
+  hallazgo_encontrado: string;
+  actividad_mejora?: string | null;
+  responsable?: string | null;
+  fecha_inicio?: string | null;
+  fecha_terminacion?: string | null;
+  fecha_ejecucion?: string | null;
+  observaciones?: string | null;
+  seguimiento_1?: string | null;
+  seguimiento_2?: string | null;
+  seguimiento_3?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const improvementPlanApi = {
+  getByAssessment: (assessmentId: string) =>
+    get<{ data: ImprovementPlanItem[] }>(`/api/assessments/${assessmentId}/improvement-plan`),
+
+  update: (id: string, data: Partial<ImprovementPlanItem>) =>
+    request<{ data: ImprovementPlanItem }>('PATCH', `/api/improvement-plan/${id}`, data),
+
+  generate: (assessmentId: string) =>
+    post<{ data: ImprovementPlanItem[] }>(`/api/assessments/${assessmentId}/improvement-plan/generate`, {}),
+};
+
 // ─────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────
