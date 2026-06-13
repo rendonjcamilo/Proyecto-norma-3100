@@ -50,7 +50,8 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
     try {
       const category = typeof req.query.category === 'string' ? req.query.category : undefined;
       const mandatory = req.query.mandatory === 'true' ? true : req.query.mandatory === 'false' ? false : undefined;
-      const catalog = await service.getCatalog({ category, mandatory });
+      const provider_type = typeof req.query.provider_type === 'string' ? req.query.provider_type : 'independiente';
+      const catalog = await service.getCatalog({ category, mandatory, provider_type });
       res.json({ data: catalog, total: catalog.length });
     } catch (err) {
       logger.error({ msg: 'Failed to fetch catalog', error: err });

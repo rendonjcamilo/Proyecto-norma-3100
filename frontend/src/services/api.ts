@@ -624,9 +624,9 @@ export const questionnairesApi = {
 // ─────────────────────────────────────────────
 
 export const documentsApi = {
-  getCatalog: () =>
+  getCatalog: (providerType: 'ips' | 'independiente' = 'independiente') =>
     get<{ data: Array<{ id: string; code: string; name: string; category: string; standard_reference: string; is_mandatory: boolean; expiry_months: number | null }> }>(
-      '/api/documents/catalog'
+      `/api/documents/catalog?provider_type=${providerType}`
     ),
 
   listByProvider: (providerId: string) =>

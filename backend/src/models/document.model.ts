@@ -18,6 +18,7 @@ export interface DocumentCatalog {
   applies_to_all: boolean;
   service_group?: string;
   complexity_level?: string;
+  provider_type: string;
   version: number;
   active: boolean;
   created_at: Date;
@@ -96,7 +97,7 @@ export class DocumentModel {
 
   // === CATALOG OPERATIONS ===
 
-  async getAllCatalogItems(filters?: { category?: string; mandatory?: boolean }): Promise<DocumentCatalog[]> {
+  async getAllCatalogItems(filters?: { category?: string; mandatory?: boolean; provider_type?: string }): Promise<DocumentCatalog[]> {
     let query = 'SELECT * FROM document_catalog WHERE active = true';
     const params: unknown[] = [];
 
@@ -107,6 +108,10 @@ export class DocumentModel {
     if (filters?.mandatory !== undefined) {
       params.push(filters.mandatory);
       query += ` AND is_mandatory = $${params.length}`;
+    }
+    if (filters?.provider_type) {
+      params.push(filters.provider_type);
+      query += ` AND provider_type = $${params.length}`;
     }
 
     query += ' ORDER BY category, code';

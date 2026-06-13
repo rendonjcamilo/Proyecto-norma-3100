@@ -388,7 +388,7 @@ export class DocumentService {
     return this.model.getLatestForProvider(providerId);
   }
 
-  async getCatalog(filters?: { category?: string; mandatory?: boolean }): Promise<DocumentCatalog[]> {
+  async getCatalog(filters?: { category?: string; mandatory?: boolean; provider_type?: string }): Promise<DocumentCatalog[]> {
     return this.model.getAllCatalogItems(filters);
   }
 

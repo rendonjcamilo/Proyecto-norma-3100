@@ -105,6 +105,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [driveFile, setDriveFile] = useState<File | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [providerType, setProviderType] = useState<'ips' | 'independiente'>('independiente');
   const { can } = useRolePermission();
   const { user } = useAuth();
 
@@ -115,12 +116,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     setTimeout(() => setToast(null), 4000);
   };
 
-  const loadData = async () => {
+  const loadData = async (type?: 'ips' | 'independiente') => {
     if (!providerId) return;
+    const currentType = type ?? providerType;
     try {
       setLoading(true);
       const [catalogRes, docsRes, summaryRes, missingRes] = await Promise.all([
-        documentsApi.getCatalog(),
+        documentsApi.getCatalog(currentType),
         documentsApi.listByProvider(providerId),
         documentsApi.getComplianceSummary(providerId).catch(() => null),
         documentsApi.getMissingDocuments(providerId).catch(() => null),
@@ -140,16 +142,31 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providerId]);
+  }, [providerId, providerType]);
 
-  const CATEGORY_ORDER = [
-    'Talento Humano',
-    'Infraestructura',
-    'Dotación',
-    'Medicamentos, Dispositivos e Insumos',
-    'Procesos Prioritarios',
-    'Historia Clínica y Registros',
-  ];
+  const CATEGORY_ORDER = providerType === 'ips'
+    ? [
+        'Condiciones Técnico-Administrativas',
+        'Suficiencia Patrimonial',
+        'Talento Humano',
+        'Infraestructura',
+        'Concepto Sanitario',
+        'Dotación y Mantenimiento',
+        'Medicamentos, DM e Insumos',
+        'Procesos Prioritarios',
+        'Historia Clínica y Registros',
+        'Interdependencia de Servicios',
+        'Reportes Obligatorios',
+        'PAMEC',
+      ]
+    : [
+        'Talento Humano',
+        'Infraestructura',
+        'Dotación',
+        'Medicamentos, Dispositivos e Insumos',
+        'Procesos Prioritarios',
+        'Historia Clínica y Registros',
+      ];
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
@@ -452,7 +469,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           </p>
         </div>
         <div className="aud-hero-actions">
-          <button className="aud-hero-btn" onClick={loadData}>
+          <button className="aud-hero-btn" onClick={() => loadData()}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
             </svg>
@@ -460,6 +477,47 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
           </button>
         </div>
         <div className="aud-hero-orb" />
+      </div>
+
+      {/* === SELECTOR TIPO DE PRESTADOR === */}
+      <div className="docs-provider-type-selector">
+        <span className="docs-provider-type-label">Tipo de prestador:</span>
+        <div className="docs-provider-type-options">
+          <label className={`docs-provider-type-option${providerType === 'independiente' ? ' active' : ''}`}>
+            <input
+              type="radio"
+              name="providerType"
+              value="independiente"
+              checked={providerType === 'independiente'}
+              onChange={() => {
+                setProviderType('independiente');
+                setExpandedCategories(new Set());
+              }}
+            />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Profesional Independiente
+            <span className="docs-provider-type-count">79 docs</span>
+          </label>
+          <label className={`docs-provider-type-option${providerType === 'ips' ? ' active' : ''}`}>
+            <input
+              type="radio"
+              name="providerType"
+              value="ips"
+              checked={providerType === 'ips'}
+              onChange={() => {
+                setProviderType('ips');
+                setExpandedCategories(new Set());
+              }}
+            />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
+            IPS
+            <span className="docs-provider-type-count">108 docs</span>
+          </label>
+        </div>
       </div>
 
       {/* === KPI SUMMARY === */}
