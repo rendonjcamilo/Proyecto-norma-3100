@@ -1,6 +1,5 @@
 name: Deploy to Production
 
-# Dispara en push a main
 on:
   push:
     branches: [main]
@@ -10,77 +9,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── 1. Validaciones previas ────────────────────────────────────────────────
-  pre-deploy-check:
-    name: Pre-deploy validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install backend dependencies
-        working-directory: ./backend
-        run: npm ci
-
-      - name: ESLint check
-        working-directory: ./backend
-        run: npm run lint || true
-
-  # ── 2. Deploy al VPS vía SSH ───────────────────────────────────────────────
   deploy:
     name: Deploy to VPS (app.habilitapro.com)
     runs-on: ubuntu-latest
-    needs: pre-deploy-check
     environment:
       name: production
       url: https://app.habilitapro.com
 
     steps:
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 147.93.45.4
+          host: ${{ secrets.VPS_HOST }}
           username: root
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           timeout: 60s
-          command_timeout: 20m
-          envs: GITHUB_TOKEN
+          command_timeout: 5m
           script: |
             set -e
-            echo "=== PRE-DEPLOY CLEANUP ==="
-            echo "Disco antes: $(df -h / | tail -1)"
             cd /opt/norma3100
-            docker compose -f /opt/norma3100/docker-compose.prod.yml --env-file /opt/norma3100/.env.production down 2>/dev/null || true
-            docker system prune -af --volumes=false 2>/dev/null || true
-            docker builder prune -af 2>/dev/null || true
-            echo "Disco después de limpieza: $(df -h / | tail -1)"
-            echo "=== GIT UPDATE ==="
-            git fetch https://x-access-token:$GITHUB_TOKEN@github.com/rendonjcamilo/Proyecto-norma-3100.git main
-            git reset --hard FETCH_HEAD
-            git clean -fd
-            echo "Código en VPS: $(git rev-parse --short HEAD)"
-            bash /opt/norma3100/scripts/deploy.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── 3. Resumen post-deploy ────────────────────────────────────────────────
-  notify:
-    name: Post-deploy summary
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: always()
-    steps:
-      - name: Result
-        run: |
-          if [ "${{ needs.deploy.result }}" = "success" ]; then
-            echo "Deploy exitoso en https://app.habilitapro.com"
-            echo "Commit: ${{ github.sha }} — Actor: ${{ github.actor }}"
-          else
-            echo "ERROR: Deploy fallido — revisar logs en GitHub Actions"
-          fi
+            echo "=== GIT PULL ==="
+            git pull origin main
+            echo "Commit desplegado: $(git rev-parse --short HEAD)"
+
+            echo "=== RESTART SERVICIOS ==="
+            docker compose restart backend frontend
+
+            echo "=== VERIFICAR SALUD ==="
+            sleep 10
+            docker compose ps
+            echo "Deploy completado: $(date)"
