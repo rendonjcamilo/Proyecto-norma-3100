@@ -9,7 +9,8 @@
 
 import { logger } from '../utils/logger.js';
 
-const RETHUS_BASE = process.env.RETHUS_BASE_URL ?? 'https://rethus.minsalud.gov.co';
+// Portal público SISPRO — requiere CAPTCHA, solo sirve como referencia de URL base
+const RETHUS_BASE = process.env.RETHUS_BASE_URL ?? 'http://web.sispro.gov.co';
 const HTTP_TIMEOUT_MS = 12000;
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const UA =
