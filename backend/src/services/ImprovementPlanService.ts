@@ -60,6 +60,11 @@ export class ImprovementPlanService {
     return this.model.bulkCreate(items);
   }
 
+  async forceRegenerate(assessmentId: string, pool: Pool): Promise<ImprovementPlanItem[]> {
+    await this.model.deleteByAssessment(assessmentId);
+    return this.generateFromFindings(assessmentId, pool);
+  }
+
   async updateItem(id: string, updates: UpdateImprovementPlanItem): Promise<ImprovementPlanItem | null> {
     return this.model.updateItem(id, updates);
   }

@@ -33,7 +33,7 @@ export function createImprovementPlanRouter(pool: Pool): Router {
       return;
     }
     try {
-      const items = await service.generateFromFindings(assessmentId, pool);
+      const items = await service.forceRegenerate(assessmentId, pool);
       res.json({ data: items });
     } catch (err) {
       res.status(500).json({ error: 'Error al generar el plan de mejora' });

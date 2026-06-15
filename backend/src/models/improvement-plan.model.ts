@@ -89,6 +89,13 @@ export class ImprovementPlanModel {
     return result.rows[0] || null;
   }
 
+  async deleteByAssessment(assessmentId: string): Promise<void> {
+    await this.pool.query(
+      'DELETE FROM improvement_plan_items WHERE assessment_id = $1',
+      [assessmentId]
+    );
+  }
+
   async countByAssessment(assessmentId: string): Promise<number> {
     const result = await this.pool.query<{ count: string }>(
       'SELECT COUNT(*) FROM improvement_plan_items WHERE assessment_id = $1',
