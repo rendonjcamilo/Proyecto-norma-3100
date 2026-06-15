@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import ExcelJS from 'exceljs';
 import { improvementPlanApi, ImprovementPlanItem } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './ImprovementPlanMatrix.css';
@@ -108,53 +109,104 @@ export const ImprovementPlanMatrix: React.FC<Props> = ({ assessmentId, assessmen
     return val.substring(0, 10);
   };
 
-  const exportToExcel = () => {
-    const esc = (s: string | number | null | undefined) =>
-      String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const exportToExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'HabilitaPro';
+    const ws = wb.addWorksheet('Plan de Mejoramiento');
 
-    const thStyle = 'background:#334155;color:#fff;font-weight:bold;font-size:11px;padding:8px 10px;border:1px solid #475569;white-space:nowrap;text-align:center;';
+    // Anchos de columna
+    ws.columns = [
+      { width: 6 },  // Nº
+      { width: 20 }, // Estándar
+      { width: 32 }, // Criterio
+      { width: 42 }, // Hallazgo
+      { width: 32 }, // Actividad
+      { width: 24 }, // Responsable
+      { width: 14 }, // F. Inicio
+      { width: 16 }, // F. Terminación
+      { width: 14 }, // F. Ejecución
+      { width: 30 }, // Observaciones
+      { width: 26 }, // Seguimiento 1
+      { width: 26 }, // Seguimiento 2
+      { width: 26 }, // Seguimiento 3
+    ];
+
+    // Fila 1: título fusionado
+    ws.mergeCells('A1:M1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = 'MATRIZ PLAN DE MEJORAMIENTO';
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 28;
+
+    // Fila 2: subtítulo
+    ws.mergeCells('A2:M2');
+    const subCell = ws.getCell('A2');
+    subCell.value = 'Generado automáticamente desde hallazgos No Conformes — Resolución 3100 de 2019';
+    subCell.font = { size: 9, color: { argb: 'FF94A3B8' } };
+    subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 18;
+
+    // Fila 3: encabezados
     const headers = ['Nº','Estándar','Criterio','Hallazgo Encontrado','Actividad de Mejora','Responsable y Cargo','Fecha Inicio','Fecha Terminación','Fecha Ejecución','Observaciones','Seguimiento 1','Seguimiento 2','Seguimiento 3'];
+    const headerRow = ws.addRow(headers);
+    headerRow.height = 22;
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        bottom: { style: 'thin', color: { argb: 'FF475569' } },
+        right:  { style: 'thin', color: { argb: 'FF475569' } },
+      };
+    });
 
-    const rows = items.map((i, idx) => {
-      const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-      const tdBase = `background:${bg};font-size:11px;padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top;`;
-      return `<tr>
-        <td style="${tdBase}text-align:center;font-weight:700;">${esc(i.numero)}</td>
-        <td style="${tdBase}color:#4f46e5;font-weight:600;">${esc(i.estandar)}</td>
-        <td style="${tdBase}">${esc(i.criterio)}</td>
-        <td style="${tdBase}color:#6d28d9;">${esc(i.hallazgo_encontrado)}</td>
-        <td style="${tdBase}">${esc(i.actividad_mejora)}</td>
-        <td style="${tdBase}">${esc(i.responsable)}</td>
-        <td style="${tdBase}text-align:center;">${esc(formatDate(i.fecha_inicio))}</td>
-        <td style="${tdBase}text-align:center;">${esc(formatDate(i.fecha_terminacion))}</td>
-        <td style="${tdBase}text-align:center;">${esc(formatDate(i.fecha_ejecucion))}</td>
-        <td style="${tdBase}">${esc(i.observaciones)}</td>
-        <td style="${tdBase}">${esc(i.seguimiento_1)}</td>
-        <td style="${tdBase}">${esc(i.seguimiento_2)}</td>
-        <td style="${tdBase}">${esc(i.seguimiento_3)}</td>
-      </tr>`;
-    }).join('');
+    // Filas de datos
+    items.forEach((item, idx) => {
+      const bgArgb = idx % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
+      const row = ws.addRow([
+        item.numero,
+        item.estandar,
+        item.criterio,
+        item.hallazgo_encontrado,
+        item.actividad_mejora || '',
+        item.responsable || '',
+        formatDate(item.fecha_inicio),
+        formatDate(item.fecha_terminacion),
+        formatDate(item.fecha_ejecucion),
+        item.observaciones || '',
+        item.seguimiento_1 || '',
+        item.seguimiento_2 || '',
+        item.seguimiento_3 || '',
+      ]);
+      row.height = 40;
+      row.eachCell((cell, colNum) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+        cell.font = { size: 10 };
+        cell.alignment = { vertical: 'top', wrapText: true };
+        cell.border = {
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right:  { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        // Nº centrado
+        if (colNum === 1) { cell.alignment = { horizontal: 'center', vertical: 'middle' }; cell.font = { bold: true, size: 10 }; }
+        // Estándar en morado
+        if (colNum === 2) { cell.font = { bold: true, size: 10, color: { argb: 'FF4F46E5' } }; }
+        // Hallazgo en violeta
+        if (colNum === 4) { cell.font = { size: 10, color: { argb: 'FF6D28D9' } }; }
+        // Fechas centradas
+        if (colNum >= 7 && colNum <= 9) { cell.alignment = { horizontal: 'center', vertical: 'middle' }; }
+      });
+    });
 
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="UTF-8">
-<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
-<x:Name>Plan de Mejoramiento</x:Name>
-<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
-</head><body>
-<table border="0" cellpadding="0" cellspacing="0" style="font-family:Calibri,Arial,sans-serif;">
-  <tr><td colspan="13" style="background:#1e293b;color:#fff;font-size:15px;font-weight:bold;padding:14px 16px;text-align:center;border:1px solid #1e293b;">MATRIZ PLAN DE MEJORAMIENTO</td></tr>
-  <tr><td colspan="13" style="background:#0f172a;color:#94a3b8;font-size:11px;padding:6px 16px;text-align:center;border:1px solid #0f172a;">Generado automáticamente desde hallazgos No Conformes — Resolución 3100 de 2019</td></tr>
-  <tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr>
-  ${rows}
-</table>
-</body></html>`;
-
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `plan-mejora-${assessmentId.substring(0, 8)}.xls`;
+    a.download = `plan-mejora-${assessmentId.substring(0, 8)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   };

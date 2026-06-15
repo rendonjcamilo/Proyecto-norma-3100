@@ -33,15 +33,16 @@ export class ImprovementPlanService {
          f.id,
          f.title,
          f.description,
-         COALESCE(es.name, 'Estándar') AS standard_name,
-         COALESCE(ec.name, f.title)    AS criterion_name,
-         COALESCE(ec.code, '')         AS criterion_code
+         COALESCE(es.name, es2.name, 'Sin estándar') AS standard_name,
+         COALESCE(ec.name, f.title)                   AS criterion_name,
+         COALESCE(ec.code, '')                        AS criterion_code
        FROM findings f
-       LEFT JOIN evaluation_standards es ON es.id = f.standard_id
-       LEFT JOIN evaluation_criteria   ec ON ec.id = f.criterion_id
+       LEFT JOIN evaluation_criteria   ec  ON ec.id  = f.criterion_id
+       LEFT JOIN evaluation_standards  es  ON es.id  = f.standard_id
+       LEFT JOIN evaluation_standards  es2 ON es2.id = ec.standard_id
        WHERE f.assessment_id = $1
          AND f.status != 'cerrada'
-       ORDER BY es.name NULLS LAST, ec.code NULLS LAST`,
+       ORDER BY COALESCE(es.name, es2.name) NULLS LAST, ec.code NULLS LAST`,
       [assessmentId]
     );
 

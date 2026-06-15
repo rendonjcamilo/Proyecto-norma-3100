@@ -28,6 +28,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.11.0",
     "axios": "^1.6.5",
+    "exceljs": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.1",
