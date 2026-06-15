@@ -57,6 +57,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           nombre_sede,
           codigo_habilitacion,
           habilitacion_fecha_vencimiento,
+          representante_legal,
           status,
           admin_email,
           admin_password,
@@ -128,6 +129,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
             nombre_sede: nombre_sede || null,
             codigo_habilitacion: codigo_habilitacion || null,
             habilitacion_fecha_vencimiento: habilitacion_fecha_vencimiento || null,
+            representante_legal: representante_legal || null,
             status: status || 'active',
             created_by: /^[0-9a-f-]{36}$/.test(user?.user_id || '') ? user.user_id : null,
           }, client);

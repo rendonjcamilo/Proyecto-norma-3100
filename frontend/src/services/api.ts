@@ -902,6 +902,7 @@ export interface RepsRegistroData {
   estado_habilitacion: 'habilitado' | 'deshabilitado' | 'en_tramite' | 'suspendido' | 'sin_verificar';
   fecha_habilitacion?: string;
   fecha_vencimiento?: string;
+  representante_legal?: string;
   servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
   capacidad_instalada?: Record<string, number>;
   sanciones?: Array<{ tipo: string; fecha: string; descripcion: string }>;

@@ -68,6 +68,7 @@ interface FormData {
   tipo_prestador: string;
   auditor_id: string;
   habilitacion_fecha_vencimiento: string;
+  representante_legal: string;
   admin_first_name: string;
   admin_last_name: string;
   admin_email: string;
@@ -87,6 +88,7 @@ const INITIAL_FORM: FormData = {
   tipo_prestador: '',
   auditor_id: '',
   habilitacion_fecha_vencimiento: '',
+  representante_legal: '',
   admin_first_name: '',
   admin_last_name: '',
   admin_email: '',
@@ -248,6 +250,7 @@ export const ProvidersPage: React.FC = () => {
         codigo_habilitacion: formData.codigo_habilitacion.trim() || undefined,
         legal_entity_type: formData.tipo_prestador.trim() || undefined,
         habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || undefined,
+        representante_legal: formData.representante_legal.trim() || undefined,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
         ...(createAdminUser ? {
           admin_email: formData.admin_email.trim(),
@@ -306,6 +309,7 @@ export const ProvidersPage: React.FC = () => {
         city: formData.city.trim(),
         department: formData.department.trim(),
         habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || null,
+        representante_legal: formData.representante_legal.trim() || null,
       } as any);
 
       // Asignar el auditor si se seleccionó
@@ -380,6 +384,7 @@ export const ProvidersPage: React.FC = () => {
       tipo_prestador: (provider as any).legal_entity_type || '',
       auditor_id: '',
       habilitacion_fecha_vencimiento: fechaVencimiento,
+      representante_legal: (provider as any).representante_legal || '',
       admin_first_name: '',
       admin_last_name: '',
       admin_email: '',
@@ -432,6 +437,7 @@ export const ProvidersPage: React.FC = () => {
           codigo_habilitacion: d.codigo_habilitacion || prev.codigo_habilitacion,
           tipo_prestador: d.tipo_prestador || prev.tipo_prestador,
           ...(fechaVenc ? { habilitacion_fecha_vencimiento: fechaVenc } : {}),
+          ...(d.representante_legal ? { representante_legal: d.representante_legal } : {}),
         }));
       } else {
         setRepsError('No se encontró el prestador en REPS. Verifique el código de habilitación o NIT.');
@@ -830,6 +836,18 @@ export const ProvidersPage: React.FC = () => {
                   placeholder="Se autocompleta desde REPS o ingresa manualmente"
                   value={formData.tipo_prestador}
                   onChange={(e) => setFormData({ ...formData, tipo_prestador: e.target.value })}
+                  disabled={creating}
+                />
+              </div>
+
+              <div className="dashboard-form-group">
+                <label htmlFor="representante_legal">Representante Legal</label>
+                <input
+                  id="representante_legal"
+                  type="text"
+                  placeholder="Se autocompleta desde REPS o ingresa manualmente"
+                  value={formData.representante_legal}
+                  onChange={(e) => setFormData({ ...formData, representante_legal: e.target.value })}
                   disabled={creating}
                 />
               </div>

@@ -29,6 +29,7 @@ const UA =
 export interface EnrichResult {
   nit: string;
   fecha_vencimiento: string | null;
+  representante_legal: string | null;
   fuente: 'minsalud_scrape' | 'manual' | 'cache';
   ok: boolean;
   error?: string;
@@ -213,17 +214,17 @@ export class RepsEnrichmentService {
       if (fecha) {
         await this.saveCacheSuccess(nit, fecha, codigoHab);
         logger.info({ msg: 'REPS enriquecido (HTTP)', nit, fecha_vencimiento: fecha });
-        return { nit, fecha_vencimiento: fecha, fuente: 'minsalud_scrape', ok: true };
+        return { nit, fecha_vencimiento: fecha, representante_legal: null, fuente: 'minsalud_scrape', ok: true };
       }
 
       await this.recordFailure(nit, 'Fecha no encontrada');
-      return { nit, fecha_vencimiento: null, fuente: 'minsalud_scrape', ok: false, error: 'Fecha no encontrada' };
+      return { nit, fecha_vencimiento: null, representante_legal: null, fuente: 'minsalud_scrape', ok: false, error: 'Fecha no encontrada' };
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
       this.slots[slot] = null;
       await this.recordFailure(nit, error);
       logger.warn({ msg: 'REPS HTTP scraping fallido', nit, slot, error });
-      return { nit, fecha_vencimiento: null, fuente: 'minsalud_scrape', ok: false, error };
+      return { nit, fecha_vencimiento: null, representante_legal: null, fuente: 'minsalud_scrape', ok: false, error };
     }
   }
 
@@ -414,6 +415,23 @@ export class RepsEnrichmentService {
 
   // ── Parseo HTML ──────────────────────────────────────────────────────────────
 
+  private parseRepresentanteLegal(html: string): string | null {
+    // Intentar campos ASP.NET con ID conocido
+    const inputPatterns = [
+      /id="_ctl0_ContentPlaceHolder1_tbrepresentante(?:legal)?"\s[^>]*value="([^"]{3,}?)"/i,
+      /value="([^"]{3,}?)"\s[^>]*id="_ctl0_ContentPlaceHolder1_tbrepresentante(?:legal)?"/i,
+    ];
+    for (const re of inputPatterns) {
+      const m = html.match(re);
+      if (m?.[1]?.trim()) return m[1].trim();
+    }
+    // Buscar etiqueta "Representante Legal" seguida de texto
+    const contextRe = /[Rr]epresentante\s+[Ll]egal[^<]{0,40}?[>:]([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s\.]{5,60})/s;
+    const cm = html.match(contextRe);
+    if (cm?.[1]?.trim()) return cm[1].trim();
+    return null;
+  }
+
   private parseFechaFromInput(html: string): string | null {
     const patterns = [
       /id="_ctl0_ContentPlaceHolder1_tbfecha_vencimiento"[^>]*value="(\d{8})"/i,
@@ -539,18 +557,19 @@ export class RepsEnrichmentService {
 
   private async getCached(nits: string[]): Promise<EnrichResult[]> {
     const res = await this.pool.query(
-      `SELECT nit, fecha_vencimiento, fuente
+      `SELECT nit, fecha_vencimiento, representante_legal, fuente
          FROM reps_enriched
         WHERE nit = ANY($1) AND expira_at > NOW() AND fecha_vencimiento IS NOT NULL`,
       [nits]
     );
-    return res.rows.map((row: { nit: string; fecha_vencimiento: Date | string | null; fuente: string }) => ({
+    return res.rows.map((row: { nit: string; fecha_vencimiento: Date | string | null; representante_legal: string | null; fuente: string }) => ({
       nit: row.nit,
       fecha_vencimiento: row.fecha_vencimiento
         ? row.fecha_vencimiento instanceof Date
           ? row.fecha_vencimiento.toISOString().split('T')[0]
           : String(row.fecha_vencimiento).split('T')[0]
         : null,
+      representante_legal: row.representante_legal || null,
       fuente: 'cache' as const,
       ok: true,
     }));

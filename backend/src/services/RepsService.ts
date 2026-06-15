@@ -38,6 +38,7 @@ export interface RepsRegistroData {
   estado_habilitacion: string;
   fecha_habilitacion?: string;
   fecha_vencimiento?: string;
+  representante_legal?: string;
   servicios_habilitados: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }>;
   capacidad_instalada?: Record<string, number>;
   sanciones?: Array<{ tipo: string; fecha: string; descripcion: string }>;
@@ -337,6 +338,7 @@ export class RepsService {
       estado_habilitacion: estado,
       fecha_habilitacion: this.pick(record, 'fecha_habilitacion', 'fecha_otorgamiento') || undefined,
       fecha_vencimiento: fechaVencimientoRaw || undefined,
+      representante_legal: this.pick(record, 'representantelegal', 'representante_legal', 'nombre_representante_legal', 'representante') || undefined,
       servicios_habilitados: servicios,
       capacidad_instalada: Object.keys(capacidad).length > 0 ? capacidad : undefined,
       sanciones: sanciones.length > 0 ? sanciones : undefined,

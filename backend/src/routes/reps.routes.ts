@@ -41,11 +41,14 @@ export function createRepsRouter(pool: Pool): Router {
 
         // Si datos.gov.co no trajo fecha_vencimiento, obtenerla del portal MINSALUD
         // (enriquecimiento: primero caché local, luego scraping si no está cacheada)
-        if (result.found && result.data && !result.data.fecha_vencimiento) {
+        if (result.found && result.data && (!result.data.fecha_vencimiento || !result.data.representante_legal)) {
           const enrichResults = await enrichmentService.enrichLote([result.data.nit]).catch(() => []);
-          const enriched = enrichResults.find((r) => r.nit === result.data!.nit && r.fecha_vencimiento);
-          if (enriched?.fecha_vencimiento) {
+          const enriched = enrichResults.find((r) => r.nit === result.data!.nit);
+          if (enriched?.fecha_vencimiento && !result.data.fecha_vencimiento) {
             result.data.fecha_vencimiento = enriched.fecha_vencimiento;
+          }
+          if (enriched?.representante_legal && !result.data.representante_legal) {
+            result.data.representante_legal = enriched.representante_legal;
           }
         }
 

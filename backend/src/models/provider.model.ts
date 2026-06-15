@@ -20,6 +20,7 @@ export interface Provider {
   nombre_sede?: string;
   codigo_habilitacion?: string;
   habilitacion_fecha_vencimiento?: string | null;
+  representante_legal?: string | null;
   status: 'active' | 'suspended' | 'revoked' | 'pending';
   created_at: Date;
   updated_at: Date;
@@ -159,8 +160,8 @@ export class ProviderModel {
    */
   async createProvider(data: Omit<Provider, 'id' | 'created_at' | 'updated_at'>, client?: PoolClient): Promise<Provider> {
     const query = `
-      INSERT INTO providers (rut, legal_name, trade_name, legal_entity_type, address, city, department, country, email, phone, nombre_sede, codigo_habilitacion, habilitacion_fecha_vencimiento, status, created_by, updated_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      INSERT INTO providers (rut, legal_name, trade_name, legal_entity_type, address, city, department, country, email, phone, nombre_sede, codigo_habilitacion, habilitacion_fecha_vencimiento, representante_legal, status, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
     const db = client ?? this.pool;
@@ -178,6 +179,7 @@ export class ProviderModel {
       data.nombre_sede || null,
       data.codigo_habilitacion || null,
       data.habilitacion_fecha_vencimiento || null,
+      data.representante_legal || null,
       data.status,
       data.created_by || null,
       data.updated_by || null,
