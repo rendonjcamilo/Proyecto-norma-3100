@@ -18,7 +18,7 @@ export class ImprovementPlanService {
    */
   async generateFromFindings(assessmentId: string, pool: Pool): Promise<ImprovementPlanItem[]> {
     const existing = await this.model.countByAssessment(assessmentId);
-    if (existing > 0) return this.model.getByAssessment(assessmentId);
+    if (existing > 0) {return this.model.getByAssessment(assessmentId);}
 
     // Obtener hallazgos NC con info de estándar y criterio
     const findingsResult = await pool.query<{
@@ -46,7 +46,7 @@ export class ImprovementPlanService {
       [assessmentId]
     );
 
-    if (findingsResult.rows.length === 0) return [];
+    if (findingsResult.rows.length === 0) {return [];}
 
     const items = findingsResult.rows.map((row, index) => ({
       assessment_id: assessmentId,

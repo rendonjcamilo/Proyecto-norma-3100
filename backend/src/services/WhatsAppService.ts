@@ -190,7 +190,7 @@ export class WhatsAppService {
     // Extraer código — Evolution v1 lo anida en data.instance, v2 lo devuelve en la raíz
     const rawCode = (data?.pairingCode as string | undefined)
       ?? ((data?.instance as Record<string, unknown>)?.pairingCode as string | undefined)
-      ?? (typeof data?.code === 'string' ? (data.code as string) : undefined);
+      ?? (typeof data?.code === 'string' ? (data.code) : undefined);
 
     if (!rawCode) {
       logger.warn({ msg: 'No pairing code in response', instance, preview: JSON.stringify(data).slice(0, 300) });

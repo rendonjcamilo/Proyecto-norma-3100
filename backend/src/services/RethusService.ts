@@ -82,12 +82,12 @@ export class RethusService {
           headers: { Accept: 'application/json', 'User-Agent': UA },
           signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
         });
-        if (!res.ok) continue;
+        if (!res.ok) {continue;}
         const ct = res.headers.get('content-type') ?? '';
-        if (!ct.includes('json')) continue;
+        if (!ct.includes('json')) {continue;}
         const data = await res.json() as unknown;
         const persona = this.parseJson(tipoDoc, numDoc, data);
-        if (persona) return { found: true, persona, fuente: 'rethus_api' };
+        if (persona) {return { found: true, persona, fuente: 'rethus_api' };}
       } catch {
         // Siguiente candidato
       }
@@ -105,7 +105,7 @@ export class RethusService {
         headers: { 'User-Agent': UA, Accept: 'text/html' },
         signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
       });
-      if (!homeRes.ok) return { found: false };
+      if (!homeRes.ok) {return { found: false };}
 
       const homeHtml = await homeRes.text();
       const cookie = homeRes.headers.get('set-cookie') ?? '';
@@ -136,11 +136,11 @@ export class RethusService {
         signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
       });
 
-      if (!searchRes.ok) return { found: false };
+      if (!searchRes.ok) {return { found: false };}
       const html = await searchRes.text();
 
       const persona = this.parseHtml(tipoDoc, numDoc, html);
-      if (persona) return { found: true, persona, fuente: 'rethus_portal' };
+      if (persona) {return { found: true, persona, fuente: 'rethus_portal' };}
     } catch (err) {
       logger.warn({ msg: 'RETHUS portal scraping fallido', error: String(err) });
     }
@@ -150,7 +150,7 @@ export class RethusService {
   // ── Parsers ──────────────────────────────────────────────────────────────
 
   private parseJson(tipoDoc: string, numDoc: string, data: unknown): RethusPersona | null {
-    if (!data || typeof data !== 'object') return null;
+    if (!data || typeof data !== 'object') {return null;}
     const d = data as Record<string, unknown>;
 
     // Formato A: { nombre, estado, registros: [...] }
@@ -160,7 +160,7 @@ export class RethusService {
       if (Array.isArray(data) && data.length > 0) {
         const first = data[0] as Record<string, unknown>;
         const n = String(first['nombre'] ?? first['NOMBRE'] ?? '').trim();
-        if (n.length < 4) return null;
+        if (n.length < 4) {return null;}
         return {
           tipoDoc, numDoc, nombre: n,
           estado: String(first['estado'] ?? first['ESTADO'] ?? 'ACTIVO'),
@@ -206,7 +206,7 @@ export class RethusService {
       const m = html.match(re);
       if (m?.[1]?.trim().length > 4) { nombre = m[1].trim(); break; }
     }
-    if (!nombre) return null;
+    if (!nombre) {return null;}
 
     const estadoM = html.match(/(?:Estado|ESTADO)[^<]*<[^>]+>(ACTIVO|INACTIVO|SUSPENDIDO)/i);
     const estado = estadoM?.[1] ?? 'ACTIVO';

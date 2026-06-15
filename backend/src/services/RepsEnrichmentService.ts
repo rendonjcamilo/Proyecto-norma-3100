@@ -423,12 +423,12 @@ export class RepsEnrichmentService {
     ];
     for (const re of inputPatterns) {
       const m = html.match(re);
-      if (m?.[1]?.trim()) return m[1].trim();
+      if (m?.[1]?.trim()) {return m[1].trim();}
     }
     // Buscar etiqueta "Representante Legal" seguida de texto
-    const contextRe = /[Rr]epresentante\s+[Ll]egal[^<]{0,40}?[>:]([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s\.]{5,60})/s;
+    const contextRe = /[Rr]epresentante\s+[Ll]egal[^<]{0,40}?[>:]([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\s.]{5,60})/s;
     const cm = html.match(contextRe);
-    if (cm?.[1]?.trim()) return cm[1].trim();
+    if (cm?.[1]?.trim()) {return cm[1].trim();}
     return null;
   }
 

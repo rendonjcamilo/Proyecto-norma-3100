@@ -47,7 +47,7 @@ export class ImprovementPlanModel {
   }
 
   async bulkCreate(items: Omit<ImprovementPlanItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<ImprovementPlanItem[]> {
-    if (items.length === 0) return [];
+    if (items.length === 0) {return [];}
     const created: ImprovementPlanItem[] = [];
     for (const item of items) {
       const result: QueryResult<ImprovementPlanItem> = await this.pool.query(
@@ -58,7 +58,7 @@ export class ImprovementPlanModel {
          RETURNING *`,
         [item.assessment_id, item.finding_id ?? null, item.numero, item.estandar, item.criterio, item.hallazgo_encontrado]
       );
-      if (result.rows[0]) created.push(result.rows[0]);
+      if (result.rows[0]) {created.push(result.rows[0]);}
     }
     return created;
   }
@@ -77,7 +77,7 @@ export class ImprovementPlanModel {
     if (updates.seguimiento_2 !== undefined) { params.push(updates.seguimiento_2); fields.push(`seguimiento_2 = $${params.length}`); }
     if (updates.seguimiento_3 !== undefined) { params.push(updates.seguimiento_3); fields.push(`seguimiento_3 = $${params.length}`); }
 
-    if (fields.length === 0) return null;
+    if (fields.length === 0) {return null;}
 
     fields.push(`updated_at = NOW()`);
     params.push(id);
