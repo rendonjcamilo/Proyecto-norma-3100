@@ -251,7 +251,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
       </div>
 
       {/* Widget RETHUS — solo para criterio TSTH-003 (Inscripción ReTHUS) */}
-      {criterion.code === 'TSTH-003' && !readOnly && (
+      {criterion.code === 'TSTH-002' && !readOnly && (
         <Suspense fallback={null}>
           <RethusConsulta />
         </Suspense>
