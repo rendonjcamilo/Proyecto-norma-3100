@@ -29,6 +29,7 @@ import { createWhatsAppRouter } from './routes/whatsapp.routes.js';
 import { createAnexo4Router } from './routes/anexo4.routes.js';
 import { createAuditorClientsRouter } from './routes/auditor-clients.routes.js';
 import { createImprovementPlanRouter } from './routes/improvement-plan.routes.js';
+import { createRethusRouter } from './routes/rethus.routes.js';
 import { RepsAlertService } from './services/RepsAlertService.js';
 import { createNorma3100Router } from './routes/norma3100.routes.js';
 import { createUsersRouter } from './routes/users.routes.js';
@@ -277,6 +278,9 @@ app.use('/api', apiLimiter, createAuditorClientsRouter(pool));
 
 // Plan de Mejoramiento (Matriz Plan de Mejora Visita Auditoría)
 app.use('/api', apiLimiter, createImprovementPlanRouter(pool));
+
+// RETHUS: Registro Especial del Talento Humano en Salud (Ley 1164/2007)
+app.use('/api', apiLimiter, createRethusRouter());
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

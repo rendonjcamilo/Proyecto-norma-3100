@@ -7,8 +7,10 @@
  * - Optional evidence upload
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import './CriterionInput.css';
+
+const RethusConsulta = lazy(() => import('./RethusConsulta'));
 
 interface Criterion {
   id: string;
@@ -247,6 +249,13 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
           </div>
         )}
       </div>
+
+      {/* Widget RETHUS — solo para criterio TSTH-003 (Inscripción ReTHUS) */}
+      {criterion.code === 'TSTH-003' && !readOnly && (
+        <Suspense fallback={null}>
+          <RethusConsulta />
+        </Suspense>
+      )}
 
       <div className="criterion-response">
         {/* Radio Buttons */}

@@ -1053,6 +1053,40 @@ export const repsApi = {
 };
 
 // ─────────────────────────────────────────────
+// RETHUS (Registro Especial del Talento Humano)
+// ─────────────────────────────────────────────
+
+export type TipoDocumentoRethus = 'CC' | 'CE' | 'PA' | 'SC' | 'TI' | 'RC' | 'MS';
+
+export interface RethusRegistro {
+  tipoRegistro: string;
+  numRegistro: string;
+  profesion: string;
+  departamento?: string;
+  fechaInscripcion?: string;
+}
+
+export interface RethusPersona {
+  tipoDoc: string;
+  numDoc: string;
+  nombre: string;
+  estado: string;
+  registros: RethusRegistro[];
+}
+
+export interface RethusResult {
+  found: boolean;
+  persona?: RethusPersona;
+  fuente?: string;
+  error?: string;
+}
+
+export const rethusApi = {
+  consultar: (tipoDoc: TipoDocumentoRethus, numDoc: string) =>
+    get<RethusResult>(`/api/rethus/consultar?tipoDoc=${tipoDoc}&numDoc=${encodeURIComponent(numDoc)}`),
+};
+
+// ─────────────────────────────────────────────
 // REPS ALERT TRIGGERS
 // ─────────────────────────────────────────────
 
