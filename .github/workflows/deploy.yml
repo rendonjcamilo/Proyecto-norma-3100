@@ -32,10 +32,14 @@ jobs:
             git pull origin main
             echo "Commit desplegado: $(git rev-parse --short HEAD)"
 
-            echo "=== RESTART SERVICIOS ==="
-            docker compose restart backend frontend
+            echo "=== BUILD Y DEPLOY FRONTEND (produccion) ==="
+            docker compose -f docker-compose.prod.yml build frontend
+            docker compose -f docker-compose.prod.yml up -d --no-deps frontend
+
+            echo "=== RESTART BACKEND ==="
+            docker compose -f docker-compose.prod.yml restart backend
 
             echo "=== VERIFICAR SALUD ==="
-            sleep 10
-            docker compose ps
+            sleep 15
+            docker compose -f docker-compose.prod.yml ps
             echo "Deploy completado: $(date)"
