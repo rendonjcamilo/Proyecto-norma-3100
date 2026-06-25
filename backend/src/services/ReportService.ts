@@ -828,6 +828,10 @@ export class ReportService {
 
     const estandares = [];
 
+    // Textos genéricos que no aportan información al informe — se omiten como descripción de hallazgo
+    const DESCRIPCIONES_GENERICAS = ['No cumple.', 'No cumple', 'No aplica.', 'No aplica',
+      'No adaptado al servicio.', 'No adaptado al servicio', 'No especificada', 'N/A', 'NA'];
+
     for (const est of estandaresResult.rows) {
       // Métricas por estándar (si hay assessment)
       let metricas = { cumple: 0, noCumple: 0, noAplica: 0, total: 0 };
@@ -874,17 +878,24 @@ export class ReportService {
       const semaforo: 'verde' | 'naranja' | 'rojo' | 'na' =
         pct === -1 ? 'na' : pct >= 80 ? 'verde' : pct >= 50 ? 'naranja' : 'rojo';
 
-      // Hallazgos NC — prioridad: descripción del usuario → nc_hint (texto negado) → nombre original
+      // Hallazgos NC — prioridad: nc_hint (texto profesional) → descripción significativa del usuario → nombre del criterio formateado
+      // Filtra por assessmentId para no mezclar hallazgos de otras evaluaciones del mismo prestador
       const hallazgosResult = await this.pool.query<{
         title: string; criterion_code: string; severity: string; status: string;
       }>(
         `SELECT
                 COALESCE(
-                  NULLIF(acr.description, ''),
-                  NULLIF(ec.nc_hint, ''),
+                  NULLIF(TRIM(ec.nc_hint), ''),
                   CASE
-                    WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.name
-                    ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
+                    WHEN TRIM(acr.description) IS NOT NULL
+                      AND LENGTH(TRIM(COALESCE(acr.description, ''))) > 8
+                      AND TRIM(acr.description) NOT IN (${DESCRIPCIONES_GENERICAS.map((_, i) => `$${i + 3}`).join(', ')})
+                    THEN NULLIF(TRIM(acr.description), '')
+                  END,
+                  CASE
+                    WHEN ec.name IS NOT NULL AND LENGTH(ec.name) > 3
+                    THEN 'No se evidencia cumplimiento de: ' || ec.name
+                    ELSE COALESCE(NULLIF(f.title, ''), f.description, 'Criterio no cumplido')
                   END
                 ) AS title,
                 COALESCE(ec.code, '') AS criterion_code,
@@ -896,9 +907,13 @@ export class ReportService {
          WHERE f.provider_id = $1
            AND es.code = $2
            AND f.status NOT IN ('cerrada', 'closed')
+           AND (acr.response_status IS NULL OR acr.response_status = 'NC')
+           ${assessmentId ? 'AND f.assessment_id = $' + (DESCRIPCIONES_GENERICAS.length + 3) : ''}
          ORDER BY f.severity DESC, ec.code
          LIMIT 20`,
-        [providerId, est.code]
+        assessmentId
+          ? [providerId, est.code, ...DESCRIPCIONES_GENERICAS, assessmentId]
+          : [providerId, est.code, ...DESCRIPCIONES_GENERICAS]
       ).catch(() => ({ rows: [] }));
 
       estandares.push({
@@ -999,10 +1014,17 @@ export class ReportService {
         }>(
           `SELECT
                   COALESCE(
-                    NULLIF(acr.description, ''),
-                    NULLIF(ec.nc_hint, ''),
-                    CASE WHEN ec.code IS NOT NULL AND ec.name IS NOT NULL THEN ec.name
-                         ELSE COALESCE(NULLIF(f.title, ''), f.description, '')
+                    NULLIF(TRIM(ec.nc_hint), ''),
+                    CASE
+                      WHEN TRIM(acr.description) IS NOT NULL
+                        AND LENGTH(TRIM(COALESCE(acr.description, ''))) > 8
+                        AND TRIM(acr.description) NOT IN (${DESCRIPCIONES_GENERICAS.map((_, i) => `$${i + 3}`).join(', ')})
+                      THEN NULLIF(TRIM(acr.description), '')
+                    END,
+                    CASE
+                      WHEN ec.name IS NOT NULL AND LENGTH(ec.name) > 3
+                      THEN 'No se evidencia cumplimiento de: ' || ec.name
+                      ELSE COALESCE(NULLIF(f.title, ''), f.description, 'Criterio no cumplido')
                     END
                   ) AS title,
                   COALESCE(ec.code, '') AS criterion_code,
@@ -1014,27 +1036,33 @@ export class ReportService {
            WHERE f.provider_id = $1
              AND es.id = $2
              AND f.status NOT IN ('cerrada', 'closed')
+             AND (acr.response_status IS NULL OR acr.response_status = 'NC')
+             AND f.assessment_id = $${DESCRIPCIONES_GENERICAS.length + 3}
            ORDER BY f.severity DESC, ec.code
            LIMIT 20`,
-          [providerId, est.id]
+          [providerId, est.id, ...DESCRIPCIONES_GENERICAS, assessmentId]
         ).catch(() => ({ rows: [] }));
 
-        estandaresServicio.push({
-          codigo: est.code,
-          nombre: est.name,
-          totalCriterios: m.total,
-          cumple: m.cumple,
-          noCumple: m.noCumple,
-          noAplica: m.noAplica,
-          porcentajeCumplimiento: pctSvc,
-          semaforo: semaforoSvc,
-          hallazgos: hResult.rows.map(h => ({
-            criterio: h.criterion_code,
-            descripcion: h.title.replace(/^\d+(\.\d+)*\.\s*/, ''),
-            tipo: 'no_conformidad',
-            severidad: h.severity || 'media',
-          })),
-        });
+        // Solo incluir estándares con al menos un criterio respondido (C o NC)
+        // Los que tienen 0 aplicables no aportan información al informe
+        if (m.cumple + m.noCumple > 0) {
+          estandaresServicio.push({
+            codigo: est.code,
+            nombre: est.name,
+            totalCriterios: m.total,
+            cumple: m.cumple,
+            noCumple: m.noCumple,
+            noAplica: m.noAplica,
+            porcentajeCumplimiento: pctSvc,
+            semaforo: semaforoSvc,
+            hallazgos: hResult.rows.map(h => ({
+              criterio: h.criterion_code,
+              descripcion: h.title.replace(/^\d+(\.\d+)*\.\s*/, ''),
+              tipo: 'no_conformidad',
+              severidad: h.severity || 'media',
+            })),
+          });
+        }
       }
     }
 
@@ -1244,15 +1272,15 @@ export class ReportService {
             const subC = grupos.reduce((s, e) => s + e.cumple, 0);
             const subNC = grupos.reduce((s, e) => s + e.noCumple, 0);
             const subApl = subC + subNC;
-            const subPct = subApl > 0 ? Math.round((subC / subApl) * 100) : 0;
-            const subSemColor = subPct >= 80 ? COLORS.success : subPct >= 50 ? COLORS.warning : COLORS.danger;
-            const subSemLabel = subPct >= 80 ? 'VERDE' : subPct >= 50 ? 'NARANJA' : 'ROJO';
+            const subPct = subApl > 0 ? Math.round((subC / subApl) * 100) : -1;
+            const subSemColor = subPct === -1 ? COLORS.muted : subPct >= 80 ? COLORS.success : subPct >= 50 ? COLORS.warning : COLORS.danger;
+            const subSemLabel = subPct === -1 ? 'NO APLICA' : subPct >= 80 ? 'VERDE' : subPct >= 50 ? 'NARANJA' : 'ROJO';
             doc.rect(50, y, W, 24).fill(COLORS.bg);
             doc.fillColor(COLORS.text).fontSize(9).font('Helvetica-Bold')
               .text(tieneNISvc ? 'SUBTOTAL' : 'TOTAL GENERAL', 58, y + 7, { width: 200 });
             doc.fillColor(COLORS.success).font('Helvetica').text(subC.toString(), 268, y + 7, { width: 30, align: 'center' });
             doc.fillColor(COLORS.danger).text(subNC.toString(), 305, y + 7, { width: 30, align: 'center' });
-            doc.fillColor(COLORS.text).font('Helvetica-Bold').text(`${subPct}%`, 348, y + 7, { width: 60, align: 'center' });
+            doc.fillColor(COLORS.text).font('Helvetica-Bold').text(subPct === -1 ? 'N/A' : `${subPct}%`, 348, y + 7, { width: 60, align: 'center' });
             doc.fillColor(subSemColor).text(subSemLabel, 414, y + 7, { width: 70, align: 'center' });
             y += 24;
           };
