@@ -166,6 +166,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'Medicamentos, Dispositivos e Insumos',
         'Procesos Prioritarios',
         'Infraestructura',
+        'Interdependencia de Servicios',
       ];
 
   const categories = useMemo(() => {
