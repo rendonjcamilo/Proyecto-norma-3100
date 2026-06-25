@@ -146,6 +146,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const CATEGORY_ORDER = providerType === 'ips'
     ? [
+        'Condiciones Técnico-Administrativas',
+        'Suficiencia Patrimonial',
+        'Concepto Sanitario',
         'Talento Humano',
         'Historia Clínica y Registros',
         'Dotación y Mantenimiento',
@@ -153,9 +156,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'Procesos Prioritarios',
         'Infraestructura',
         'Interdependencia de Servicios',
-        'Condiciones Técnico-Administrativas',
-        'Suficiencia Patrimonial',
-        'Concepto Sanitario',
         'Reportes Obligatorios',
         'PAMEC',
       ]
