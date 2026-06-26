@@ -1125,7 +1125,7 @@ export class ReportService {
           ['NIT/RUT:', data.provider.rut],
           ['Municipio:', `${data.provider.city}, ${data.provider.department}`],
           ...(data.servicio ? [['Servicio Habilitado:', `[${data.servicio.codigo}] ${data.servicio.nombre}`]] : []),
-          ['Fecha del Informe:', data.fechaInforme.toLocaleDateString('es-CO')],
+          ['Fecha del Informe:', data.fechaInforme.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })],
           ['Generado por:', generatedBy],
         ];
         info.forEach(([label, val]) => {
@@ -1390,7 +1390,7 @@ export class ReportService {
         const footerY = doc.page.height - 50;
         doc.fillColor(COLORS.muted).fontSize(7).font('Helvetica')
           .text(
-            `Informe generado el ${data.fechaInforme.toLocaleString('es-CO')} · Sistema de Gestión Norma 3100 · Resolución 3100 de 2019`,
+            `Informe generado el ${data.fechaInforme.toLocaleString('es-CO', { timeZone: 'America/Bogota' })} · Sistema de Gestión Norma 3100 · Resolución 3100 de 2019`,
             50, footerY, { width: W, align: 'center' }
           );
 
@@ -1410,10 +1410,12 @@ export class ReportService {
 
     // Fecha formateada en español colombiano
     const fechaObj = data.fechaInforme;
-    const dia = fechaObj.getDate();
-    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const mes = meses[fechaObj.getMonth()];
-    const anio = fechaObj.getFullYear();
+    const partesBogota = new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota', day: 'numeric', month: 'long', year: 'numeric',
+    }).formatToParts(fechaObj);
+    const dia = parseInt(partesBogota.find(p => p.type === 'day')?.value ?? '1');
+    const mes = partesBogota.find(p => p.type === 'month')?.value ?? 'enero';
+    const anio = parseInt(partesBogota.find(p => p.type === 'year')?.value ?? '2026');
     const deptFormatted = data.provider.department
       ? data.provider.department.charAt(0).toUpperCase() + data.provider.department.slice(1).toLowerCase()
       : '';
@@ -1857,7 +1859,7 @@ export class ReportService {
     summary.addRow(['RUT', data.provider.rut]);
     summary.addRow(['Ciudad', data.provider.city]);
     summary.addRow(['Departamento', data.provider.department]);
-    summary.addRow(['Fecha de Generación', data.generatedAt.toLocaleString('es-CO')]);
+    summary.addRow(['Fecha de Generación', data.generatedAt.toLocaleString('es-CO', { timeZone: 'America/Bogota' })]);
     summary.addRow(['Generado por', data.generatedBy]);
     summary.addRow([]);
 
