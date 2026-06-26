@@ -128,7 +128,7 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
   // Aplica tanto a transversales (TSTH, TSINF…) como a específicos (APH_TH, APH_INF…)
   // MED = alias de MD (SF_MED), HC = alias de HCR (SF_HC) — Excel usa esas abreviaturas
   const DOMAIN_ORDER: Record<string, number> = {
-    TH: 1, INF: 2, DOT: 3, MD: 4, MED: 4, PP: 5, HCR: 6, HC: 6, INT: 7,
+    TH: 1, HCR: 2, HC: 2, DOT: 3, MD: 4, MED: 4, PP: 5, INF: 6, INT: 7,
   };
   const getDomainSuffix = (code: string): string => {
     const underscoreIdx = code.lastIndexOf('_');
