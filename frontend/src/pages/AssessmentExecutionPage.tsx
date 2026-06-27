@@ -93,12 +93,17 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
     // Usar 'name' y 'description' del backend; si no existen (flujo mock), usar 'text' como fallback
     const rawName = (c as any).name || (c as any).text || 'Sin nombre';
     const rawDesc = (c as any).description || (c as any).text || '';
-    const nameNorm = rawName.trim();
-    const descNorm = rawDesc.trim();
+    // Normalizar: colapsar cualquier secuencia de whitespace (incluyendo NBSP U+00A0) a espacio simple
+    const normalize = (s: string) => s.trim().replace(/\s+/g, ' ');
+    const nameNorm = normalize(rawName);
+    const descNorm = normalize(rawDesc);
+    // Comparación case-insensitive para evitar fallos por capitalización
+    const nameLC = nameNorm.toLowerCase();
+    const descLC = descNorm.toLowerCase();
     // name puede estar truncado con "..." literal en la BD (seeding cortó a 250 chars).
     // Si description empieza con el prefijo del name (sin los "..."), son el mismo criterio.
-    const namePrefix = nameNorm.endsWith('...') ? nameNorm.slice(0, -3) : nameNorm;
-    const isRedundant = descNorm.startsWith(namePrefix) || nameNorm.startsWith(descNorm) || descNorm === nameNorm;
+    const namePrefixLC = nameLC.endsWith('...') ? nameLC.slice(0, -3) : nameLC;
+    const isRedundant = !descNorm || descLC.startsWith(namePrefixLC) || nameLC.startsWith(descLC) || descLC === nameLC;
     const name = isRedundant ? (descNorm.length >= nameNorm.length ? descNorm : nameNorm) : rawName;
     const description = isRedundant ? '' : rawDesc;
 

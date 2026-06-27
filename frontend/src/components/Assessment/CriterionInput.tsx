@@ -146,7 +146,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
         <div className="criterion-header">
           <div className="criterion-details">
             <h5 className="criterion-name">{criterion.name}</h5>
-            {criterion.description && criterion.description !== criterion.name && (
+            {criterion.description && criterion.description.trim().replace(/\s+/g, ' ').toLowerCase() !== criterion.name.trim().replace(/\s+/g, ' ').toLowerCase() && (
               <p className="criterion-description">{criterion.description}</p>
             )}
           </div>
@@ -201,7 +201,7 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
       <div className="criterion-header">
         <div className="criterion-details">
           <h5 className="criterion-name">{criterion.name}</h5>
-          {criterion.description && criterion.description !== criterion.name && (
+          {criterion.description && criterion.description.trim().replace(/\s+/g, ' ').toLowerCase() !== criterion.name.trim().replace(/\s+/g, ' ').toLowerCase() && (
             <p className="criterion-description">{criterion.description}</p>
           )}
           {criterion.evidenceRequirement && (
