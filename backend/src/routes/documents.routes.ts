@@ -324,6 +324,46 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
   );
 
   /**
+   * PATCH /api/documents/:documentId/expiry
+   * Actualizar fecha de vencimiento (y opcionalmente de emisión) de un documento ya subido.
+   * Accesible por provider_admin (propio prestador) y auditor/super_admin.
+   */
+  router.patch(
+    '/documents/:documentId/expiry',
+    authMiddleware,
+    validateUuidParam('documentId'),
+    async (req: Request, res: Response) => {
+      try {
+        const user = req.user;
+        if (!user) { res.status(401).json({ error: 'No autenticado' }); return; }
+
+        // Verificar que el documento pertenece al prestador del usuario (si es provider_admin)
+        if (user.role === 'provider_admin') {
+          const { rows } = await pool.query(
+            'SELECT provider_id FROM provider_documents WHERE id = $1',
+            [req.params.documentId]
+          );
+          if (!rows[0]) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
+          if (rows[0].provider_id !== user.provider_id) {
+            res.status(403).json({ error: 'Sin acceso a este documento' }); return;
+          }
+        }
+
+        const { expiry_date, issue_date } = req.body as { expiry_date?: string; issue_date?: string };
+        const parsedExpiry = expiry_date ? new Date(expiry_date) : null;
+        const parsedIssue  = issue_date  ? new Date(issue_date)  : null;
+
+        const result = await service.updateDocumentExpiry(req.params.documentId, parsedExpiry, parsedIssue);
+        if (!result) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
+        res.json({ data: result });
+      } catch (err) {
+        logger.error({ msg: 'Failed to update document expiry', error: err });
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
    * PATCH /api/documents/:documentId/validate
    * Validate a document (auditor only)
    */

@@ -760,6 +760,32 @@
   color: #4d4080;
 }
 
+/* Botón lápiz — editar fecha de vencimiento */
+.docs-expiry-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.docs-expiry-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.docs-expiry-edit-btn:hover {
+  color: #6255A0;
+  background: rgba(98, 85, 160, 0.08);
+}
+
 .docs-list-btn-validate {
   border-color: rgba(16,185,129,0.3);
   color: #059669;

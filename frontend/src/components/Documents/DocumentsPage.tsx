@@ -106,6 +106,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [providerType, setProviderType] = useState<'ips' | 'independiente'>('independiente');
+  const [expiryEditModal, setExpiryEditModal] = useState<{ item: DocumentCatalogItem; doc: ProviderDocument } | null>(null);
+  const [expiryEditSaving, setExpiryEditSaving] = useState(false);
   const { can } = useRolePermission();
   const { user } = useAuth();
 
@@ -114,6 +116,37 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
+  };
+
+  // Retorna el color del texto de vigencia según proximidad al vencimiento
+  const getExpiryColor = (doc: ProviderDocument | undefined): string | undefined => {
+    if (!doc?.expiry_date) return undefined;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(doc.expiry_date);
+    const diffDays = Math.floor((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return '#dc3545';   // vencido — rojo
+    if (diffDays <= 30) return '#d97706'; // próximo a vencer — naranja
+    return undefined;
+  };
+
+  const handleUpdateExpiry = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!expiryEditModal) return;
+    const data = new FormData(e.currentTarget);
+    const expiry_date = (data.get('expiry_date') as string) || undefined;
+    const issue_date  = (data.get('issue_date')  as string) || undefined;
+    setExpiryEditSaving(true);
+    try {
+      await documentsApi.updateExpiry(expiryEditModal.doc.id, { expiry_date, issue_date });
+      showToast('success', 'Fecha de vencimiento actualizada');
+      setExpiryEditModal(null);
+      await loadData();
+    } catch {
+      showToast('error', 'Error al actualizar la fecha');
+    } finally {
+      setExpiryEditSaving(false);
+    }
   };
 
   const loadData = async (type?: 'ips' | 'independiente') => {
@@ -807,7 +840,18 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </div>
                   <div className="prov-info-row">
                     <span className="prov-info-label">Vigencia</span>
-                    <span className="prov-info-value">{doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}</span>
+                    <span className="prov-info-value docs-expiry-cell" style={{ color: getExpiryColor(doc) }}>
+                      {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? 'Sin vencimiento' : '—'}
+                      {doc && can('documents', 'create') && (
+                        <button
+                          className="docs-expiry-edit-btn"
+                          title="Editar fecha de vencimiento"
+                          onClick={(e) => { e.stopPropagation(); setExpiryEditModal({ item, doc }); }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      )}
+                    </span>
                   </div>
                   <div className="prov-info-row">
                     <span className="prov-info-label">Versión</span>
@@ -918,8 +962,17 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                         {STATUS_LABELS[status] || status}
                       </span>
                     </td>
-                    <td className="docs-list-date">
+                    <td className="docs-list-date docs-expiry-cell" style={{ color: getExpiryColor(doc) }}>
                       {doc?.expiry_date ? formatDate(doc.expiry_date) : doc ? '—' : '—'}
+                      {doc && can('documents', 'create') && (
+                        <button
+                          className="docs-expiry-edit-btn"
+                          title="Editar fecha de vencimiento"
+                          onClick={(e) => { e.stopPropagation(); setExpiryEditModal({ item, doc }); }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      )}
                     </td>
                     <td className="docs-list-ver">
                       {doc ? `v${doc.version}` : '—'}
@@ -1180,6 +1233,53 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </button>
                   <button type="submit" className="btn-primary" disabled={validating}>
                     {validating ? 'Guardando...' : 'Guardar validación'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === MODAL EDITAR FECHA DE VENCIMIENTO === */}
+      {expiryEditModal && (
+        <div className="modal-overlay" onClick={() => setExpiryEditModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <header className="modal-header">
+              <h3>Editar Fecha de Vencimiento</h3>
+              <button className="modal-close" onClick={() => setExpiryEditModal(null)}>×</button>
+            </header>
+            <div className="modal-body">
+              <div className="modal-doc-info">
+                <div className="modal-code">{expiryEditModal.item.code}</div>
+                <div className="modal-doc-name">{expiryEditModal.item.name}</div>
+              </div>
+              <form onSubmit={handleUpdateExpiry}>
+                <div className="field-row">
+                  <div className="field">
+                    <label>Fecha de emisión</label>
+                    <input
+                      type="date"
+                      name="issue_date"
+                      defaultValue={expiryEditModal.doc.issue_date?.slice(0, 10) || ''}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Fecha de vencimiento</label>
+                    <input
+                      type="date"
+                      name="expiry_date"
+                      defaultValue={expiryEditModal.doc.expiry_date?.slice(0, 10) || ''}
+                    />
+                    <small>Dejar vacío para quitar la fecha de vencimiento</small>
+                  </div>
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn-secondary" onClick={() => setExpiryEditModal(null)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={expiryEditSaving}>
+                    {expiryEditSaving ? 'Guardando...' : 'Guardar'}
                   </button>
                 </div>
               </form>

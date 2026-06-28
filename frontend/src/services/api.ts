@@ -659,6 +659,9 @@ export const documentsApi = {
 
   toggleNotApplicable: (providerId: string, catalogId: string) =>
     request<{ data: Document }>('PATCH', `/api/providers/${providerId}/documents/${catalogId}/not-applicable`, {}),
+
+  updateExpiry: (docId: string, data: { expiry_date?: string; issue_date?: string }) =>
+    request<{ data: Document }>('PATCH', `/api/documents/${docId}/expiry`, data),
 };
 
 // ─────────────────────────────────────────────

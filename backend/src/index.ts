@@ -36,6 +36,7 @@ import { createUsersRouter } from './routes/users.routes.js';
 import { createLocationsRouter } from './routes/locations.routes.js';
 import { createNotificationsRouter } from './routes/notifications.routes.js';
 import { HabilitacionAlertService } from './services/HabilitacionAlertService.js';
+import { DocumentExpiryAlertService } from './services/DocumentExpiryAlertService.js';
 import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
@@ -319,6 +320,10 @@ void runStartupMigrations().then(() => app.listen(PORT, () => {
   const notificationService = new NotificationService(pool);
   const habilitacionAlertService = new HabilitacionAlertService(pool, notificationService);
   habilitacionAlertService.startDailyCheck();
+
+  // Alertas de vencimiento de documentos (30d, 15d, 7d, hoy)
+  const documentExpiryAlertService = new DocumentExpiryAlertService(pool, notificationService);
+  documentExpiryAlertService.startDailyCheck();
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   void repsAlertService.initAllActiveSchedulers();

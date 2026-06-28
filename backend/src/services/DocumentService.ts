@@ -56,7 +56,7 @@ export interface LinkExternalDocumentInput {
 export class DocumentService {
   private model: DocumentModel;
 
-  constructor(pool: Pool, private eventStore: EventStore) {
+  constructor(private pool: Pool, private eventStore: EventStore) {
     this.model = new DocumentModel(pool);
   }
 
@@ -410,5 +410,22 @@ export class DocumentService {
 
   async getVersionHistory(providerId: string, catalogId: string): Promise<ProviderDocument[]> {
     return this.model.getVersionHistory(providerId, catalogId);
+  }
+
+  async updateDocumentExpiry(
+    documentId: string,
+    expiryDate: Date | null,
+    issueDate?: Date | null
+  ): Promise<ProviderDocument | null> {
+    const result = await this.pool.query<ProviderDocument>(
+      `UPDATE provider_documents
+       SET expiry_date = $1,
+           issue_date  = COALESCE($2, issue_date),
+           updated_at  = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [expiryDate ?? null, issueDate ?? null, documentId]
+    );
+    return result.rows[0] || null;
   }
 }
