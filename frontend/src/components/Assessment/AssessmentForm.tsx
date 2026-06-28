@@ -127,6 +127,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
 
   const { user } = useAuth();
   const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
@@ -187,6 +188,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     }
 
     setResponses(newResponses);
+    setCollapsedBranches((prev) => new Set([...prev, parentId]));
   }, [responses, questionnaiireData]);
 
   /**
@@ -205,7 +207,16 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     }
 
     setResponses(newResponses);
+    setCollapsedBranches((prev) => new Set([...prev, parentId]));
   }, [responses, questionnaiireData]);
+
+  const handleExpandBranch = useCallback((parentId: string) => {
+    setCollapsedBranches((prev) => {
+      const next = new Set(prev);
+      next.delete(parentId);
+      return next;
+    });
+  }, []);
 
   const handleDescriptionChange = (criterionId: string, description: string) => {
     const response = responses.get(criterionId);
@@ -369,6 +380,8 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 onNABranch={handleNABranch}
                 readOnly={readOnly}
                 isAuditor={isAuditor}
+                collapsedBranches={collapsedBranches}
+                onExpandBranch={handleExpandBranch}
               />
             ))}
           </section>
@@ -390,6 +403,8 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 onNABranch={handleNABranch}
                 readOnly={readOnly}
                 isAuditor={isAuditor}
+                collapsedBranches={collapsedBranches}
+                onExpandBranch={handleExpandBranch}
               />
             ))}
           </section>
@@ -451,6 +466,8 @@ interface StandardGroupProps {
   onNABranch: (parentId: string, branchIds: string[]) => void;
   readOnly?: boolean;
   isAuditor?: boolean;
+  collapsedBranches: Set<string>;
+  onExpandBranch: (parentId: string) => void;
 }
 
 const StandardGroup: React.FC<StandardGroupProps> = ({
@@ -463,10 +480,24 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   onNABranch,
   readOnly,
   isAuditor = false,
+  collapsedBranches,
+  onExpandBranch,
 }) => {
   const evaluable = standard.criteria.filter((c) => !c.is_section_header);
   const answeredInGroup = evaluable.filter((c) => responses.has(c.id)).length;
   const completionPercent = evaluable.length > 0 ? (answeredInGroup / evaluable.length) * 100 : 0;
+
+  // IDs de criterios hijos de ramas colapsadas (se ocultan en el render)
+  const collapsedChildIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const parentId of collapsedBranches) {
+      const parent = standard.criteria.find((c) => c.id === parentId);
+      if (parent) {
+        getBranchChildIds(parent, standard.criteria).forEach((id) => ids.add(id));
+      }
+    }
+    return ids;
+  }, [collapsedBranches, standard.criteria]);
 
   return (
     <div className={`standard-group ${standard.isTransversal ? 'transversal' : 'service-specific'}`}>
@@ -494,21 +525,43 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
       {isExpanded && (
         <div className="standard-criteria">
           {standard.criteria.map((criterion, index) => {
+            // Ocultar hijos de ramas colapsadas
+            if (collapsedChildIds.has(criterion.id)) return null;
+
             const branchIds = getBranchChildIds(criterion, standard.criteria);
+            const isCollapsed = collapsedBranches.has(criterion.id) && branchIds.length > 0;
+            const branchStatus = responses.get(criterion.id)?.status;
+
             return (
-              <CriterionInput
-                key={criterion.id}
-                criterion={criterion}
-                number={criterion.number || String(index + 1)}
-                response={responses.get(criterion.id)}
-                onChange={(response) => onResponseChange(criterion.id, response)}
-                readOnly={readOnly}
-                isBranchParent={branchIds.length > 0}
-                branchSize={branchIds.length}
-                isAuditor={isAuditor}
-                onDenyBranch={branchIds.length > 0 ? () => onDenyBranch(criterion.id, branchIds) : undefined}
-                onNABranch={branchIds.length > 0 ? () => onNABranch(criterion.id, branchIds) : undefined}
-              />
+              <React.Fragment key={criterion.id}>
+                <CriterionInput
+                  criterion={criterion}
+                  number={criterion.number || String(index + 1)}
+                  response={responses.get(criterion.id)}
+                  onChange={(response) => onResponseChange(criterion.id, response)}
+                  readOnly={readOnly}
+                  isBranchParent={branchIds.length > 0}
+                  branchSize={branchIds.length}
+                  isAuditor={isAuditor}
+                  onDenyBranch={branchIds.length > 0 ? () => onDenyBranch(criterion.id, branchIds) : undefined}
+                  onNABranch={branchIds.length > 0 ? () => onNABranch(criterion.id, branchIds) : undefined}
+                />
+                {isCollapsed && (
+                  <div className="branch-collapsed-summary">
+                    <span className="branch-collapsed-label">
+                      {branchIds.length} sub-criterio{branchIds.length !== 1 ? 's' : ''} marcado{branchIds.length !== 1 ? 's' : ''} como{' '}
+                      <strong>{branchStatus === 'NC' ? 'No Cumple' : 'No Aplica'}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-expand-branch"
+                      onClick={() => onExpandBranch(criterion.id)}
+                    >
+                      Expandir ▼
+                    </button>
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
         </div>

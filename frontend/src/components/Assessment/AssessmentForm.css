@@ -1,5 +1,38 @@
 /* AssessmentForm Component Styles */
 
+.branch-collapsed-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin: 4px 0 8px 0;
+  background: #f0f4ff;
+  border: 1px dashed #9aabdb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #42526e;
+}
+
+.branch-collapsed-label {
+  color: #42526e;
+}
+
+.btn-expand-branch {
+  padding: 4px 12px;
+  background: white;
+  border: 1px solid #9aabdb;
+  border-radius: 4px;
+  color: #0052cc;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-expand-branch:hover {
+  background: #e3eaff;
+}
+
 .assessment-form {
   max-width: 1000px;
   margin: 0 auto;
