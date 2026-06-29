@@ -75,10 +75,10 @@ async function generateHint(criterionName: string, retries = 3): Promise<string>
         messages: [{ role: 'user', content: `Criterio: "${criterionName}"` }],
       });
       const content = message.content[0];
-      if (content.type !== 'text') throw new Error('Respuesta inesperada del modelo');
+      if (content.type !== 'text') { throw new Error('Respuesta inesperada del modelo'); }
       return content.text.trim();
     } catch (err) {
-      if (attempt === retries) throw err;
+      if (attempt === retries) { throw err; }
       // Backoff exponencial: 2s, 4s
       await sleep(2000 * attempt);
     }
