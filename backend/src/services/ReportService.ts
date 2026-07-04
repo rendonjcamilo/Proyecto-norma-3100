@@ -788,11 +788,12 @@ export class ReportService {
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
 
-    // Obtener servicios asociados al assessment (soporta multi-servicio via service_ids JSONB)
+    // Obtener servicios y fecha de la auditoría (submitted_at del assessment)
     let serviciosMultiple: { codigo: string; nombre: string }[] = [];
+    let fechaAuditoria: Date | null = null;
     if (assessmentId) {
-      const svcResult = await this.pool.query<{ code: string; name: string }>(
-        `SELECT DISTINCT s.code, s.name
+      const svcResult = await this.pool.query<{ code: string; name: string; submitted_at: string | null }>(
+        `SELECT DISTINCT s.code, s.name, a.submitted_at
          FROM assessments a
          JOIN services s ON (
            s.id = a.service_id
@@ -805,8 +806,11 @@ export class ReportService {
          WHERE a.id = $1
          ORDER BY s.name`,
         [assessmentId]
-      ).catch(() => ({ rows: [] as { code: string; name: string }[] }));
+      ).catch(() => ({ rows: [] as { code: string; name: string; submitted_at: string | null }[] }));
       serviciosMultiple = svcResult.rows.map(r => ({ codigo: r.code, nombre: r.name }));
+      if (svcResult.rows[0]?.submitted_at) {
+        fechaAuditoria = new Date(svcResult.rows[0].submitted_at);
+      }
     }
 
     // Obtener los 7 estándares transversales — solo el que tiene criterios reales
@@ -1074,7 +1078,7 @@ export class ReportService {
     return {
       provider,
       servicios: serviciosMultiple,
-      fechaInforme: new Date(),
+      fechaInforme: fechaAuditoria ?? new Date(),
       estandares,
       estandaresServicio,
       resumenCondiciones: {
