@@ -183,7 +183,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     for (const id of [parentId, ...branchIds]) {
       const criterion = allCriteria.find((c) => c.id === id);
       if (criterion && !criterion.is_section_header) {
-        newResponses.set(id, { criterionId: id, status: 'NC', description: defaultDescription });
+        newResponses.set(id, { criterionId: id, status: 'NC', description: criterion.ncHint || defaultDescription });
       }
     }
 
