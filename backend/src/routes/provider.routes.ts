@@ -186,7 +186,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
               await client.query(
                 `INSERT INTO services_enabled (id, provider_id, service_id, status)
                  VALUES (gen_random_uuid(), $1, $2, 'active')
-                 ON CONFLICT (provider_id, service_id, location_id) DO UPDATE SET status = 'active'`,
+                 ON CONFLICT DO NOTHING`,
                 [provider.id, serviceId]
               );
             }
@@ -233,8 +233,9 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
           client.release();
         }
       } catch (err) {
-        logger.error({ msg: 'Error creating provider', error: err instanceof Error ? err.message : String(err) });
-        res.status(500).json({ error: 'Failed to create provider' });
+        const errMsg = err instanceof Error ? err.message : String(err);
+        logger.error({ msg: 'Error creating provider', error: errMsg, pg_code: (err as any)?.code });
+        res.status(500).json({ error: `Error al crear prestador: ${errMsg}` });
       }
     }
   );
