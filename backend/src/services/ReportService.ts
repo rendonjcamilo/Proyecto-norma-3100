@@ -787,6 +787,9 @@ export class ReportService {
     );
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
+    const toTitleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    provider.city = provider.city ? toTitleCase(provider.city) : provider.city;
+    provider.department = provider.department ? toTitleCase(provider.department) : provider.department;
 
     // Obtener servicios y fecha de la auditoría (submitted_at del assessment)
     let serviciosMultiple: { codigo: string; nombre: string }[] = [];
@@ -1425,9 +1428,7 @@ export class ReportService {
     const dia = parseInt(partesBogota.find(p => p.type === 'day')?.value ?? '1');
     const mes = partesBogota.find(p => p.type === 'month')?.value ?? 'enero';
     const anio = parseInt(partesBogota.find(p => p.type === 'year')?.value ?? '2026');
-    const deptFormatted = data.provider.department
-      ? data.provider.department.charAt(0).toUpperCase() + data.provider.department.slice(1).toLowerCase()
-      : '';
+    const deptFormatted = data.provider.department ?? '';
 
     // Leer imágenes de assets
     // header.jpg (1868×2418 px) contiene el membrete completo A&H:
