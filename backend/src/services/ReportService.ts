@@ -750,7 +750,7 @@ export class ReportService {
    */
   async gatherAuditReportData(providerId: string, assessmentId?: string): Promise<{
     provider: ComplianceReportData['provider'];
-    servicio: { codigo: string; nombre: string } | null;
+    servicios: { codigo: string; nombre: string }[];
     fechaInforme: Date;
     estandares: Array<{
       codigo: string;
@@ -788,20 +788,25 @@ export class ReportService {
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
 
-    // Obtener servicios asociados al assessment (soporta multi-servicio)
-    let servicio: { codigo: string; nombre: string } | null = null;
+    // Obtener servicios asociados al assessment (soporta multi-servicio via service_ids JSONB)
     let serviciosMultiple: { codigo: string; nombre: string }[] = [];
     if (assessmentId) {
       const svcResult = await this.pool.query<{ code: string; name: string }>(
-        `SELECT s.code, s.name FROM services s
-         JOIN assessments a ON a.service_id = s.id
-         WHERE a.id = $1`,
+        `SELECT DISTINCT s.code, s.name
+         FROM assessments a
+         JOIN services s ON (
+           s.id = a.service_id
+           OR (
+             a.service_ids IS NOT NULL
+             AND a.service_ids <> '[]'::jsonb
+             AND s.id::text IN (SELECT jsonb_array_elements_text(a.service_ids))
+           )
+         )
+         WHERE a.id = $1
+         ORDER BY s.name`,
         [assessmentId]
       ).catch(() => ({ rows: [] as { code: string; name: string }[] }));
-      if (svcResult.rows.length > 0) {
-        serviciosMultiple = svcResult.rows.map(r => ({ codigo: r.code, nombre: r.name }));
-        servicio = serviciosMultiple[0];
-      }
+      serviciosMultiple = svcResult.rows.map(r => ({ codigo: r.code, nombre: r.name }));
     }
 
     // Obtener los 7 estándares transversales — solo el que tiene criterios reales
@@ -1068,7 +1073,7 @@ export class ReportService {
 
     return {
       provider,
-      servicio,
+      servicios: serviciosMultiple,
       fechaInforme: new Date(),
       estandares,
       estandaresServicio,
@@ -1124,7 +1129,7 @@ export class ReportService {
           ['Prestador:', data.provider.legal_name],
           ['NIT/RUT:', data.provider.rut],
           ['Municipio:', `${data.provider.city}, ${data.provider.department}`],
-          ...(data.servicio ? [['Servicio Habilitado:', `[${data.servicio.codigo}] ${data.servicio.nombre}`]] : []),
+          ...(data.servicios.length > 0 ? [['Servicios Habilitados:', data.servicios.map(s => `[${s.codigo}] ${s.nombre}`).join('\n')]] : []),
           ['Fecha del Informe:', data.fechaInforme.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })],
           ['Generado por:', generatedBy],
         ];
@@ -1230,8 +1235,8 @@ export class ReportService {
           const ionizSvc = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
           const noIonizSvc = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
           const tieneNISvc = noIonizSvc.length > 0;
-          const svcBase = data.servicio
-            ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
+          const svcBase = data.servicios.length > 0
+            ? data.servicios.map(s => `${s.nombre.toUpperCase()} (${s.codigo})`).join(' / ')
             : 'SERVICIO ESPECÍFICO';
 
           const renderSvcTable = (grupos: typeof data.estandaresServicio, titulo: string) => {
@@ -1329,8 +1334,8 @@ export class ReportService {
           const ionizHall = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
           const noIonizHall = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
           const tieneNIHall = noIonizHall.length > 0;
-          const svcBase2 = data.servicio
-            ? `${data.servicio.nombre.toUpperCase()} (${data.servicio.codigo})`
+          const svcBase2 = data.servicios.length > 0
+            ? data.servicios.map(s => `${s.nombre.toUpperCase()} (${s.codigo})`).join(' / ')
             : 'SERVICIO ESPECÍFICO';
 
           const renderSvcHallazgos = (grupos: typeof data.estandaresServicio, titulo: string) => {
@@ -1541,8 +1546,8 @@ export class ReportService {
           new TableRow({ children: [labelCell('Nombre o razón social del prestador'), valueCell(data.provider.legal_name)] }),
           new TableRow({ children: [labelCell('Cédula de ciudadanía / NIT'), valueCell(data.provider.rut)] }),
           new TableRow({ children: [labelCell('Municipio'), valueCell(`${data.provider.city} (${deptFormatted})`)] }),
-          ...(data.servicio
-            ? [new TableRow({ children: [labelCell('Servicio'), valueCell(`${data.servicio.nombre}`)] })]
+          ...(data.servicios.length > 0
+            ? [new TableRow({ children: [labelCell('Servicios'), valueCell(data.servicios.map(s => s.nombre).join('\n'))] })]
             : []),
         ],
       }),
@@ -1583,8 +1588,9 @@ export class ReportService {
       // ── ESTÁNDARES ESPECÍFICOS DEL SERVICIO (ionizantes y NO ionizantes separados) ─────
       ...(() => {
         if (data.estandaresServicio.length === 0) {return [];}
-        const _svcN = data.servicio?.nombre?.toUpperCase() ?? '';
-        const _svcC = data.servicio?.codigo ?? '';
+        const _svcLabel = data.servicios.length > 0
+          ? data.servicios.map(s => `${s.nombre.toUpperCase()} (${s.codigo})`).join(' / ')
+          : 'SERVICIO ESPECÍFICO';
         const _ioniz = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
         const _noIoniz = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
         const _tieneNI = _noIoniz.length > 0;
@@ -1613,11 +1619,11 @@ export class ReportService {
         ];
 
         if (!_tieneNI) {
-          return buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC})`);
+          return buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcLabel}`);
         }
         return [
-          ...buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC}) — Radiaciones Ionizantes`),
-          ...buildSvcFindings(_noIoniz, `ESTÁNDARES ESPECÍFICOS — ${_svcN} (${_svcC}) — Radiaciones NO Ionizantes`),
+          ...buildSvcFindings(_ioniz, `ESTÁNDARES ESPECÍFICOS — ${_svcLabel} — Radiaciones Ionizantes`),
+          ...buildSvcFindings(_noIoniz, `ESTÁNDARES ESPECÍFICOS — ${_svcLabel} — Radiaciones NO Ionizantes`),
         ];
       })(),
 
@@ -1672,8 +1678,9 @@ export class ReportService {
       // ── TABLA DE RESULTADOS ESPECÍFICOS POR SERVICIO (ionizantes y NO ionizantes separados) ──
       ...(() => {
         if (data.estandaresServicio.length === 0) {return [];}
-        const _svcN2 = data.servicio?.nombre?.toUpperCase() ?? '';
-        const _svcC2 = data.servicio?.codigo ?? '';
+        const _svcLabel2 = data.servicios.length > 0
+          ? data.servicios.map(s => `${s.nombre.toUpperCase()} (${s.codigo})`).join(' / ')
+          : 'SERVICIO ESPECÍFICO';
         const _ioniz2 = data.estandaresServicio.filter(e => !e.codigo.includes('_NI_'));
         const _noIoniz2 = data.estandaresServicio.filter(e => e.codigo.includes('_NI_'));
         const _tieneNI2 = _noIoniz2.length > 0;
@@ -1726,11 +1733,11 @@ export class ReportService {
         };
 
         if (!_tieneNI2) {
-          return buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2})`, 'TOTAL GENERAL');
+          return buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcLabel2}`, 'TOTAL GENERAL');
         }
         return [
-          ...buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2}) — Radiaciones Ionizantes`, 'SUBTOTAL IONIZANTES'),
-          ...buildSvcTable(_noIoniz2, `RESULTADOS POR ESTÁNDAR — ${_svcN2} (${_svcC2}) — Radiaciones NO Ionizantes`, 'SUBTOTAL NO IONIZANTES'),
+          ...buildSvcTable(_ioniz2, `RESULTADOS POR ESTÁNDAR — ${_svcLabel2} — Radiaciones Ionizantes`, 'SUBTOTAL IONIZANTES'),
+          ...buildSvcTable(_noIoniz2, `RESULTADOS POR ESTÁNDAR — ${_svcLabel2} — Radiaciones NO Ionizantes`, 'SUBTOTAL NO IONIZANTES'),
         ];
       })(),
 
