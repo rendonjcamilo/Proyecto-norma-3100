@@ -322,6 +322,7 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
           JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
           JOIN evaluation_standards es ON es.id = ec.standard_id
           WHERE ard.assessment_id = $1
+            AND COALESCE(ec.is_section_header, false) = FALSE
 
           UNION
 

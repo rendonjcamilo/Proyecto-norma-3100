@@ -166,12 +166,15 @@ export class AssessmentService {
       await client.query(metricsQuery, [assessment.id, totalCriteria]);
 
       // 4. Pre-poblar criterios del cuestionario maestro (512 transversales)
+      // Excluye encabezados de sección — solo criterios evaluables reciben fila inicial
       await client.query(`
         INSERT INTO assessment_responses_detailed
           (assessment_id, criterion_id, response_status, description, comments, responded_by)
         SELECT $1, qc.criterion_id, 'NA', '', '', $3
         FROM questionnaire_criteria qc
+        JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
         WHERE qc.questionnaire_id = $2
+          AND ec.is_section_header = FALSE
         ON CONFLICT DO NOTHING
       `, [assessment.id, masterQuestionnaire.id, userId]);
 
@@ -182,7 +185,9 @@ export class AssessmentService {
             (assessment_id, criterion_id, response_status, description, comments, responded_by)
           SELECT $1, qc.criterion_id, 'NA', '', '', $3
           FROM questionnaire_criteria qc
+          JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
           WHERE qc.questionnaire_id = $2
+            AND ec.is_section_header = FALSE
           ON CONFLICT DO NOTHING
         `, [assessment.id, svcQ.id, userId]);
       }
@@ -475,11 +480,13 @@ export class AssessmentService {
   async calculateCompliance(assessmentId: string, client?: any): Promise<AssessmentMetrics> {
     const pool = client || this.pool;
 
-    // Fetch all responses for assessment
+    // Fetch all responses for assessment — excluye encabezados de sección
     const responsesQuery = `
-      SELECT response_status, criterion_id
-      FROM assessment_responses_detailed
-      WHERE assessment_id = $1
+      SELECT ard.response_status, ard.criterion_id
+      FROM assessment_responses_detailed ard
+      JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
+      WHERE ard.assessment_id = $1
+        AND ec.is_section_header = FALSE
     `;
 
     const responsesResult = await pool.query(responsesQuery, [assessmentId]);
