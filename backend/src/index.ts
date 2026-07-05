@@ -37,6 +37,7 @@ import { createLocationsRouter } from './routes/locations.routes.js';
 import { createNotificationsRouter } from './routes/notifications.routes.js';
 import { HabilitacionAlertService } from './services/HabilitacionAlertService.js';
 import { DocumentExpiryAlertService } from './services/DocumentExpiryAlertService.js';
+import { AdherenceAlertService } from './services/AdherenceAlertService.js';
 import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
@@ -324,6 +325,10 @@ void runStartupMigrations().then(() => app.listen(PORT, () => {
   // Alertas de vencimiento de documentos (30d, 15d, 7d, hoy)
   const documentExpiryAlertService = new DocumentExpiryAlertService(pool, notificationService);
   documentExpiryAlertService.startDailyCheck();
+
+  // Recordatorio mensual de formatos de adherencia (día 1 de cada mes, 8 AM Bogotá)
+  const adherenceAlertService = new AdherenceAlertService(pool, notificationService);
+  adherenceAlertService.startMonthlyCheck();
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   void repsAlertService.initAllActiveSchedulers();
