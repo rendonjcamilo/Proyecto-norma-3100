@@ -144,7 +144,13 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ providerId, providerNa
           : await reportsApi.downloadAuditReportDocx(selectedProviderId, selectedAssessmentId);
 
       const ext = format === 'pdf' ? 'pdf' : 'docx';
-      downloadBlob(blob, `informe_auditoria_${selectedProviderId}.${ext}`);
+      const rawName = summary?.provider.legal_name || providerName || 'prestador';
+      const safeName = rawName
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+        .toLowerCase().substring(0, 60);
+      const today = new Date().toISOString().split('T')[0];
+      downloadBlob(blob, `informe_auditoria_${safeName}_${today}.${ext}`);
       showToast('success', `Informe de Auditoría (${ext.toUpperCase()}) descargado correctamente`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al generar informe de auditoría';

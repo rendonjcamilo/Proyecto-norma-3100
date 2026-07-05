@@ -795,13 +795,13 @@ export class ReportService {
     let serviciosMultiple: { codigo: string; nombre: string }[] = [];
     let fechaAuditoria: Date | null = null;
     if (assessmentId) {
-      // fecha: consulta directa sin JOIN para evitar que falle si no hay servicio asociado
-      const dateResult = await this.pool.query<{ submitted_at: string | null }>(
-        `SELECT submitted_at FROM assessments WHERE id = $1`,
+      // fecha: COALESCE para no caer en new Date() si submitted_at es NULL
+      const dateResult = await this.pool.query<{ fecha: string | null }>(
+        `SELECT COALESCE(submitted_at, updated_at, created_at) AS fecha FROM assessments WHERE id = $1`,
         [assessmentId]
-      ).catch(() => ({ rows: [] as { submitted_at: string | null }[] }));
-      if (dateResult.rows[0]?.submitted_at) {
-        fechaAuditoria = new Date(dateResult.rows[0].submitted_at);
+      ).catch(() => ({ rows: [] as { fecha: string | null }[] }));
+      if (dateResult.rows[0]?.fecha) {
+        fechaAuditoria = new Date(dateResult.rows[0].fecha);
       }
 
       // servicios: JOIN separado
