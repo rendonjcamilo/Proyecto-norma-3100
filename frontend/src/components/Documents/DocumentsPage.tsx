@@ -106,6 +106,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [providerType, setProviderType] = useState<'ips' | 'independiente'>('independiente');
+  const [catalogCounts, setCatalogCounts] = useState<{ ips: number; independiente: number }>({ ips: 0, independiente: 0 });
   const [expiryEditModal, setExpiryEditModal] = useState<{ item: DocumentCatalogItem; doc: ProviderDocument } | null>(null);
   const [expiryEditSaving, setExpiryEditSaving] = useState(false);
   const { can } = useRolePermission();
@@ -191,6 +192,20 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     void loadFreeDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId, providerType]);
+
+  // Carga los conteos reales del catálogo para ambos tipos de prestador
+  useEffect(() => {
+    Promise.all([
+      documentsApi.getCatalog('ips'),
+      documentsApi.getCatalog('independiente'),
+    ]).then(([ipsRes, indRes]) => {
+      setCatalogCounts({
+        ips: (ipsRes.data ?? []).length,
+        independiente: (indRes.data ?? []).length,
+      });
+    }).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const CATEGORY_ORDER = providerType === 'ips'
     ? [
@@ -557,7 +572,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             Profesional Independiente
-            <span className="docs-provider-type-count">151 docs</span>
+            <span className="docs-provider-type-count">{catalogCounts.independiente || '—'} docs</span>
           </label>
           <label className={`docs-provider-type-option${providerType === 'ips' ? ' active' : ''}`}>
             <input
@@ -574,7 +589,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
             </svg>
             IPS
-            <span className="docs-provider-type-count">169 docs</span>
+            <span className="docs-provider-type-count">{catalogCounts.ips || '—'} docs</span>
           </label>
         </div>
       </div>
