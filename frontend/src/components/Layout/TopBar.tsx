@@ -94,11 +94,17 @@ export const TopBar: React.FC<TopBarProps> = ({
     finally { setNotifLoading(false); }
   }, []);
 
-  // Polling de conteo cada 60 segundos
+  // Diferir el primer fetch 4s para no competir con las llamadas de carga inicial de la página
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 60_000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval>;
+    const initial = setTimeout(() => {
+      void fetchUnreadCount();
+      interval = setInterval(fetchUnreadCount, 60_000);
+    }, 4000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [fetchUnreadCount]);
 
   // Cargar lista completa al abrir el panel

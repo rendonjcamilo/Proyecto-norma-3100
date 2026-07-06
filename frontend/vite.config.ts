@@ -39,8 +39,17 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false,
     minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-excel': ['exceljs'],
+          'vendor-socket': ['socket.io-client'],
+        },
+      },
+    },
   },
   resolve: {
     // Prefer .tsx/.ts over stale compiled .js artifacts in src/

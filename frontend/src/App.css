@@ -1,3 +1,7 @@
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ============================================
    APP SHELL LAYOUT
    Sidebar + Content + TopBar professional layout

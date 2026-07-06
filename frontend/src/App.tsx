@@ -1,40 +1,69 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProviderProvider, useProvider } from "./context/ProviderContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { LoginPage } from "./pages/LoginPage";
-import { DocumentsPage } from "./components/Documents";
-import { ReportsPage } from "./components/Reports";
-import { FindingsPage } from "./pages/FindingsPage";
-import { AssessmentsPage } from "./pages/AssessmentsPage";
-import { AssessmentExecutionPage } from "./pages/AssessmentExecutionPage";
-import { AssessmentGeneratorPage } from "./pages/AssessmentGeneratorPage";
-import { AssessmentResultPage } from "./pages/AssessmentResultPage";
-import { ProvidersPage } from "./pages/ProvidersPage";
-import { UsersPage } from "./pages/UsersPage";
-import { QuestionnairesPage } from "./pages/QuestionnairesPage";
-import { InvimaPage } from "./pages/InvimaPage";
-import { RepsPage } from "./pages/RepsPage";
-import { AnexoCuatroPage } from "./pages/AnexoCuatroPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { ChangePasswordPage } from "./pages/ChangePasswordPage";
-import { NotificationCenter } from "./components/Notifications";
-import { EmailTemplateEditor } from "./components/Notifications/EmailTemplateEditor";
-import { MultiChannelPreferences } from "./components/Notifications/MultiChannelPreferences";
-import { NotificationAnalyticsDashboard } from "./components/Notifications/NotificationAnalyticsDashboard";
-import { DeliveryStatusTracker } from "./components/Notifications/DeliveryStatusTracker";
-import { AuditorNotificationsPage } from "./pages/notifications/AuditorNotificationsPage";
-import { AuditorClientsPage } from "./pages/AuditorClientsPage";
-import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
-import { TermsOfServicePage } from "./pages/TermsOfServicePage";
 import { Sidebar, TopBar } from "./components/Layout";
-import { SuperAdminDashboard } from "./pages/dashboards/SuperAdminDashboard";
-import { AuditorDashboard } from "./pages/dashboards/AuditorDashboard";
-import { ProviderDashboard } from "./pages/dashboards/ProviderDashboard";
 import "./App.css";
+
+// Siempre cargados (parte del shell de la app)
+// Sidebar y TopBar se renderizan en cada página autenticada
+
+// Lazy-loaded — solo se descargan cuando el usuario navega a esa ruta
+const LoginPage = lazy(() => import("./pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage").then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
+const ChangePasswordPage = lazy(() => import("./pages/ChangePasswordPage").then(m => ({ default: m.ChangePasswordPage })));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage").then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage").then(m => ({ default: m.TermsOfServicePage })));
+
+const SuperAdminDashboard = lazy(() => import("./pages/dashboards/SuperAdminDashboard").then(m => ({ default: m.SuperAdminDashboard })));
+const AuditorDashboard = lazy(() => import("./pages/dashboards/AuditorDashboard").then(m => ({ default: m.AuditorDashboard })));
+const ProviderDashboard = lazy(() => import("./pages/dashboards/ProviderDashboard").then(m => ({ default: m.ProviderDashboard })));
+
+const AssessmentsPage = lazy(() => import("./pages/AssessmentsPage").then(m => ({ default: m.AssessmentsPage })));
+const AssessmentExecutionPage = lazy(() => import("./pages/AssessmentExecutionPage").then(m => ({ default: m.AssessmentExecutionPage })));
+const AssessmentGeneratorPage = lazy(() => import("./pages/AssessmentGeneratorPage").then(m => ({ default: m.AssessmentGeneratorPage })));
+const AssessmentResultPage = lazy(() => import("./pages/AssessmentResultPage").then(m => ({ default: m.AssessmentResultPage })));
+
+const FindingsPage = lazy(() => import("./pages/FindingsPage").then(m => ({ default: m.FindingsPage })));
+const ProvidersPage = lazy(() => import("./pages/ProvidersPage").then(m => ({ default: m.ProvidersPage })));
+const UsersPage = lazy(() => import("./pages/UsersPage").then(m => ({ default: m.UsersPage })));
+const QuestionnairesPage = lazy(() => import("./pages/QuestionnairesPage").then(m => ({ default: m.QuestionnairesPage })));
+
+const DocumentsPage = lazy(() => import("./components/Documents").then(m => ({ default: m.DocumentsPage })));
+const ReportsPage = lazy(() => import("./components/Reports").then(m => ({ default: m.ReportsPage })));
+
+const NotificationCenter = lazy(() => import("./components/Notifications").then(m => ({ default: m.NotificationCenter })));
+const EmailTemplateEditor = lazy(() => import("./components/Notifications/EmailTemplateEditor").then(m => ({ default: m.EmailTemplateEditor })));
+const MultiChannelPreferences = lazy(() => import("./components/Notifications/MultiChannelPreferences").then(m => ({ default: m.MultiChannelPreferences })));
+const NotificationAnalyticsDashboard = lazy(() => import("./components/Notifications/NotificationAnalyticsDashboard").then(m => ({ default: m.NotificationAnalyticsDashboard })));
+const DeliveryStatusTracker = lazy(() => import("./components/Notifications/DeliveryStatusTracker").then(m => ({ default: m.DeliveryStatusTracker })));
+const AuditorNotificationsPage = lazy(() => import("./pages/notifications/AuditorNotificationsPage").then(m => ({ default: m.AuditorNotificationsPage })));
+
+const AuditorClientsPage = lazy(() => import("./pages/AuditorClientsPage").then(m => ({ default: m.AuditorClientsPage })));
+const InvimaPage = lazy(() => import("./pages/InvimaPage").then(m => ({ default: m.InvimaPage })));
+const RepsPage = lazy(() => import("./pages/RepsPage").then(m => ({ default: m.RepsPage })));
+const AnexoCuatroPage = lazy(() => import("./pages/AnexoCuatroPage").then(m => ({ default: m.AnexoCuatroPage })));
+
+function PageLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <div style={{ textAlign: 'center', color: '#6b7280' }}>
+        <div style={{
+          width: '36px', height: '36px',
+          border: '3px solid #e5e7eb',
+          borderTop: '3px solid #6366f1',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite',
+          margin: '0 auto 10px',
+        }} />
+        Cargando...
+      </div>
+    </div>
+  );
+}
 
 function DashboardRouter(): JSX.Element {
   const { user } = useAuth();
@@ -50,7 +79,6 @@ function DashboardRouter(): JSX.Element {
   }
 }
 
-// Wrappers que extraen datos del contexto
 const AssessmentsWrapper = () => {
   const { selectedProvider } = useProvider();
   return <AssessmentsPage providerId={selectedProvider?.id || ""} />;
@@ -196,12 +224,14 @@ function AppContent(): JSX.Element {
 
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/change-password" element={<ChangePasswordPage />} />
-        <Route path="*" element={<LoginPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="*" element={<LoginPage />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -211,117 +241,119 @@ function AppContent(): JSX.Element {
       <div className="app-main">
         <TopBar onMenuToggle={() => setSidebarOpen(prev => !prev)} providers={availableProviders} selectedProvider={selectedProvider} onSelectProvider={setSelectedProvider} userRole={user?.role} />
         <main className="app-content">
-          <Routes>
-            {/* Dashboard */}
-            <Route path="/" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Dashboard */}
+              <Route path="/" element={<ProtectedRoute><DashboardRouter /></ProtectedRoute>} />
 
-            {/* Assessments */}
-            <Route
-              path="/assessments"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentsWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/assessments/new"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentGeneratorPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/assessments/:id"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentExecutionPage /></ProtectedRoute>}
-            />
-            <Route
-              path="/assessments/:id/results"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentResultPage /></ProtectedRoute>}
-            />
+              {/* Assessments */}
+              <Route
+                path="/assessments"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentsWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/assessments/new"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentGeneratorPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/assessments/:id"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentExecutionPage /></ProtectedRoute>}
+              />
+              <Route
+                path="/assessments/:id/results"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><AssessmentResultPage /></ProtectedRoute>}
+              />
 
-            {/* Findings */}
-            <Route
-              path="/findings"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><FindingsWrapper /></ProtectedRoute>}
-            />
+              {/* Findings */}
+              <Route
+                path="/findings"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><FindingsWrapper /></ProtectedRoute>}
+              />
 
-            {/* Providers */}
-            <Route
-              path="/providers"
-              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><ProvidersPage /></ProtectedRoute>}
-            />
+              {/* Providers */}
+              <Route
+                path="/providers"
+                element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><ProvidersPage /></ProtectedRoute>}
+              />
 
-            {/* Users */}
-            <Route
-              path="/users"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><UsersPage /></ProtectedRoute>}
-            />
+              {/* Users */}
+              <Route
+                path="/users"
+                element={<ProtectedRoute requiredRoles={["super_admin"]}><UsersPage /></ProtectedRoute>}
+              />
 
-            {/* Questionnaires */}
-            <Route
-              path="/questionnaires"
-              element={<ProtectedRoute requiredRoles={["super_admin"]}><QuestionnairesPage /></ProtectedRoute>}
-            />
+              {/* Questionnaires */}
+              <Route
+                path="/questionnaires"
+                element={<ProtectedRoute requiredRoles={["super_admin"]}><QuestionnairesPage /></ProtectedRoute>}
+              />
 
-            {/* Reports */}
-            <Route
-              path="/reports"
-              element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><ReportsWrapper /></ProtectedRoute>}
-            />
+              {/* Reports */}
+              <Route
+                path="/reports"
+                element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><ReportsWrapper /></ProtectedRoute>}
+              />
 
-            {/* Documents */}
-            <Route
-              path="/documents"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><DocumentsWrapper /></ProtectedRoute>}
-            />
+              {/* Documents */}
+              <Route
+                path="/documents"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><DocumentsWrapper /></ProtectedRoute>}
+              />
 
-            {/* Notifications — Subrutas específicas PRIMERO */}
-            <Route
-              path="/notifications/email-templates"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/preferences"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><MultiChannelPreferencesWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/analytics"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><NotificationAnalyticsDashboardWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/delivery-status"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><DeliveryStatusTrackerWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications/auditor-send"
-              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorNotificationsWrapper /></ProtectedRoute>}
-            />
-            <Route
-              path="/notifications"
-              element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
-            />
+              {/* Notifications — subrutas específicas primero */}
+              <Route
+                path="/notifications/email-templates"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><EmailTemplateEditorWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/notifications/preferences"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><MultiChannelPreferencesWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/notifications/analytics"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><NotificationAnalyticsDashboardWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/notifications/delivery-status"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor"]}><DeliveryStatusTrackerWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/notifications/auditor-send"
+                element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorNotificationsWrapper /></ProtectedRoute>}
+              />
+              <Route
+                path="/notifications"
+                element={<ProtectedRoute requiredRoles={["super_admin", "auditor", "provider_admin"]}><NotificationCenterWrapper /></ProtectedRoute>}
+              />
 
-            {/* AUDITOR CLIENTS */}
-            <Route
-              path="/auditor/clients"
-              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorClientsPage /></ProtectedRoute>}
-            />
+              {/* Auditor clients */}
+              <Route
+                path="/auditor/clients"
+                element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AuditorClientsPage /></ProtectedRoute>}
+              />
 
-            {/* INVIMA */}
-            <Route
-              path="/invima"
-              element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
-            />
+              {/* INVIMA */}
+              <Route
+                path="/invima"
+                element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><InvimaWrapper /></ProtectedRoute>}
+              />
 
-            {/* REPS */}
-            <Route
-              path="/reps"
-              element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
-            />
+              {/* REPS */}
+              <Route
+                path="/reps"
+                element={<ProtectedRoute requiredRoles={["auditor", "provider_admin"]}><RepsWrapper /></ProtectedRoute>}
+              />
 
-            {/* Anexo 4 — Verificación Historia Clínica */}
-            <Route
-              path="/anexo4"
-              element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AnexoCuatroPage /></ProtectedRoute>}
-            />
+              {/* Anexo 4 */}
+              <Route
+                path="/anexo4"
+                element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AnexoCuatroPage /></ProtectedRoute>}
+              />
 
-            {/* Catch-all */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </div>
@@ -334,11 +366,13 @@ function App(): JSX.Element {
       <AuthProvider>
         <ProviderProvider>
           <Router>
-            <Routes>
-              <Route path="/privacidad" element={<PrivacyPolicyPage />} />
-              <Route path="/terminos" element={<TermsOfServicePage />} />
-              <Route path="*" element={<AppContent />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/privacidad" element={<PrivacyPolicyPage />} />
+                <Route path="/terminos" element={<TermsOfServicePage />} />
+                <Route path="*" element={<AppContent />} />
+              </Routes>
+            </Suspense>
           </Router>
         </ProviderProvider>
       </AuthProvider>
