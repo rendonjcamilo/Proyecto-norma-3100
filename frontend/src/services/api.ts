@@ -623,6 +623,18 @@ export const questionnairesApi = {
 // DOCUMENTOS
 // ─────────────────────────────────────────────
 
+export interface FreeDocument {
+  id: string;
+  provider_id: string;
+  category: string;
+  original_filename: string;
+  mime_type: string;
+  file_size_bytes: number;
+  description: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
 export const documentsApi = {
   getCatalog: (providerType: 'ips' | 'independiente' = 'independiente') =>
     get<{ data: Array<{ id: string; code: string; name: string; category: string; standard_reference: string; is_mandatory: boolean; expiry_months: number | null }> }>(
@@ -662,6 +674,19 @@ export const documentsApi = {
 
   updateExpiry: (docId: string, data: { expiry_date?: string; issue_date?: string }) =>
     request<{ data: Document }>('PATCH', `/api/documents/${docId}/expiry`, data),
+
+  // Carpeta libre "Sistema de Información" (IPS)
+  listFreeDocuments: (providerId: string) =>
+    get<{ data: FreeDocument[]; total: number }>(`/api/providers/${providerId}/free-documents`),
+
+  uploadFreeDocument: (providerId: string, formData: FormData) =>
+    request<{ data: FreeDocument }>('POST', `/api/providers/${providerId}/free-documents`, formData, { formData: true }),
+
+  downloadFreeDocument: (providerId: string, docId: string) =>
+    blob(`/api/providers/${providerId}/free-documents/${docId}/download`),
+
+  deleteFreeDocument: (providerId: string, docId: string) =>
+    request<{ message: string }>('DELETE', `/api/providers/${providerId}/free-documents/${docId}`),
 };
 
 // ─────────────────────────────────────────────

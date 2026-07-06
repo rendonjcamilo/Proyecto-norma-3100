@@ -6,6 +6,9 @@
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import multer from 'multer';
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs/promises';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { uploadLimiter } from '../middleware/rate-limit.middleware.js';
@@ -14,6 +17,10 @@ import { DocumentService, LinkExternalDocumentInput } from '../services/Document
 import { EventStore } from '../modules/events/EventStore.js';
 import { DocumentStatus } from '../models/document.model.js';
 import { logger } from '../utils/logger.js';
+
+const FREE_STORAGE_ROOT = process.env.DOCUMENT_STORAGE_PATH
+  ? path.join(process.env.DOCUMENT_STORAGE_PATH, 'free')
+  : './storage/documents/free';
 
 // Multer config: memory storage (files held in RAM before persistence)
 const upload = multer({
@@ -441,6 +448,158 @@ export function createDocumentsRouter(pool: Pool, eventStore: EventStore): Route
         res.json({ data: expiring, total: expiring.length });
       } catch (err) {
         logger.error({ msg: 'Failed to fetch expiring documents', error: err });
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  // === FREE-FORM FOLDER: Sistema de Información (IPS only) ===
+
+  /**
+   * GET /api/providers/:providerId/free-documents
+   * Lista los documentos de la carpeta libre del prestador
+   */
+  router.get(
+    '/providers/:providerId/free-documents',
+    authMiddleware,
+    validateUuidParam('providerId'),
+    requireProviderAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const { rows } = await pool.query(
+          `SELECT id, provider_id, category, original_filename, mime_type,
+                  file_size_bytes, description, uploaded_by, created_at
+           FROM provider_free_documents
+           WHERE provider_id = $1
+           ORDER BY created_at DESC`,
+          [req.params.providerId]
+        );
+        res.json({ data: rows, total: rows.length });
+      } catch (err) {
+        logger.error({ msg: 'Failed to list free documents', error: err });
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * POST /api/providers/:providerId/free-documents
+   * Sube un documento a la carpeta libre (multipart: file + description?)
+   */
+  router.post(
+    '/providers/:providerId/free-documents',
+    authMiddleware,
+    uploadLimiter,
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    validateUuidParam('providerId'),
+    requireProviderAccess,
+    upload.single('file'),
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: 'Archivo no proporcionado' });
+        }
+
+        const safeFilename = req.file.originalname
+          .replace(/[^a-zA-Z0-9._\-À-ɏ\s]/g, '_')
+          .replace(/\.{2,}/g, '_')
+          .substring(0, 255);
+
+        const checksum = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+        const relPath   = path.join(req.params.providerId, 'free', `${checksum.substring(0, 8)}_${safeFilename}`);
+        const absPath   = path.join(FREE_STORAGE_ROOT, relPath);
+
+        await fs.mkdir(path.dirname(absPath), { recursive: true });
+        await fs.writeFile(absPath, req.file.buffer, { mode: 0o640 });
+
+        const { rows } = await pool.query(
+          `INSERT INTO provider_free_documents
+             (provider_id, category, filename, original_filename, mime_type,
+              file_size_bytes, storage_path, checksum_sha256, description, uploaded_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id, provider_id, category, original_filename, mime_type,
+                     file_size_bytes, description, uploaded_by, created_at`,
+          [
+            req.params.providerId,
+            'Sistema de Información',
+            safeFilename,
+            safeFilename,
+            req.file.mimetype,
+            req.file.buffer.length,
+            relPath,
+            checksum,
+            (req.body.description as string | undefined) || null,
+            req.user?.user_id || 'system',
+          ]
+        );
+        res.status(201).json({ data: rows[0] });
+      } catch (err) {
+        logger.error({ msg: 'Failed to upload free document', error: err });
+        const message = err instanceof Error ? err.message : 'Internal server error';
+        res.status(400).json({ error: message });
+      }
+    }
+  );
+
+  /**
+   * GET /api/providers/:providerId/free-documents/:docId/download
+   * Descarga un documento de la carpeta libre
+   */
+  router.get(
+    '/providers/:providerId/free-documents/:docId/download',
+    authMiddleware,
+    validateUuidParam('providerId'),
+    validateUuidParam('docId'),
+    requireProviderAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const { rows } = await pool.query(
+          'SELECT * FROM provider_free_documents WHERE id = $1 AND provider_id = $2',
+          [req.params.docId, req.params.providerId]
+        );
+        if (!rows.length) {
+          return res.status(404).json({ error: 'Documento no encontrado' });
+        }
+        const doc = rows[0] as { storage_path: string; filename: string; mime_type: string };
+        const absPath = path.join(FREE_STORAGE_ROOT, doc.storage_path);
+        const buffer = await fs.readFile(absPath);
+        res.setHeader('Content-Type', doc.mime_type);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.filename)}"`);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.send(buffer);
+      } catch (err) {
+        logger.error({ msg: 'Failed to download free document', error: err });
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/providers/:providerId/free-documents/:docId
+   * Elimina un documento de la carpeta libre
+   */
+  router.delete(
+    '/providers/:providerId/free-documents/:docId',
+    authMiddleware,
+    rbacMiddleware(['super_admin', 'auditor', 'provider_admin']),
+    validateUuidParam('providerId'),
+    validateUuidParam('docId'),
+    requireProviderAccess,
+    async (req: Request, res: Response) => {
+      try {
+        const { rows } = await pool.query(
+          'DELETE FROM provider_free_documents WHERE id = $1 AND provider_id = $2 RETURNING storage_path',
+          [req.params.docId, req.params.providerId]
+        );
+        if (!rows.length) {
+          return res.status(404).json({ error: 'Documento no encontrado' });
+        }
+        // Borrar archivo en disco (sin lanzar error si ya no existe)
+        const absPath = path.join(FREE_STORAGE_ROOT, (rows[0] as { storage_path: string }).storage_path);
+        await fs.unlink(absPath).catch(() => undefined);
+        res.json({ message: 'Documento eliminado' });
+      } catch (err) {
+        logger.error({ msg: 'Failed to delete free document', error: err });
         res.status(500).json({ error: 'Internal server error' });
       }
     }

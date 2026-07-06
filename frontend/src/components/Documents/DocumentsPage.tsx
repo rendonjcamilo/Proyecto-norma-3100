@@ -4,8 +4,8 @@
  * Vista para auditor: revisar, descargar y validar documentos del prestador
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { documentsApi, downloadBlob } from '../../services/api';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { documentsApi, downloadBlob, type FreeDocument } from '../../services/api';
 import { openOneDrivePicker } from '../../services/onedrivePicker';
 import { openGoogleDrivePicker } from '../../services/googleDrivePicker';
 import { useRolePermission } from '../../hooks/useRolePermission';
@@ -111,6 +111,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const { can } = useRolePermission();
   const { user } = useAuth();
 
+  const [freeDocuments, setFreeDocuments] = useState<FreeDocument[]>([]);
+  const [freeUploading, setFreeUploading] = useState(false);
+  const freeFileInputRef = useRef<HTMLInputElement>(null);
+
   const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -149,6 +153,16 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     }
   };
 
+  const loadFreeDocuments = async () => {
+    if (!providerId || providerType !== 'ips') return;
+    try {
+      const res = await documentsApi.listFreeDocuments(providerId);
+      setFreeDocuments(res.data ?? []);
+    } catch {
+      // No bloquea si la tabla aún no existe en el VPS
+    }
+  };
+
   const loadData = async (type?: 'ips' | 'independiente') => {
     if (!providerId) return;
     const currentType = type ?? providerType;
@@ -174,6 +188,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   useEffect(() => {
     loadData();
+    void loadFreeDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId, providerType]);
 
@@ -193,6 +208,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'PAMEC',
         'Auditoría de Historia Clínica',
         'Adherencias',
+        'Sistema de Información',
         'Calidad Laboratorio (Res. 1619)',
       ]
     : [
@@ -211,6 +227,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
+    // "Sistema de Información" es carpeta libre: siempre aparece para IPS aunque no haya ítems en catálogo
+    if (providerType === 'ips') set.add('Sistema de Información');
     return Array.from(set).sort((a, b) => {
       const ia = CATEGORY_ORDER.indexOf(a);
       const ib = CATEGORY_ORDER.indexOf(b);
@@ -219,7 +237,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       if (ib === -1) return -1;
       return ia - ib;
     });
-  }, [catalog]);
+  }, [catalog, providerType]);
 
   // Inicializar expandedCategories con la primera categoría al cargar
   useEffect(() => {
@@ -749,8 +767,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       ) : (
         <div className="docs-accordion">
           {categories.map((cat) => {
+            const isFreeFolder = cat === 'Sistema de Información';
             const catItems = (searchQuery ? (catalogByCategory.get(cat) || []) : catalog.filter(i => i.category === cat));
-            if (catItems.length === 0) { return null; }
+            if (!isFreeFolder && catItems.length === 0) { return null; }
             const isExpanded = expandedCategories.has(cat) || !!searchQuery;
             const compliance = complianceByCategory.get(cat) || { compliant: 0, total: 0 };
             const pct = compliance.total > 0 ? Math.round((compliance.compliant / compliance.total) * 100) : 0;
@@ -774,7 +793,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                     <span className="docs-cat-name">{cat}</span>
-                    <span className="docs-cat-count">{catItems.length} documentos</span>
+                    {isFreeFolder
+                      ? <span className="docs-cat-count">{freeDocuments.length} archivos</span>
+                      : <span className="docs-cat-count">{catItems.length} documentos</span>
+                    }
                   </div>
                   <div className="docs-cat-header-right">
                     <div className="docs-cat-progress">
@@ -788,7 +810,106 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 </button>
 
                 {/* Contenido de la categoría */}
-                {isExpanded && (
+                {isExpanded && isFreeFolder ? (
+                  /* ── Carpeta libre: Sistema de Información ── */
+                  <div className="docs-free-folder docs-cat-body">
+                    <div className="docs-free-toolbar">
+                      <span className="docs-free-hint">Carpeta de libre carga — sube cualquier documento relacionado con el sistema de información del prestador</span>
+                      <label className="docs-free-upload-btn" aria-disabled={freeUploading}>
+                        {freeUploading ? 'Subiendo...' : '+ Subir archivo'}
+                        <input
+                          ref={freeFileInputRef}
+                          type="file"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip"
+                          style={{ display: 'none' }}
+                          disabled={freeUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              showToast('error', 'El archivo supera el límite de 5 MB');
+                              return;
+                            }
+                            setFreeUploading(true);
+                            try {
+                              const fd = new FormData();
+                              fd.append('file', file);
+                              await documentsApi.uploadFreeDocument(providerId, fd);
+                              await loadFreeDocuments();
+                              showToast('success', 'Archivo subido correctamente');
+                            } catch {
+                              showToast('error', 'Error al subir el archivo');
+                            } finally {
+                              setFreeUploading(false);
+                              if (freeFileInputRef.current) freeFileInputRef.current.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {freeDocuments.length === 0 ? (
+                      <div className="docs-free-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <p>No hay archivos aún. Usa el botón para subir el primero.</p>
+                      </div>
+                    ) : (
+                      <div className="docs-free-list">
+                        {freeDocuments.map((fd) => {
+                          const ext = fd.original_filename.split('.').pop()?.toUpperCase() ?? 'FILE';
+                          const kb = Math.round(fd.file_size_bytes / 1024);
+                          return (
+                            <div key={fd.id} className="docs-free-item">
+                              <div className="docs-free-icon">{ext}</div>
+                              <div className="docs-free-info">
+                                <span className="docs-free-name">{fd.original_filename}</span>
+                                <span className="docs-free-meta">
+                                  {kb} KB · {new Date(fd.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </span>
+                              </div>
+                              <div className="docs-free-actions">
+                                <button
+                                  className="docs-free-dl"
+                                  title="Descargar"
+                                  onClick={async () => {
+                                    try {
+                                      const b = await documentsApi.downloadFreeDocument(providerId, fd.id);
+                                      downloadBlob(b, fd.original_filename);
+                                    } catch {
+                                      showToast('error', 'Error al descargar el archivo');
+                                    }
+                                  }}
+                                >
+                                  ↓
+                                </button>
+                                {(can('documents', 'delete') || isAuditor) && (
+                                  <button
+                                    className="docs-free-del"
+                                    title="Eliminar"
+                                    onClick={async () => {
+                                      if (!confirm(`¿Eliminar "${fd.original_filename}"?`)) return;
+                                      try {
+                                        await documentsApi.deleteFreeDocument(providerId, fd.id);
+                                        await loadFreeDocuments();
+                                        showToast('success', 'Archivo eliminado');
+                                      } catch {
+                                        showToast('error', 'Error al eliminar el archivo');
+                                      }
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : isExpanded && (
                   viewMode === 'grid' ? (
                     <div className="prov-grid docs-grid docs-cat-body">
                       {catItems.map((item) => {
