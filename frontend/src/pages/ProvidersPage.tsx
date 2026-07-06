@@ -248,7 +248,7 @@ export const ProvidersPage: React.FC = () => {
         phone: formData.phone.trim() || undefined,
         nombre_sede: formData.nombre_sede.trim() || undefined,
         codigo_habilitacion: formData.codigo_habilitacion.trim() || undefined,
-        legal_entity_type: formData.tipo_prestador.trim() || undefined,
+        legal_entity_type: (formData.tipo_prestador.trim() || 'healthcare_organization').substring(0, 200),
         habilitacion_fecha_vencimiento: formData.habilitacion_fecha_vencimiento || undefined,
         representante_legal: formData.representante_legal.trim() || undefined,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
