@@ -43,7 +43,9 @@ describe('jwt.service - separación de secretos access/refresh', () => {
     expect(result.claims?.user_id).toBe('user-1');
   });
 
-  it('validateToken usa fallback a JWT_SECRET para refresh tokens preexistentes (grace period)', () => {
+  it('validateToken usa fallback a JWT_SECRET para refresh tokens preexistentes dentro de la ventana de gracia', () => {
+    process.env.JWT_REFRESH_GRACE_UNTIL = new Date(Date.now() + 60_000).toISOString();
+
     // Simula un refresh token emitido ANTES de este cambio (firmado con JWT_SECRET)
     const legacyToken = jwt.sign(
       {
@@ -61,6 +63,46 @@ describe('jwt.service - separación de secretos access/refresh', () => {
     const result = validateToken(legacyToken);
     expect(result.valid).toBe(true);
     expect(result.claims?.user_id).toBe('user-2');
+  });
+
+  it('validateToken rechaza el fallback a JWT_SECRET cuando JWT_REFRESH_GRACE_UNTIL no está definido', () => {
+    delete process.env.JWT_REFRESH_GRACE_UNTIL;
+
+    const legacyToken = jwt.sign(
+      {
+        sub: 'user-7',
+        user_id: 'user-7',
+        type: 'refresh',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 1209600,
+        jti: 'legacy-jti-2',
+      },
+      process.env.JWT_SECRET as string,
+      { algorithm: 'HS256' },
+    );
+
+    const result = validateToken(legacyToken);
+    expect(result.valid).toBe(false);
+  });
+
+  it('validateToken rechaza el fallback a JWT_SECRET cuando JWT_REFRESH_GRACE_UNTIL ya venció', () => {
+    process.env.JWT_REFRESH_GRACE_UNTIL = new Date(Date.now() - 60_000).toISOString();
+
+    const legacyToken = jwt.sign(
+      {
+        sub: 'user-8',
+        user_id: 'user-8',
+        type: 'refresh',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 1209600,
+        jti: 'legacy-jti-3',
+      },
+      process.env.JWT_SECRET as string,
+      { algorithm: 'HS256' },
+    );
+
+    const result = validateToken(legacyToken);
+    expect(result.valid).toBe(false);
   });
 
   it('validateToken rechaza un refresh token que no fue firmado con ninguno de los dos secretos', () => {

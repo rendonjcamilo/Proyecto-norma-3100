@@ -132,16 +132,38 @@ export function validateToken(token: string): ValidateTokenResult {
       }) as TokenClaims | RefreshTokenClaims;
       const duration = Date.now() - startTime;
 
+      if (!('type' in decoded) || decoded.type !== 'refresh') {
+        logger.debug({ user_id: decoded.user_id }, 'Rejected: token verified but claims.type is not refresh');
+        return { valid: false, error: 'Invalid token type' };
+      }
+
       logger.debug({ user_id: decoded.user_id, duration: `${duration}ms` }, 'Refresh token validated');
       return { valid: true, claims: decoded };
     } catch (_refreshErr) {
       // Grace fallback: refresh tokens emitidos ANTES de separar los secretos
       // se firmaron con JWT_SECRET — se validan una vez más contra ese secreto
-      // para no forzar un logout masivo.
+      // para no forzar un logout masivo. Ventana de migración con expiración
+      // explícita (JWT_REFRESH_GRACE_UNTIL): sin este flag, o ya vencido, el
+      // fallback NO se intenta — evita que un JWT_SECRET filtrado siga
+      // sirviendo para forjar refresh tokens indefinidamente.
+      const graceUntil = process.env.JWT_REFRESH_GRACE_UNTIL;
+      const graceActive = !!graceUntil && Date.now() < new Date(graceUntil).getTime();
+
+      if (!graceActive) {
+        logger.debug('Refresh token validation failed (grace fallback disabled or expired)');
+        return { valid: false, error: 'Invalid refresh token' };
+      }
+
       try {
         const decoded = jwt.verify(token, secret, {
           algorithms: [ALGORITHM],
         }) as TokenClaims | RefreshTokenClaims;
+
+        if (!('type' in decoded) || decoded.type !== 'refresh') {
+          logger.debug({ user_id: decoded.user_id }, 'Rejected: grace-fallback token verified but claims.type is not refresh');
+          return { valid: false, error: 'Invalid token type' };
+        }
+
         logger.debug({ user_id: decoded.user_id }, 'Refresh token validated via grace fallback (JWT_SECRET)');
         return { valid: true, claims: decoded };
       } catch (err) {
