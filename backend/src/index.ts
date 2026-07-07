@@ -38,6 +38,7 @@ import { createNotificationsRouter } from './routes/notifications.routes.js';
 import { HabilitacionAlertService } from './services/HabilitacionAlertService.js';
 import { DocumentExpiryAlertService } from './services/DocumentExpiryAlertService.js';
 import { AdherenceAlertService } from './services/AdherenceAlertService.js';
+import { MedicamentosAlertService } from './services/MedicamentosAlertService.js';
 import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
@@ -329,6 +330,9 @@ void runStartupMigrations().then(() => app.listen(PORT, () => {
   // Recordatorio mensual de formatos de adherencia (día 1 de cada mes, 8 AM Bogotá)
   const adherenceAlertService = new AdherenceAlertService(pool, notificationService);
   adherenceAlertService.startMonthlyCheck();
+
+  const medicamentosAlertService = new MedicamentosAlertService(pool, notificationService);
+  medicamentosAlertService.startSchedules();
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   void repsAlertService.initAllActiveSchedulers();

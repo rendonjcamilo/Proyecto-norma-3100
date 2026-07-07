@@ -224,26 +224,35 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'Auditoría de Historia Clínica',
         'Adherencias',
         'Sistema de Información',
-        'Calidad Laboratorio (Res. 1619)',
+        'Lab. Clínico — Organización y Gestión',
+        'Lab. Clínico — Talento Humano',
+        'Lab. Clínico — Infraestructura y Dotación',
+        'Lab. Clínico — Referencia y Contrarreferencia',
       ]
     : [
         'Talento Humano',
-        'Historia Clínica y Registros',
+        'Infraestructura',
         'Dotación',
         'Medicamentos, Dispositivos e Insumos',
         'Procesos Prioritarios',
-        'Infraestructura',
+        'Historia Clínica y Registros',
         'Interdependencia de Servicios',
-        'PAMEC',
-        'Auditoría de Historia Clínica',
-        'Adherencias',
-        'Calidad Laboratorio (Res. 1619)',
+        'Lab. Clínico — Organización y Gestión',
+        'Lab. Clínico — Talento Humano',
+        'Lab. Clínico — Infraestructura y Dotación',
+        'Lab. Clínico — Referencia y Contrarreferencia',
       ];
+
+  const EXCLUDED_INDEPENDIENTE = new Set(['PAMEC', 'Auditoría de Historia Clínica', 'Adherencias']);
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
     // "Sistema de Información" es carpeta libre: siempre aparece para IPS aunque no haya ítems en catálogo
     if (providerType === 'ips') set.add('Sistema de Información');
+    // PAMEC, Auditoría de Historia Clínica y Adherencias no aplican para profesional independiente
+    if (providerType === 'independiente') {
+      EXCLUDED_INDEPENDIENTE.forEach((c) => set.delete(c));
+    }
     return Array.from(set).sort((a, b) => {
       const ia = CATEGORY_ORDER.indexOf(a);
       const ib = CATEGORY_ORDER.indexOf(b);
@@ -493,6 +502,28 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       downloadBlob(fileBlob, originalName);
     } catch {
       showToast('error', 'Error al descargar el documento');
+    }
+  };
+
+  const handleView = async (docId: string) => {
+    try {
+      const fileBlob = await documentsApi.download(docId);
+      const url = URL.createObjectURL(fileBlob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 120_000);
+    } catch {
+      showToast('error', 'Error al visualizar el documento');
+    }
+  };
+
+  const handleViewFree = async (fdId: string) => {
+    try {
+      const fileBlob = await documentsApi.downloadFreeDocument(providerId, fdId);
+      const url = URL.createObjectURL(fileBlob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 120_000);
+    } catch {
+      showToast('error', 'Error al visualizar el archivo');
     }
   };
 
@@ -887,6 +918,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                               <div className="docs-free-actions">
                                 <button
                                   className="docs-free-dl"
+                                  title="Ver archivo"
+                                  onClick={() => handleViewFree(fd.id)}
+                                >
+                                  👁
+                                </button>
+                                <button
+                                  className="docs-free-dl"
                                   title="Descargar"
                                   onClick={async () => {
                                     try {
@@ -1011,6 +1049,14 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                     </a>
                   )}
                   {doc && !doc.external_url && doc.original_filename && (
+                    <button className="prov-btn-edit docs-btn-action" title="Ver documento" onClick={() => handleView(doc.id)}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      Ver
+                    </button>
+                  )}
+                  {doc && !doc.external_url && doc.original_filename && (
                     <button className="prov-btn-edit docs-btn-action" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -1128,6 +1174,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                             </svg>
                           </a>
+                        )}
+                        {doc && !doc.external_url && doc.original_filename && (
+                          <button className="docs-list-btn docs-list-btn-icon" title="Ver documento" onClick={() => handleView(doc.id)}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          </button>
                         )}
                         {doc && !doc.external_url && doc.original_filename && (
                           <button className="docs-list-btn docs-list-btn-icon" title="Descargar" onClick={() => handleDownload(doc.id, doc.original_filename!)}>
