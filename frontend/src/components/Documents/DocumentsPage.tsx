@@ -512,23 +512,27 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   };
 
   const handleView = async (docId: string) => {
+    const newTab = window.open('', '_blank');
     try {
       const fileBlob = await documentsApi.download(docId);
       const url = URL.createObjectURL(fileBlob);
-      window.open(url, '_blank');
+      if (newTab) newTab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 120_000);
     } catch {
+      if (newTab) newTab.close();
       showToast('error', 'Error al visualizar el documento');
     }
   };
 
   const handleViewFree = async (fdId: string) => {
+    const newTab = window.open('', '_blank');
     try {
       const fileBlob = await documentsApi.downloadFreeDocument(providerId, fdId);
       const url = URL.createObjectURL(fileBlob);
-      window.open(url, '_blank');
+      if (newTab) newTab.location.href = url;
       setTimeout(() => URL.revokeObjectURL(url), 120_000);
     } catch {
+      if (newTab) newTab.close();
       showToast('error', 'Error al visualizar el archivo');
     }
   };
