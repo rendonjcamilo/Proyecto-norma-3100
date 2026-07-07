@@ -129,7 +129,13 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+      .split(',').map((s) => s.trim()).filter(Boolean);
+    // Sin header Origin (same-origin, curl, health checks) o dominio en whitelist → permitido
+    if (!origin || allowed.includes(origin)) return callback(null, true);
+    return callback(new Error('CORS not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
