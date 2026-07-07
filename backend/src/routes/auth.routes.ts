@@ -16,6 +16,8 @@ import { PasswordRecoveryService } from '../services/password-recovery.service.j
 import { authMiddleware, revokeToken } from '../middleware/auth.middleware.js';
 import { passwordLimiter } from '../middleware/rate-limit.middleware.js';
 import { logger } from '../utils/logger.js';
+import { EmailService } from '../services/email/EmailService.js';
+import { EmailConfig } from '../types/multichannel.types.js';
 
 const router = Router();
 
@@ -34,12 +36,30 @@ const devLoginLimiter = process.env.DISABLE_RATE_LIMIT === 'true'
 // Initialize services with database pool
 let userService: UserService;
 let passwordRecoveryService: PasswordRecoveryService;
+let emailService: EmailService;
 let dbPool: Pool;
 
 export function setUserService(pool: Pool) {
   userService = new UserService(pool);
   passwordRecoveryService = new PasswordRecoveryService(pool);
   dbPool = pool;
+
+  // Config de email — mismo patrón que multichannel.routes.ts:64
+  const emailProvider = (process.env.EMAIL_PROVIDER || 'resend') as EmailConfig['provider'];
+  const emailApiKey =
+    emailProvider === 'resend'
+      ? (process.env.RESEND_API_KEY || process.env.EMAIL_API_KEY || '')
+      : (process.env.EMAIL_API_KEY || '');
+  const emailConfig: EmailConfig = {
+    provider: emailProvider,
+    apiKey: emailApiKey,
+    apiSecret: process.env.EMAIL_API_SECRET,
+    fromEmail: process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_FROM || 'noreply@habilitapro.com',
+    fromName: process.env.EMAIL_FROM_NAME || 'HabilitaPro',
+    maxRetries: parseInt(process.env.EMAIL_MAX_RETRIES || '3'),
+    retryDelayMs: parseInt(process.env.EMAIL_RETRY_DELAY || '1000'),
+  };
+  emailService = new EmailService(pool, emailConfig);
 }
 
 /**
@@ -89,7 +109,21 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       last_name,
     });
 
-    // TODO: Send welcome email
+    // Email de bienvenida — best-effort, nunca bloquea ni rompe el registro
+    try {
+      await emailService.sendEmail({
+        userId: user.id,
+        providerId: provider_id, // provider_id está en scope desde req.body
+        email: user.email,
+        templateName: 'Bienvenida',
+        variables: {
+          name: first_name || user.email, // {{name}} en la plantilla
+          date: new Date().toLocaleDateString('es-CO'), // {{date}} en la plantilla
+        },
+      });
+    } catch (emailErr) {
+      logger.warn({ error: emailErr instanceof Error ? emailErr.message : emailErr }, 'No se pudo enviar el email de bienvenida');
+    }
 
     logger.info({ user_id: user.id }, 'User registered successfully');
 
