@@ -1852,6 +1852,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 0;
+  background: #fff;
 }
 
 .docviewer-loading {
@@ -1892,9 +1893,11 @@
   padding: 28px 36px;
   font-size: 14px;
   line-height: 1.7;
-  color: var(--text-primary, #111827);
+  color: #111827;
+  background: #fff;
   max-width: 860px;
   margin: 0 auto;
+  min-height: 100%;
 }
 
 /* Estilos básicos para contenido Word convertido */
@@ -1925,7 +1928,9 @@
   .docviewer-title { color: #f9fafb; }
   .docviewer-btn-dl { background: #374151; color: #d1d5db; }
   .docviewer-btn-dl:hover { background: #4b5563; }
-  .docviewer-content { color: #f3f4f6; }
-  .docviewer-content th { background: #374151; }
-  .docviewer-content tr:nth-child(even) td { background: #374151; }
+  /* El cuerpo del documento siempre blanco, como papel */
+  .docviewer-body { background: #fff; }
+  .docviewer-content { color: #111827; background: #fff; }
+  .docviewer-content th { background: #f3f4f6; }
+  .docviewer-content tr:nth-child(even) td { background: #f9fafb; }
 }
