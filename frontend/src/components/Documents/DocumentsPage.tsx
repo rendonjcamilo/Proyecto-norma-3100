@@ -16,6 +16,17 @@ import '../../pages/Pages.css';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+const EXCLUDED_INDEPENDIENTE = new Set([
+  'PAMEC',
+  'Auditoría de Historia Clínica',
+  'Adherencias',
+  'Lab. Clínico — Organización y Gestión',
+  'Lab. Clínico — Talento Humano',
+  'Lab. Clínico — Infraestructura y Dotación',
+  'Lab. Clínico — Referencia y Contrarreferencia',
+  'Calidad Laboratorio (Res. 1619)',
+]);
+
 interface DocumentCatalogItem {
   id: string;
   code: string;
@@ -199,9 +210,10 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       documentsApi.getCatalog('ips'),
       documentsApi.getCatalog('independiente'),
     ]).then(([ipsRes, indRes]) => {
+      const indItems = (indRes.data ?? []) as Array<{ category: string }>;
       setCatalogCounts({
         ips: (ipsRes.data ?? []).length,
-        independiente: (indRes.data ?? []).length,
+        independiente: indItems.filter((c) => !EXCLUDED_INDEPENDIENTE.has(c.category)).length,
       });
     }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -238,17 +250,6 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'Historia Clínica y Registros',
         'Interdependencia de Servicios',
       ];
-
-  const EXCLUDED_INDEPENDIENTE = new Set([
-    'PAMEC',
-    'Auditoría de Historia Clínica',
-    'Adherencias',
-    'Lab. Clínico — Organización y Gestión',
-    'Lab. Clínico — Talento Humano',
-    'Lab. Clínico — Infraestructura y Dotación',
-    'Lab. Clínico — Referencia y Contrarreferencia',
-    'Calidad Laboratorio (Res. 1619)',
-  ]);
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
