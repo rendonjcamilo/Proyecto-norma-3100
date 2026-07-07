@@ -32,14 +32,19 @@ jobs:
             git pull origin main
             echo "Commit desplegado: $(git rev-parse --short HEAD)"
 
-            echo "=== BUILD Y DEPLOY FRONTEND (produccion) ==="
+            echo "=== BUILD Y DEPLOY FRONTEND ==="
             docker compose -f docker-compose.prod.yml build frontend
             docker compose -f docker-compose.prod.yml up -d --no-deps frontend
 
-            echo "=== RESTART BACKEND ==="
-            docker compose -f docker-compose.prod.yml restart backend
+            echo "=== BUILD Y DEPLOY BACKEND ==="
+            docker compose -f docker-compose.prod.yml build backend
+            docker compose -f docker-compose.prod.yml up -d --no-deps backend
+
+            echo "=== MIGRACIONES ==="
+            sleep 10
+            docker compose -f docker-compose.prod.yml exec -T backend npm run migrate:up
 
             echo "=== VERIFICAR SALUD ==="
-            sleep 15
+            sleep 5
             docker compose -f docker-compose.prod.yml ps
             echo "Deploy completado: $(date)"
