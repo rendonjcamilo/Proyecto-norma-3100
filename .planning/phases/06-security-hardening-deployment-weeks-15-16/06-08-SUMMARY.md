@@ -94,8 +94,8 @@ None - plan executed exactly as written. Both tasks matched their `<action>` and
 ## Outstanding Carry-Over (Human Action Required)
 
 **Key rotation NOT performed by this plan** (explicitly out of scope per plan's SCOPE NOTE):
-- `RESEND_API_KEY` (leaked value `re_SZxw6HFN_GFcV5w3p9cpgUZmL9v4J7YEM`) must be rotated on resend.com — the old value remains in git history even after this plan's changes.
-- `EVOLUTION_API_KEY` (leaked value `norma3100_evo_key_2025`) must be rotated in the Evolution API instance configuration — same git-history exposure caveat.
+- `RESEND_API_KEY` (leaked value — see prior git history for the exact literal; not repeated here) must be rotated on resend.com — the old value remains in git history even after this plan's changes.
+- `EVOLUTION_API_KEY` (leaked value — see prior git history for the exact literal; not repeated here) must be rotated in the Evolution API instance configuration — same git-history exposure caveat.
 - Both rotations are tracked as phase 06 carry-over human actions (T-06-25, disposition: transfer). After rotation, update the real (gitignored) `.env` locally and `/opt/norma3100/.env.production` on the VPS with the new values — no further code changes required since both are already externalized via `${VAR}`/`env_file`.
 
 **Postgres version upgrade** — `postgres:14-alpine` tag is intentionally left unchanged in both `docker-compose.yml` and `docker-compose.prod.yml`; owned by plan 06-09.
