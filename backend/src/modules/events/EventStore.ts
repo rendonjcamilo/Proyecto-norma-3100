@@ -69,6 +69,10 @@ export class EventStore {
 
       // El hash se calcula SIEMPRE sobre el payload plano (antes de cifrar)
       // Garantiza que verifyIntegrity funcione con o sin cifrado habilitado
+      // previousEventHash se normaliza a null (nunca undefined): JSON.stringify omite
+      // claves undefined pero conserva claves null, y verifyIntegrity siempre relee
+      // previous_event_hash como null (nunca undefined) desde la BD — sin esta
+      // normalización el hash calculado aquí nunca coincide con el recalculado después.
       const eventHash = this.calculateHash({
         id: eventId,
         aggregateId: event.aggregateId,
@@ -76,7 +80,7 @@ export class EventStore {
         eventType: event.eventType,
         payload: event.payload,
         timestamp,
-        previousEventHash,
+        previousEventHash: previousEventHash ?? null,
       });
 
       // Cifrar payload si está habilitado — el sobre JSONB coexiste con registros no cifrados

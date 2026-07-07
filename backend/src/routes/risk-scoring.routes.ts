@@ -74,6 +74,29 @@ export function createRiskScoringRouter(pool: Pool): Router {
         const { months = '3' } = req.query;
         const monthsBack = Math.min(12, Math.max(1, parseInt(months as string) || 3));
 
+        const findingResult = await pool.query(
+          `SELECT id, provider_id FROM findings WHERE id = $1`,
+          [findingId]
+        );
+
+        if (findingResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Hallazgo no encontrado' });
+        }
+
+        const finding = findingResult.rows[0];
+        const userId = req.user?.user_id;
+        const userRole = req.user?.role;
+
+        if (userRole !== 'super_admin' && userRole !== 'auditor') {
+          const accessResult = await pool.query(
+            `SELECT id FROM users WHERE id = $1 AND provider_id = $2`,
+            [userId, finding.provider_id]
+          );
+          if (accessResult.rows.length === 0) {
+            return res.status(403).json({ error: 'No autorizado' });
+          }
+        }
+
         const riskTrend = await riskScoringService.getRiskTrend(findingId, monthsBack);
         res.json(riskTrend);
       } catch (error) {

@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -308,11 +308,24 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: Error, _req: Request, res: Response) => {
+// IMPORTANTE: Express solo reconoce middleware de error por su ARIDAD (debe
+// declarar exactamente 4 parámetros: err, req, res, next). Con 3 parámetros
+// Express lo trata como middleware normal y lo SALTA en el path de errores
+// (incluye next(err) de express-async-errors y el callback de error de cors
+// abajo) — los errores caen al handler por defecto de Express, sin loggear
+// ni respetar el contrato JSON { error, message }.
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error({
     error: err.message,
     stack: err.stack,
   });
+
+  if (err.message === 'CORS not allowed') {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Origin not allowed by CORS policy',
+    });
+  }
 
   res.status(500).json({
     error: 'Internal Server Error',

@@ -109,3 +109,66 @@ describe('EventStore.append', () => {
     expect(mockClient.release).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('EventStore.verifyIntegrity', () => {
+  it('returns isValid: true for a freshly-appended single-event aggregate (first event, no previous hash)', async () => {
+    // Simula el flujo real: append() calcula y persiste event_hash con
+    // previous_event_hash NULL (primer evento del aggregate); verifyIntegrity()
+    // relee esa misma fila y debe recalcular el mismo hash — sin la
+    // normalización previousEventHash ?? null, append() hashea con la clave
+    // `previousEventHash` ausente (undefined) mientras verifyIntegrity() la
+    // relee como `null` desde Postgres, produciendo un falso positivo.
+    const fixedTimestamp = new Date('2026-01-01T00:00:00.000Z');
+    let insertedRow: Record<string, unknown> | null = null;
+
+    const mockClient: MockClient = {
+      query: jest.fn().mockImplementation((sql: string, params?: unknown[]) => {
+        if (/pg_advisory_xact_lock/.test(sql)) return Promise.resolve({});
+        if (/SELECT event_hash/.test(sql)) return Promise.resolve({ rows: [] });
+        if (/INSERT INTO events/.test(sql)) {
+          const [id, aggregateId, aggregateType, eventType, payload, metadata, userId, previousEventHash, eventHash] =
+            params as unknown[];
+          insertedRow = {
+            id,
+            aggregate_id: aggregateId,
+            aggregate_type: aggregateType,
+            event_type: eventType,
+            payload,
+            metadata,
+            user_id: userId,
+            previous_event_hash: previousEventHash,
+            event_hash: eventHash,
+            timestamp: fixedTimestamp,
+          };
+          return Promise.resolve({ rows: [insertedRow] });
+        }
+        return Promise.resolve({});
+      }),
+      release: jest.fn(),
+    };
+
+    const mockPool = {
+      connect: jest.fn().mockResolvedValue(mockClient),
+      query: jest.fn().mockImplementation((sql: string) => {
+        if (/FROM events/.test(sql)) return Promise.resolve({ rows: insertedRow ? [insertedRow] : [] });
+        return Promise.resolve({ rows: [] });
+      }),
+    } as unknown as Pool;
+
+    const store = new EventStore(mockPool);
+
+    await store.append({
+      aggregateId: 'agg-fresh',
+      aggregateType: 'assessment',
+      eventType: 'created',
+      payload: { foo: 'bar' },
+      userId: 'user-1',
+      timestamp: fixedTimestamp,
+    });
+
+    const result = await store.verifyIntegrity('agg-fresh');
+
+    expect(result.errors).toEqual([]);
+    expect(result.isValid).toBe(true);
+  });
+});

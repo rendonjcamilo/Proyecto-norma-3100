@@ -747,6 +747,8 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
+        const userRole = req.user?.role;
+        const userId = req.user?.user_id;
 
         const r = await pool.query('SELECT provider_id FROM assessments WHERE id = $1', [id]);
         if (r.rows.length === 0) {
@@ -754,7 +756,38 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
         }
 
         const providerId = r.rows[0].provider_id;
-        const generatedBy = req.user?.user_id || 'system';
+
+        // RBAC: provider_admin can only export own provider's assessments
+        if (userRole === 'provider_admin') {
+          const userResult = await pool.query(
+            'SELECT provider_id FROM users WHERE id = $1',
+            [userId]
+          );
+
+          if (
+            userResult.rows.length === 0 ||
+            userResult.rows[0].provider_id !== providerId
+          ) {
+            return res.status(403).json({ error: 'Access denied' });
+          }
+        }
+
+        // RBAC: auditor can only export assigned providers' assessments
+        if (userRole === 'auditor') {
+          const assignedResult = await pool.query(
+            'SELECT 1 FROM auditor_providers WHERE auditor_id = $1 AND provider_id = $2',
+            [userId, providerId]
+          );
+
+          if (assignedResult.rows.length === 0) {
+            return res.status(403).json({
+              error: 'Access denied',
+              message: 'You are not assigned to audit this provider',
+            });
+          }
+        }
+
+        const generatedBy = userId || 'system';
 
         const pdf = await new ReportService(pool).generatePdfReport(providerId, generatedBy);
 
