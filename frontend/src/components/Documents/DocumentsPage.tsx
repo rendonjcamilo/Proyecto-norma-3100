@@ -99,7 +99,6 @@ const STATUS_COLORS: Record<string, string> = {
 export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName }) => {
   const [catalog, setCatalog] = useState<DocumentCatalogItem[]>([]);
   const [documents, setDocuments] = useState<ProviderDocument[]>([]);
-  const [summary, setSummary] = useState<ComplianceSummary | null>(null);
   const [_missing, setMissing] = useState<DocumentCatalogItem[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,15 +179,13 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     const currentType = type ?? providerType;
     try {
       setLoading(true);
-      const [catalogRes, docsRes, summaryRes, missingRes] = await Promise.all([
+      const [catalogRes, docsRes, missingRes] = await Promise.all([
         documentsApi.getCatalog(currentType),
         documentsApi.listByProvider(providerId),
-        documentsApi.getComplianceSummary(providerId).catch(() => null),
         documentsApi.getMissingDocuments(providerId).catch(() => null),
       ]);
       setCatalog((catalogRes.data || []) as unknown as DocumentCatalogItem[]);
       setDocuments((docsRes.data || []) as unknown as ProviderDocument[]);
-      if (summaryRes?.data) setSummary(summaryRes.data as unknown as ComplianceSummary);
       if (missingRes?.data) setMissing(missingRes.data as unknown as DocumentCatalogItem[]);
     } catch (err) {
       console.error('Failed to load documents', err);
@@ -268,6 +265,38 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       return ia - ib;
     });
   }, [catalog, providerType]);
+
+  // Catálogo efectivo: solo los ítems visibles para el tipo de prestador activo
+  const effectiveCatalog = useMemo(() => {
+    if (providerType === 'independiente') {
+      return catalog.filter((c) => !EXCLUDED_INDEPENDIENTE.has(c.category));
+    }
+    return catalog;
+  }, [catalog, providerType]);
+
+  // Resumen calculado en frontend para que coincida exactamente con lo visible
+  const computedSummary = useMemo(() => {
+    const ids = new Set(effectiveCatalog.map((c) => c.id));
+    const relevant = documents.filter((d) => ids.has(d.document_catalog_id));
+    const notApplicable = relevant.filter((d) => d.status === 'not_applicable').length;
+    const compliant    = relevant.filter((d) => d.status === 'compliant').length;
+    const rejected     = relevant.filter((d) => d.status === 'rejected').length;
+    const today        = new Date();
+    const in30         = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const expired      = relevant.filter((d) => d.expiry_date && new Date(d.expiry_date) < today && d.status !== 'not_applicable').length;
+    const expiringSoon = relevant.filter((d) => d.expiry_date && new Date(d.expiry_date) >= today && new Date(d.expiry_date) <= in30 && d.status !== 'not_applicable').length;
+    const total        = effectiveCatalog.length;
+    const effective    = Math.max(total - notApplicable, 1);
+    return {
+      total_required:       total,
+      compliant_count:      compliant,
+      expired_count:        expired,
+      expiring_soon_count:  expiringSoon,
+      rejected_count:       rejected,
+      not_applicable_count: notApplicable,
+      compliance_percentage: Math.min(Math.round((compliant / effective) * 100), 100),
+    };
+  }, [effectiveCatalog, documents]);
 
   // Inicializar expandedCategories con la primera categoría al cargar
   useEffect(() => {
@@ -636,7 +665,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       </div>
 
       {/* === KPI SUMMARY === */}
-      {summary && (
+      {catalog.length > 0 && (
         <section className="docs-kpis">
           {/* Card principal — layout horizontal */}
           <div className="kpi-card kpi-main">
@@ -653,17 +682,17 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 <div
                   className="kpi-bar-fill"
                   style={{
-                    width: `${summary.compliance_percentage}%`,
-                    background: summary.compliance_percentage >= 80
+                    width: `${computedSummary.compliance_percentage}%`,
+                    background: computedSummary.compliance_percentage >= 80
                       ? 'linear-gradient(90deg,#10b981,#34d399)'
-                      : summary.compliance_percentage >= 50
+                      : computedSummary.compliance_percentage >= 50
                       ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
                       : 'linear-gradient(90deg,#ef4444,#f87171)',
                   }}
                 />
               </div>
               <div className="kpi-main-footer">
-                <span className="kpi-main-count">{summary.compliant_count} de {summary.total_required}</span>
+                <span className="kpi-main-count">{computedSummary.compliant_count} de {computedSummary.total_required}</span>
                 {' '}documentos conformes
               </div>
             </div>
@@ -671,11 +700,11 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               <div
                 className="kpi-value-big"
                 style={{
-                  color: summary.compliance_percentage >= 80 ? '#34d399'
-                    : summary.compliance_percentage >= 50 ? '#fbbf24' : '#f87171',
+                  color: computedSummary.compliance_percentage >= 80 ? '#34d399'
+                    : computedSummary.compliance_percentage >= 50 ? '#fbbf24' : '#f87171',
                 }}
               >
-                {Math.round(summary.compliance_percentage)}%
+                {Math.round(computedSummary.compliance_percentage)}%
               </div>
               <div className="kpi-main-sub">Res. 3100/2019</div>
             </div>
@@ -689,9 +718,9 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               </svg>
             </div>
             <div className="kpi-stat-body">
-              <div className="kpi-stat-value">{summary.compliant_count}</div>
+              <div className="kpi-stat-value">{computedSummary.compliant_count}</div>
               <div className="kpi-stat-label">Conformes</div>
-              <div className="kpi-stat-sub">de {summary.total_required} requeridos</div>
+              <div className="kpi-stat-sub">de {computedSummary.total_required} requeridos</div>
             </div>
           </div>
 
@@ -705,7 +734,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               </svg>
             </div>
             <div className="kpi-stat-body">
-              <div className="kpi-stat-value">{summary.expired_count}</div>
+              <div className="kpi-stat-value">{computedSummary.expired_count}</div>
               <div className="kpi-stat-label">Vencidos</div>
               <div className="kpi-stat-sub">requieren acción</div>
             </div>
@@ -720,14 +749,14 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
               </svg>
             </div>
             <div className="kpi-stat-body">
-              <div className="kpi-stat-value">{summary.expiring_soon_count}</div>
+              <div className="kpi-stat-value">{computedSummary.expiring_soon_count}</div>
               <div className="kpi-stat-label">Próx. vencer</div>
               <div className="kpi-stat-sub">próximos 30 días</div>
             </div>
           </div>
 
           {/* No Aplica */}
-          {(summary.not_applicable_count || 0) > 0 && (
+          {(computedSummary.not_applicable_count || 0) > 0 && (
             <div className="kpi-card kpi-stat kpi-stat-na">
               <div className="kpi-stat-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -735,7 +764,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                 </svg>
               </div>
               <div className="kpi-stat-body">
-                <div className="kpi-stat-value">{summary.not_applicable_count}</div>
+                <div className="kpi-stat-value">{computedSummary.not_applicable_count}</div>
                 <div className="kpi-stat-label">No Aplica</div>
                 <div className="kpi-stat-sub">excluidos del cálculo</div>
               </div>
@@ -752,11 +781,11 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
             </div>
             <div className="kpi-stat-body">
               <div className="kpi-stat-value">{
-                (summary.total_required - (summary.not_applicable_count || 0))
-                - summary.compliant_count
-                - summary.expired_count
-                - summary.expiring_soon_count
-                - summary.rejected_count
+                (computedSummary.total_required - (computedSummary.not_applicable_count || 0))
+                - computedSummary.compliant_count
+                - computedSummary.expired_count
+                - computedSummary.expiring_soon_count
+                - computedSummary.rejected_count
               }</div>
               <div className="kpi-stat-label">Pendientes</div>
               <div className="kpi-stat-sub">sin gestionar</div>
