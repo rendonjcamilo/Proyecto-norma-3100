@@ -126,6 +126,15 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [freeUploading, setFreeUploading] = useState(false);
   const freeFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [viewer, setViewer] = useState<{
+    open: boolean;
+    title: string;
+    loading: boolean;
+    htmlContent: string | null;
+    error: string | null;
+    downloadRef: { id: string; type: 'catalog' | 'free' } | null;
+  }>({ open: false, title: '', loading: false, htmlContent: null, error: null, downloadRef: null });
+
   const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -540,30 +549,95 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     }
   };
 
-  const handleView = async (docId: string) => {
-    const newTab = window.open('', '_blank');
+  const openViewer = async (
+    title: string,
+    mimeType: string,
+    fetchBlob: () => Promise<Blob>,
+    downloadRef: { id: string; type: 'catalog' | 'free' },
+  ) => {
+    setViewer({ open: true, title, loading: true, htmlContent: null, error: null, downloadRef });
     try {
-      const fileBlob = await documentsApi.download(docId);
-      const url = URL.createObjectURL(fileBlob);
-      if (newTab) newTab.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      const isDocx = mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        || mimeType === 'application/msword';
+      const isXlsx = mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        || mimeType === 'application/vnd.ms-excel';
+
+      if (isDocx) {
+        const fileBlob = await fetchBlob();
+        const arrayBuffer = await fileBlob.arrayBuffer();
+        const mammoth = await import('mammoth');
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        setViewer(v => ({ ...v, loading: false, htmlContent: result.value || '<p>El documento está vacío.</p>' }));
+      } else if (isXlsx) {
+        const fileBlob = await fetchBlob();
+        const arrayBuffer = await fileBlob.arrayBuffer();
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const html = XLSX.utils.sheet_to_html(sheet);
+        setViewer(v => ({ ...v, loading: false, htmlContent: html }));
+      } else {
+        setViewer(v => ({ ...v, loading: false, error: 'Este formato de archivo no se puede previsualizar. Descargue el archivo para abrirlo.' }));
+      }
     } catch {
-      if (newTab) newTab.close();
-      showToast('error', 'Error al visualizar el documento');
+      setViewer(v => ({ ...v, loading: false, error: 'No se pudo cargar el documento para previsualización.' }));
     }
   };
 
-  const handleViewFree = async (fdId: string) => {
-    const newTab = window.open('', '_blank');
+  const handleViewerDownload = async () => {
+    if (!viewer.downloadRef) return;
     try {
-      const fileBlob = await documentsApi.downloadFreeDocument(providerId, fdId);
-      const url = URL.createObjectURL(fileBlob);
-      if (newTab) newTab.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      const fileBlob = viewer.downloadRef.type === 'catalog'
+        ? await documentsApi.download(viewer.downloadRef.id)
+        : await documentsApi.downloadFreeDocument(providerId, viewer.downloadRef.id);
+      downloadBlob(fileBlob, viewer.title);
     } catch {
-      if (newTab) newTab.close();
-      showToast('error', 'Error al visualizar el archivo');
+      showToast('error', 'Error al descargar el archivo');
     }
+  };
+
+  const handleView = async (docId: string) => {
+    const doc = documents.find(d => d.id === docId);
+    const mimeType = doc?.mime_type || '';
+    const title = doc?.document_name || doc?.original_filename || 'Documento';
+
+    if (!mimeType || mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
+      const newTab = window.open('', '_blank');
+      try {
+        const fileBlob = await documentsApi.download(docId);
+        const url = URL.createObjectURL(fileBlob);
+        if (newTab) newTab.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      } catch {
+        if (newTab) newTab.close();
+        showToast('error', 'Error al visualizar el documento');
+      }
+      return;
+    }
+
+    await openViewer(title, mimeType, () => documentsApi.download(docId), { id: docId, type: 'catalog' });
+  };
+
+  const handleViewFree = async (fdId: string) => {
+    const fd = freeDocuments.find(d => d.id === fdId);
+    const mimeType = fd?.mime_type || '';
+    const title = fd?.original_filename || 'Archivo';
+
+    if (!mimeType || mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
+      const newTab = window.open('', '_blank');
+      try {
+        const fileBlob = await documentsApi.downloadFreeDocument(providerId, fdId);
+        const url = URL.createObjectURL(fileBlob);
+        if (newTab) newTab.location.href = url;
+        setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      } catch {
+        if (newTab) newTab.close();
+        showToast('error', 'Error al visualizar el archivo');
+      }
+      return;
+    }
+
+    await openViewer(title, mimeType, () => documentsApi.downloadFreeDocument(providerId, fdId), { id: fdId, type: 'free' });
   };
 
   const handleValidate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1518,6 +1592,56 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === DOCUMENT VIEWER MODAL === */}
+      {viewer.open && (
+        <div className="docviewer-overlay" onClick={() => setViewer(v => ({ ...v, open: false }))}>
+          <div className="docviewer-modal" onClick={e => e.stopPropagation()}>
+            <div className="docviewer-header">
+              <span className="docviewer-title" title={viewer.title}>{viewer.title}</span>
+              <div className="docviewer-header-actions">
+                <button className="docviewer-btn-dl" type="button" onClick={handleViewerDownload}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Descargar
+                </button>
+                <button className="docviewer-btn-close" type="button" onClick={() => setViewer(v => ({ ...v, open: false }))}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="docviewer-body">
+              {viewer.loading && (
+                <div className="docviewer-loading">
+                  <div className="docviewer-spinner" />
+                  <p>Cargando documento...</p>
+                </div>
+              )}
+              {!viewer.loading && viewer.error && (
+                <div className="docviewer-error">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="11" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <p>{viewer.error}</p>
+                  <button className="btn-primary" type="button" onClick={handleViewerDownload}>Descargar archivo</button>
+                </div>
+              )}
+              {!viewer.loading && viewer.htmlContent && (
+                <div className="docviewer-content" dangerouslySetInnerHTML={{ __html: viewer.htmlContent }} />
+              )}
             </div>
           </div>
         </div>
