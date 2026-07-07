@@ -9,11 +9,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { RiskScoringService } from '../services/RiskScoringService.js';
+import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 
 export function createRiskScoringRouter(pool: Pool): Router {
   const router = Router();
   const riskScoringService = new RiskScoringService(pool);
+  const eventStore = new EventStore(pool);
 
   // Require authentication for all routes
   router.use(authMiddleware);
@@ -165,18 +167,13 @@ export function createRiskScoringRouter(pool: Pool): Router {
 
         const updatedRiskScore = await riskScoringService.updateRiskScore(findingId);
 
-        await pool.query(
-          `INSERT INTO events (id, event_type, aggregate_id, aggregate_type, data, user_id, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-          [
-            uuidv4(),
-            'finding.risk_recalculated',
-            findingId,
-            'finding',
-            JSON.stringify({ risk_score: updatedRiskScore.currentScore }),
-            userId,
-          ]
-        );
+        await eventStore.append({
+          aggregateId: findingId,
+          aggregateType: 'finding',
+          eventType: 'finding.risk_recalculated',
+          payload: { risk_score: updatedRiskScore.currentScore },
+          userId,
+        });
 
         res.json(updatedRiskScore);
       } catch (error) {
@@ -219,22 +216,17 @@ export function createRiskScoringRouter(pool: Pool): Router {
           }
         }
 
-        await pool.query(
-          `INSERT INTO events (id, event_type, aggregate_id, aggregate_type, data, user_id, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-          [
-            uuidv4(),
-            'findings.bulk_risk_update',
-            'batch-' + uuidv4(),
-            'findings',
-            JSON.stringify({
-              count: findingIds.length,
-              updated: results.updated,
-              errors: results.errors.length,
-            }),
-            userId,
-          ]
-        );
+        await eventStore.append({
+          aggregateId: 'batch-' + uuidv4(),
+          aggregateType: 'findings',
+          eventType: 'findings.bulk_risk_update',
+          payload: {
+            count: findingIds.length,
+            updated: results.updated,
+            errors: results.errors.length,
+          },
+          userId,
+        });
 
         res.json(results);
       } catch (error) {

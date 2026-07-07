@@ -2,12 +2,14 @@ import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { UserService } from '../services/user.service.js';
+import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 import ExcelJS from 'exceljs';
 
 export function createUsersRouter(pool: Pool): Router {
   const router = Router();
   const userService = new UserService(pool);
+  const eventStore = new EventStore(pool);
 
   /**
    * GET /api/users
@@ -152,6 +154,14 @@ export function createUsersRouter(pool: Pool): Router {
 
       logger.info({ user_id: newUser.id, email, role }, 'New user created by super_admin');
 
+      await eventStore.append({
+        aggregateId: newUser.id,
+        aggregateType: 'user',
+        eventType: 'user.created',
+        payload: { email, role: role || 'provider_admin', provider_id: provider_id || null },
+        userId: user?.user_id,
+      });
+
       res.status(201).json({
         data: {
           id: newUser.id,
@@ -206,6 +216,15 @@ export function createUsersRouter(pool: Pool): Router {
       const updatedUser = await userService.updateUser(id, { first_name, last_name, role, provider_id });
 
       logger.info({ updated_user_id: id, admin_id: user?.user_id }, 'User updated by super_admin');
+
+      await eventStore.append({
+        aggregateId: id,
+        aggregateType: 'user',
+        eventType: 'user.updated',
+        payload: { changes: { first_name, last_name, role, provider_id } },
+        userId: user?.user_id,
+      });
+
       res.json({
         data: {
           id: updatedUser.id,
@@ -255,6 +274,15 @@ export function createUsersRouter(pool: Pool): Router {
       await userService.deleteUser(id);
 
       logger.info({ deleted_user_id: id, admin_id: user?.user_id }, 'User deleted by super_admin');
+
+      await eventStore.append({
+        aggregateId: id,
+        aggregateType: 'user',
+        eventType: 'user.deleted',
+        payload: {},
+        userId: user?.user_id,
+      });
+
       res.json({ success: true, message: 'User deleted successfully' });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);

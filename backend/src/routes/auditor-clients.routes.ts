@@ -15,7 +15,8 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   /** GET /api/auditor/clients */
   router.get('/auditor/clients', authMiddleware, rbacMiddleware(ROLES), async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Unauthorized' }); }
       const clients = await service.list(userId);
       res.json({ data: clients, total: clients.length });
     } catch (err) {
@@ -27,7 +28,8 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   /** POST /api/auditor/clients */
   router.post('/auditor/clients', authMiddleware, rbacMiddleware(ROLES), async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Unauthorized' }); }
       const { legal_name } = req.body;
       if (!legal_name?.trim()) {
         return res.status(400).json({ error: 'El nombre del prestador es obligatorio' });
@@ -43,7 +45,8 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   /** PUT /api/auditor/clients/:id */
   router.put('/auditor/clients/:id', authMiddleware, rbacMiddleware(ROLES), validateUuidParam('id'), async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Unauthorized' }); }
       const { legal_name } = req.body;
       if (!legal_name?.trim()) {
         return res.status(400).json({ error: 'El nombre del prestador es obligatorio' });
@@ -60,7 +63,8 @@ export function createAuditorClientsRouter(pool: Pool): Router {
   /** DELETE /api/auditor/clients/:id */
   router.delete('/auditor/clients/:id', authMiddleware, rbacMiddleware(ROLES), validateUuidParam('id'), async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user.id;
+      const userId = req.user?.user_id;
+      if (!userId) { return res.status(401).json({ error: 'Unauthorized' }); }
       const deleted = await service.delete(userId, req.params.id);
       if (!deleted) { return res.status(404).json({ error: 'Cliente no encontrado' }); }
       res.status(204).send();
