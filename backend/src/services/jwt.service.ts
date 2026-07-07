@@ -69,12 +69,21 @@ export function generateAccessToken(
 }
 
 /**
+ * Secreto dedicado para refresh tokens. Usa JWT_REFRESH_SECRET si está
+ * configurado; si no, cae de nuevo a JWT_SECRET (evita romper entornos
+ * que solo definen JWT_SECRET).
+ */
+function refreshSecret(): string {
+  return process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || '';
+}
+
+/**
  * Generate a refresh token (single-use, 14-day expiry)
  * @param user_id - UUID of the user
  * @returns JWT refresh token as string
  */
 export function generateRefreshToken(user_id: string): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = refreshSecret();
   if (!secret || secret.length < 32) {
     throw new Error('JWT_SECRET not configured or too short (min 32 chars)');
   }
@@ -108,6 +117,39 @@ export function validateToken(token: string): ValidateTokenResult {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     return { valid: false, error: 'JWT_SECRET not configured' };
+  }
+
+  // Decodifica sin verificar para saber si es un refresh token — determina
+  // qué secreto usar antes de validar la firma.
+  const unverified = jwt.decode(token) as TokenClaims | RefreshTokenClaims | null;
+  const isRefresh = !!unverified && 'type' in unverified && unverified.type === 'refresh';
+
+  if (isRefresh) {
+    const startTime = Date.now();
+    try {
+      const decoded = jwt.verify(token, refreshSecret(), {
+        algorithms: [ALGORITHM],
+      }) as TokenClaims | RefreshTokenClaims;
+      const duration = Date.now() - startTime;
+
+      logger.debug({ user_id: decoded.user_id, duration: `${duration}ms` }, 'Refresh token validated');
+      return { valid: true, claims: decoded };
+    } catch (_refreshErr) {
+      // Grace fallback: refresh tokens emitidos ANTES de separar los secretos
+      // se firmaron con JWT_SECRET — se validan una vez más contra ese secreto
+      // para no forzar un logout masivo.
+      try {
+        const decoded = jwt.verify(token, secret, {
+          algorithms: [ALGORITHM],
+        }) as TokenClaims | RefreshTokenClaims;
+        logger.debug({ user_id: decoded.user_id }, 'Refresh token validated via grace fallback (JWT_SECRET)');
+        return { valid: true, claims: decoded };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : 'Unknown error';
+        logger.debug({ error }, 'Refresh token validation failed (both secrets)');
+        return { valid: false, error };
+      }
+    }
   }
 
   try {
