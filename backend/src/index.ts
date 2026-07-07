@@ -167,13 +167,18 @@ app.use((req: Request, res: Response, next) => {
 });
 
 // === API DOCUMENTATION (Swagger / OpenAPI) ===
-// Raw OpenAPI spec
-app.get('/api/docs.json', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(openapiSpec);
-});
-// Interactive Swagger UI
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+if (NODE_ENV !== 'production') {
+  // Raw OpenAPI spec
+  app.get('/api/docs.json', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openapiSpec);
+  });
+  // Interactive Swagger UI
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+} else {
+  // En producción los docs quedan ocultos (404) — refuerzo defensivo junto al bloqueo en nginx
+  app.use(['/api/docs', '/api/docs.json'], (_req, res) => res.status(404).json({ error: 'Not Found' }));
+}
 
 // Health check endpoint — liveness + readiness (DB + Redis)
 app.get('/health', async (_req: Request, res: Response) => {
