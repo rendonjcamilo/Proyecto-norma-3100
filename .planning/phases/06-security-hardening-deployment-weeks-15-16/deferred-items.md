@@ -3,6 +3,45 @@
 Out-of-scope discoveries logged during plan execution, per SCOPE BOUNDARY rule
 (pre-existing issues in unrelated files are not auto-fixed).
 
+## From 06-REVIEW.md (code review, WARNING/INFO findings not fixed in this pass)
+
+The 4 CRITICAL findings from the phase-06 code review (06-REVIEW.md) were fixed directly
+(commit `f1140e3`). These 11 lower-severity findings were left open — full detail, exact
+locations, and suggested fixes are in `06-REVIEW.md`; summarized here for follow-up planning:
+
+1. **WR-01** — the new per-user `apiLimiter` rate-limit tier never activates anywhere:
+   `apiLimiter` is mounted before `authMiddleware` on every route, so `req.user` is always
+   undefined when its `max`/`keyGenerator` callbacks run. Needs `optionalAuthMiddleware` ahead
+   of `apiLimiter` to populate `req.user` without rejecting anonymous requests.
+2. **WR-02** — `auth.routes.ts` hardcodes `expires_in: 3600` in 4 places while the real access
+   token expiry is `ACCESS_TOKEN_EXPIRY = 1800`. Import the constant instead of the literal.
+3. **WR-03** — `EventStore.calculateHash()` excludes `userId`/`metadata` from the hash chain, so
+   the audit trail's "who" field isn't tamper-protected. Include them going forward (no backfill
+   needed — existing hashes were never computed with these fields).
+4. **WR-04** — webhook fail-open/closed hinges solely on an exact `NODE_ENV === 'production'`
+   string match, and the 6 new webhook secret vars are missing from `.env.production.example`.
+5. **WR-05** — dev `docker-compose.yml` still binds Postgres/Redis/Evolution ports to `0.0.0.0`
+   instead of `127.0.0.1:` (per REGLA DE ORO #5 §1). `docker-compose.prod.yml` already does this
+   correctly.
+6. **WR-06** — nginx and Express/helmet both set security headers on proxied `/api`/`/auth`
+   responses, producing duplicate/conflicting values (e.g. two `X-Frame-Options`, contradictory
+   `X-XSS-Protection`). Pick one layer as the source of truth.
+7. **WR-07** — `risk-scoring.routes.ts` doesn't scope the `auditor` role to assigned providers
+   on 3 endpoints, unlike `assessments.routes.ts`'s stricter model. May be intentional (org-wide
+   auditor visibility) — needs a product/compliance decision, not just a code fix.
+8. **IN-01** — the pre-06-08 leaked `RESEND_API_KEY`/`EVOLUTION_API_KEY` values remain in git
+   history even though `docker-compose.yml` is now externalized. Rotation status should be
+   confirmed and recorded in `SECURITY.md` (see also the orchestrator's rotation note in
+   `06-08-SUMMARY.md`).
+9. **IN-02** — `scripts/pg-upgrade-14-to-17.md` hardcodes the production VPS IP and a local SSH
+   key path; low risk (no key material) but unnecessary recon info if the repo scope ever widens.
+10. **IN-04** — the AWS SNS webhook handler can throw an uncaught `TypeError` on a
+    missing/malformed `Message` field, producing a 500 instead of a 400.
+
+**Recommendation:** scope WR-01 through WR-07 and IN-01/IN-02/IN-04 as a dedicated phase-06
+follow-up plan (or fold into whatever phase handles the pre-existing TS/test debt noted below),
+with WR-07 flagged for an explicit product decision before implementation.
+
 ## From 06-01 (JWT hardening + rate limiting)
 
 ### 1. Pre-existing `npx tsc --noEmit` errors (69 errors, unrelated files)
