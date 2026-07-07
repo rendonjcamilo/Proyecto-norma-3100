@@ -1,7 +1,11 @@
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts', '.js'],
+  extensionsToTreatAsEsm: ['.ts'],
+  // .ts antes que .js: algunos módulos en src/ tienen un .js compilado obsoleto
+  // junto al .ts fuente (artefacto de build); sin esta prioridad, Jest resuelve
+  // el .js obsoleto en vez del .ts vigente al mapear imports "./Foo.js" -> "./Foo".
+  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '@/(.*)': '<rootDir>/src/$1',
