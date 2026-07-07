@@ -133,7 +133,9 @@ app.use(cors({
     const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
       .split(',').map((s) => s.trim()).filter(Boolean);
     // Sin header Origin (same-origin, curl, health checks) o dominio en whitelist → permitido
-    if (!origin || allowed.includes(origin)) return callback(null, true);
+    if (!origin || allowed.includes(origin)) {
+      return callback(null, true);
+    }
     return callback(new Error('CORS not allowed'));
   },
   credentials: true,
@@ -199,7 +201,7 @@ app.get('/health', async (_req: Request, res: Response) => {
     const redisStart = Date.now();
     try {
       const { createClient } = await import('redis');
-      const client = createClient({ url: redisUrl });
+      const client = createClient({ url: redisUrl, password: process.env.REDIS_PASSWORD || undefined });
       await client.connect();
       await client.ping();
       await client.disconnect();
