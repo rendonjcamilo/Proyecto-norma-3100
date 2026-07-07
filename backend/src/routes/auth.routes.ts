@@ -1,5 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
+import rateLimit from 'express-rate-limit';
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -17,6 +18,18 @@ import { passwordLimiter } from '../middleware/rate-limit.middleware.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
+
+// dev-login mint tokens sin credenciales — límite estricto que SÍ cuenta las respuestas exitosas
+const devLoginLimiter = process.env.DISABLE_RATE_LIMIT === 'true'
+  ? (_req: Request, _res: Response, next: NextFunction) => next()
+  : rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 10,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      skipSuccessfulRequests: false, // CLAVE: cuenta también los 200, a diferencia de authLimiter
+      message: { error: 'Too Many Requests', message: 'Límite de dev-login excedido.', retryAfter: '15 minutes' },
+    });
 
 // Initialize services with database pool
 let userService: UserService;
@@ -390,7 +403,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response): Prom
  * Deshabilitado completamente en producción.
  * Body: { email, role }
  */
-router.post('/dev-login', async (req: Request, res: Response): Promise<void> => {
+router.post('/dev-login', devLoginLimiter, async (req: Request, res: Response): Promise<void> => {
   if (process.env.NODE_ENV === 'production') {
     res.status(404).json({ error: 'Not Found' });
     return;
