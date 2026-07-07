@@ -11,22 +11,29 @@ import { logger } from '../utils/logger.js';
 // Passthrough middleware for development (no rate limiting)
 const noOpLimiter = (_req: Request, _res: Response, next: NextFunction) => next();
 
-// Standard API rate limiter: 20000 requests / 15 minutes per IP
-// Valor alto: usuarios del panel REPS generan muchas peticiones de prospección masiva
+// Standard API rate limiter: 1000 req/min por IP, 2000 para REPS/INVIMA, 100 por usuario autenticado
+// El carve-out de REPS/INVIMA preserva el flujo de prospección masiva existente
 const createApiLimiter = () => {
   if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return noOpLimiter;
   }
 
   return rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20000,
+    windowMs: 60 * 1000,
+    max: (req: Request) => {
+      const p = req.path || '';
+      if (p.startsWith('/reps') || p.startsWith('/api/reps') || p.startsWith('/invima') || p.startsWith('/api/invima')) {
+        return 2000;
+      }
+      return req.user?.user_id ? 100 : 1000;
+    },
+    keyGenerator: (req: Request) => (req.user?.user_id ? `user:${req.user.user_id}` : `ip:${req.ip}`),
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: {
       error: 'Too Many Requests',
-      message: 'Has excedido el límite de peticiones. Intenta de nuevo en 15 minutos.',
-      retryAfter: '15 minutes',
+      message: 'Has excedido el límite de peticiones. Intenta de nuevo en 1 minuto.',
+      retryAfter: '1 minuto',
     },
     handler: (req: Request, res: Response, _next, options) => {
       logger.warn({
@@ -35,6 +42,7 @@ const createApiLimiter = () => {
         path: req.path,
         method: req.method,
       });
+      res.setHeader('Retry-After', Math.ceil(options.windowMs / 1000).toString());
       res.status(options.statusCode).json(options.message);
     },
   });
