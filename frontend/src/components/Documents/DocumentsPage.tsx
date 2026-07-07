@@ -58,18 +58,6 @@ interface ProviderDocument {
   validated_at?: string;
 }
 
-interface ComplianceSummary {
-  provider_id: string;
-  provider_name: string;
-  total_required: number;
-  compliant_count: number;
-  expired_count: number;
-  expiring_soon_count: number;
-  pending_count: number;
-  rejected_count: number;
-  not_applicable_count: number;
-  compliance_percentage: number;
-}
 
 interface DocumentsPageProps {
   providerId: string;

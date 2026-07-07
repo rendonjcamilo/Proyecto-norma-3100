@@ -436,7 +436,7 @@ function InventarioTab({
           <div style={{ fontSize: 40 }}>📦</div>
           <p>No hay ítems en el inventario{filtroSemaforo ? ' con ese filtro' : ''}.</p>
           <p style={{ fontSize: 13, color: '#888' }}>
-            Busca un registro en la pestaña <strong>Consulta INVIMA</strong> y usa el botón "Agregar al inventario".
+            Busca un registro en la pestaña <strong>Consulta INVIMA</strong> y usa el botón &quot;Agregar al inventario&quot;.
           </p>
         </div>
       ) : (
@@ -662,7 +662,7 @@ export const InvimaPage: React.FC<InvimaPageProps> = ({ providerId }) => {
                   Puede estar vigente en el portal oficial de INVIMA.
                 </p>
                 <div className="inv-not-found-hint">
-                  Seleccione <em>"Por número de registro"</em> y escriba: <code>{query}</code>
+                  Seleccione <em>&quot;Por número de registro&quot;</em> y escriba: <code>{query}</code>
                 </div>
                 <button className="inv-oficial-btn" onClick={openInvimaOficial}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
