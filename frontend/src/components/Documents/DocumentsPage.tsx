@@ -237,13 +237,18 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         'Procesos Prioritarios',
         'Historia Clínica y Registros',
         'Interdependencia de Servicios',
-        'Lab. Clínico — Organización y Gestión',
-        'Lab. Clínico — Talento Humano',
-        'Lab. Clínico — Infraestructura y Dotación',
-        'Lab. Clínico — Referencia y Contrarreferencia',
       ];
 
-  const EXCLUDED_INDEPENDIENTE = new Set(['PAMEC', 'Auditoría de Historia Clínica', 'Adherencias']);
+  const EXCLUDED_INDEPENDIENTE = new Set([
+    'PAMEC',
+    'Auditoría de Historia Clínica',
+    'Adherencias',
+    'Lab. Clínico — Organización y Gestión',
+    'Lab. Clínico — Talento Humano',
+    'Lab. Clínico — Infraestructura y Dotación',
+    'Lab. Clínico — Referencia y Contrarreferencia',
+    'Calidad Laboratorio (Res. 1619)',
+  ]);
 
   const categories = useMemo(() => {
     const set = new Set(catalog.map((c) => c.category));
