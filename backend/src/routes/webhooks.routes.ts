@@ -110,7 +110,7 @@ export function createWebhooksRouter(pool: Pool): Router {
   router.post('/email/sendgrid', async (req: Request, res: Response) => {
     try {
       const key = process.env.SENDGRID_WEBHOOK_SECRET || '';
-      const ok = verifySharedSecret(req.get('X-Webhook-Token') || (req.query.token as string), key);
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
       if (!ok && !(failOpen && !key)) {
         logger.warn('Token de webhook SendGrid inválido');
         return res.status(401).json({ error: 'Invalid signature' });
@@ -251,7 +251,7 @@ export function createWebhooksRouter(pool: Pool): Router {
   router.post('/sms/aws-sns', async (req: Request, res: Response) => {
     try {
       const key = process.env.AWS_SNS_WEBHOOK_SECRET || '';
-      const ok = verifySharedSecret(req.get('X-Webhook-Token') || (req.query.token as string), key);
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
       if (!ok && !(failOpen && !key)) {
         logger.warn('Token de webhook AWS SNS inválido');
         return res.status(401).json({ error: 'Invalid signature' });
@@ -316,7 +316,7 @@ export function createWebhooksRouter(pool: Pool): Router {
   router.post('/push/fcm', async (req: Request, res: Response) => {
     try {
       const key = process.env.FCM_WEBHOOK_SECRET || '';
-      const ok = verifySharedSecret(req.get('X-Webhook-Token') || (req.query.token as string), key);
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
       if (!ok && !(failOpen && !key)) {
         logger.warn('Token de webhook FCM inválido');
         return res.status(401).json({ error: 'Invalid signature' });
@@ -386,7 +386,7 @@ export function createWebhooksRouter(pool: Pool): Router {
   router.post('/push/apns', async (req: Request, res: Response) => {
     try {
       const key = process.env.APNS_WEBHOOK_SECRET || '';
-      const ok = verifySharedSecret(req.get('X-Webhook-Token') || (req.query.token as string), key);
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
       if (!ok && !(failOpen && !key)) {
         logger.warn('Token de webhook APNS inválido');
         return res.status(401).json({ error: 'Invalid signature' });
