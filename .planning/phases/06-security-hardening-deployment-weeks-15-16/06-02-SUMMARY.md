@@ -100,3 +100,13 @@ None - no external service configuration required. (Welcome-email delivery depen
 ---
 *Phase: 06-security-hardening-deployment-weeks-15-16*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+- FOUND: backend/src/routes/auth.routes.ts
+- FOUND: backend/src/routes/assessments.routes.ts
+- FOUND: .planning/phases/06-security-hardening-deployment-weeks-15-16/06-02-SUMMARY.md
+- FOUND commit: 0c952b8 (Task 1)
+- FOUND commit: f3257a9 (Task 2)
+- FOUND commit: 815696c (Task 3)
+- FOUND commit: 1cfe0de (docs: summary)
