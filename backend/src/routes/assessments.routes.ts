@@ -15,6 +15,7 @@ import { AssessmentService } from '../services/AssessmentService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 import { ImprovementPlanService } from '../services/ImprovementPlanService.js';
+import { ReportService } from '../services/ReportService.js';
 
 export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Router {
   const router = Router();
@@ -737,9 +738,7 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
 
   /**
    * POST /api/assessments/:id/export
-   * Export assessment as PDF/Word
-   * Includes: questionnaire, responses, compliance %, hallazgos
-   * NOTE: Placeholder - implementation in Phase 5 (Reporting)
+   * Export assessment as PDF report (questionnaire, responses, compliance %, hallazgos)
    */
   router.post(
     '/assessments/:id/export',
@@ -748,27 +747,24 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const { format } = req.body; // 'pdf' or 'word'
 
-        const assessment = await assessmentService.getAssessment(id);
-        if (!assessment) {
-          return res.status(404).json({ error: 'Assessment not found' });
+        const r = await pool.query('SELECT provider_id FROM assessments WHERE id = $1', [id]);
+        if (r.rows.length === 0) {
+          return res.status(404).json({ error: 'Not Found', message: 'Evaluación no encontrada' });
         }
 
-        // TODO: Implement PDF/Word export in Phase 5
-        // For now, return export structure
-        res.json({
-          data: {
-            exportId: `export-${id}`,
-            format: format || 'pdf',
-            status: 'pending',
-            message: 'Export scheduled - available in Phase 5 (Reporting)',
-          },
-        });
+        const providerId = r.rows[0].provider_id;
+        const generatedBy = req.user?.user_id || 'system';
+
+        const pdf = await new ReportService(pool).generatePdfReport(providerId, generatedBy);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="evaluacion-${id}.pdf"`);
+        res.status(200).send(pdf);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         logger.error({ msg: 'Error exporting assessment', error: msg });
-        res.status(500).json({ error: msg });
+        res.status(500).json({ error: 'Internal Server Error', message: 'Error al exportar la evaluación' });
       }
     }
   );
