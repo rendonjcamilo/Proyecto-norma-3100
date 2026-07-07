@@ -129,7 +129,15 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+      .split(',').map((s) => s.trim()).filter(Boolean);
+    // Sin header Origin (same-origin, curl, health checks) o dominio en whitelist → permitido
+    if (!origin || allowed.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -161,13 +169,18 @@ app.use((req: Request, res: Response, next) => {
 });
 
 // === API DOCUMENTATION (Swagger / OpenAPI) ===
-// Raw OpenAPI spec
-app.get('/api/docs.json', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(openapiSpec);
-});
-// Interactive Swagger UI
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+if (NODE_ENV !== 'production') {
+  // Raw OpenAPI spec
+  app.get('/api/docs.json', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openapiSpec);
+  });
+  // Interactive Swagger UI
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+} else {
+  // En producción los docs quedan ocultos (404) — refuerzo defensivo junto al bloqueo en nginx
+  app.use(['/api/docs', '/api/docs.json'], (_req, res) => res.status(404).json({ error: 'Not Found' }));
+}
 
 // Health check endpoint — liveness + readiness (DB + Redis)
 app.get('/health', async (_req: Request, res: Response) => {
@@ -188,7 +201,7 @@ app.get('/health', async (_req: Request, res: Response) => {
     const redisStart = Date.now();
     try {
       const { createClient } = await import('redis');
-      const client = createClient({ url: redisUrl });
+      const client = createClient({ url: redisUrl, password: process.env.REDIS_PASSWORD || undefined });
       await client.connect();
       await client.ping();
       await client.disconnect();
