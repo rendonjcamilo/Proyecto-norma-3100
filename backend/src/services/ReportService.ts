@@ -1497,6 +1497,8 @@ export class ReportService {
         ],
       });
 
+    const toTitleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
     const labelCell = (text: string) =>
       new TableCell({
         children: [
