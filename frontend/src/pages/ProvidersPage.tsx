@@ -164,6 +164,7 @@ export const ProvidersPage: React.FC = () => {
   const [servicesSearch, setServicesSearch] = useState('');
   const [loadingServices, setLoadingServices] = useState(false);
   const [repsServiciosCodigos, setRepsServiciosCodigos] = useState<Set<string>>(new Set());
+  const [repsServicesFound, setRepsServicesFound] = useState<Array<{ nombre: string; codigo?: string }>>([]); // Servicios extraídos de REPS
 
   useEffect(() => {
     const load = async () => {
@@ -426,6 +427,7 @@ export const ProvidersPage: React.FC = () => {
         console.log('✅ Servicios coincidentes:', matchedIds);
 
         setRepsServiciosCodigos(repsCodigos);
+        setRepsServicesFound(serviciosList); // Guardar lista completa de servicios REPS
         if (matchedIds.length > 0) setSelectedServiceIds(matchedIds);
 
         // Normalizar fecha_vencimiento al formato YYYY-MM-DD que espera el input[type=date]
@@ -511,6 +513,7 @@ export const ProvidersPage: React.FC = () => {
               setRepsFound(null);
               setRepsError(null);
               setRepsServiciosCodigos(new Set());
+              setRepsServicesFound([]);
               setServicesSearch('');
               setSelectedServiceIds([]);
               loadServices();
@@ -693,15 +696,29 @@ export const ProvidersPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      {repsFound.servicios_count > 0 && (
+                      {repsServicesFound.length > 0 && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px' }}>
-                          <strong>Servicios habilitados REPS:</strong> {repsFound.servicios_count} reportados en REPS
-                          {repsFound.servicios_matched > 0
-                            ? ` — ${repsFound.servicios_matched} preseleccionados abajo`
-                            : ' — ninguno coincide con servicios registrados en el sistema'}
+                          <strong>✓ Servicios habilitados encontrados en REPS:</strong>
+                          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {repsServicesFound.map((s, i) => (
+                              <div key={i} style={{ fontSize: '12px', color: '#047857', padding: '4px 8px', background: '#ecfdf5', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                                • {s.nombre} {s.codigo ? `(${s.codigo})` : ''}
+                              </div>
+                            ))}
+                          </div>
+                          {repsFound.servicios_matched > 0 && (
+                            <div style={{ marginTop: '6px', fontSize: '11px', color: '#0891b2', fontWeight: 600 }}>
+                              📌 {repsFound.servicios_matched} preseleccionados abajo
+                            </div>
+                          )}
+                          {repsFound.servicios_matched === 0 && repsServicesFound.length > 0 && (
+                            <div style={{ marginTop: '6px', fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>
+                              ⚠️ Ninguno coincide con servicios registrados en el sistema
+                            </div>
+                          )}
                         </div>
                       )}
-                      {repsFound.servicios_count === 0 && (
+                      {repsServicesFound.length === 0 && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px', color: '#6b7280' }}>
                           Sin servicios habilitados reportados en REPS
                         </div>
