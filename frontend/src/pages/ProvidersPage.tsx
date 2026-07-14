@@ -769,7 +769,7 @@ export const ProvidersPage: React.FC = () => {
 
               <div className="dashboard-form-group">
                 <label htmlFor="habilitacion_fecha_vencimiento">
-                  Fecha de vencimiento de habilitación <span style={{ color: '#dc2626' }}>*</span>
+                  Fecha de vencimiento de habilitación
                 </label>
                 <input
                   id="habilitacion_fecha_vencimiento"
@@ -777,10 +777,9 @@ export const ProvidersPage: React.FC = () => {
                   value={formData.habilitacion_fecha_vencimiento}
                   onChange={(e) => setFormData({ ...formData, habilitacion_fecha_vencimiento: e.target.value })}
                   disabled={creating}
-                  required
                 />
                 <small style={{ color: '#6b778c', marginTop: '4px' }}>
-                  Obligatorio. El sistema enviará alertas automáticas 30, 15 y 7 días antes del vencimiento, y el día en que vence.
+                  Opcional. Si se proporciona, el sistema enviará alertas automáticas 30, 15 y 7 días antes del vencimiento.
                 </small>
               </div>
 
