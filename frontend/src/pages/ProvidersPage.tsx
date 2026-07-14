@@ -219,10 +219,6 @@ export const ProvidersPage: React.FC = () => {
       setCreateError('Ciudad es obligatoria');
       return;
     }
-    if (!formData.habilitacion_fecha_vencimiento) {
-      setCreateError('La fecha de vencimiento de habilitación es obligatoria');
-      return;
-    }
 
     // Validar campos del usuario administrador si se eligió crearlo
     if (createAdminUser) {
@@ -293,10 +289,6 @@ export const ProvidersPage: React.FC = () => {
   const handleEdit = async () => {
     if (!editingId || !formData.legal_name.trim() || !formData.city.trim()) {
       setCreateError('Por favor completa los campos obligatorios');
-      return;
-    }
-    if (!formData.habilitacion_fecha_vencimiento) {
-      setCreateError('La fecha de vencimiento de habilitación es obligatoria');
       return;
     }
 
