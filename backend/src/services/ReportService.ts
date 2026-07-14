@@ -1555,7 +1555,7 @@ export class ReportService {
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
-          new TableRow({ children: [labelCell('Nombre o razón social del prestador'), valueCell(data.provider.legal_name)] }),
+          new TableRow({ children: [labelCell('Nombre o razón social del prestador'), valueCell(toTitleCase(data.provider.legal_name))] }),
           new TableRow({ children: [labelCell('Cédula de ciudadanía / NIT'), valueCell(data.provider.rut)] }),
           new TableRow({ children: [labelCell('Municipio'), valueCell(`${data.provider.city} (${deptFormatted})`)] }),
           ...(data.servicios.length > 0
