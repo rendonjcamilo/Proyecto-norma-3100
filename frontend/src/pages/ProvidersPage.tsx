@@ -410,10 +410,21 @@ export const ProvidersPage: React.FC = () => {
       const res = await repsApi.consultar(repsSearchCode.trim());
       if (res.data?.found && res.data.data) {
         const d = res.data.data;
+        console.log('🔍 REPS data completo:', d);
+        console.log('📋 Servicios habilitados:', d.servicios_habilitados);
+
         const mobileNumber = extractMobileNumber(d.telefono);
         // Cruzar servicios REPS con servicios del sistema por código oficial
-        const repsCodigos = new Set((d.servicios_habilitados || []).map((s) => s.codigo));
+        const serviciosList = d.servicios_habilitados || [];
+        console.log('📊 Servicios a procesar:', serviciosList);
+
+        const repsCodigos = new Set(serviciosList.map((s) => s.codigo || s.code || s.nombre));
+        console.log('🏷️ Códigos REPS encontrados:', Array.from(repsCodigos));
+        console.log('🗂️ Servicios del sistema disponibles:', allServices.map(s => ({ id: s.id, code: s.code, name: s.name })));
+
         const matchedIds = allServices.filter((s) => repsCodigos.has(s.code)).map((s) => s.id);
+        console.log('✅ Servicios coincidentes:', matchedIds);
+
         setRepsServiciosCodigos(repsCodigos);
         if (matchedIds.length > 0) setSelectedServiceIds(matchedIds);
 
