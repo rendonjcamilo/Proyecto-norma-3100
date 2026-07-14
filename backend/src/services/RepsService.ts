@@ -273,15 +273,24 @@ export class RepsService {
   // ─── Mapeo de datos desde datos.gov.co ───
 
   private mapDatosGovToReps(record: Record<string, string>): RepsRegistroData {
+    // Log para debug: ver qué campos trae el registro
+    logger.debug({
+      msg: 'REPS record fields',
+      fields: Object.keys(record),
+    });
+
     // Parsear servicios habilitados si existen
     let servicios: Array<{ codigo: string; nombre: string; desde?: string; hasta?: string }> = [];
     try {
-      const serviciosRaw = this.pick(record, 'servicios', 'servicios_habilitados');
+      const serviciosRaw = this.pick(record, 'servicios', 'servicios_habilitados', 'servicios_codigo', 'servicioshab');
       if (serviciosRaw) {
+        logger.debug({ msg: 'Servicios encontrados en REPS', raw: serviciosRaw });
         servicios = JSON.parse(serviciosRaw);
+      } else {
+        logger.debug({ msg: 'No se encontró campo de servicios en REPS' });
       }
-    } catch (_) {
-      // Si no es JSON válido, dejar vacío
+    } catch (e) {
+      logger.warn({ msg: 'Error al parsear servicios de REPS', error: String(e) });
     }
 
     // Parsear capacidad instalada si existe
