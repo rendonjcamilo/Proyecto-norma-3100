@@ -1,14 +1,15 @@
 version: 2
 updates:
-  # Backend npm dependencies
   - package-ecosystem: "npm"
     directory: "/backend"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "06:00"
+      time: "09:00"
       timezone: "America/Bogota"
     open-pull-requests-limit: 5
+    reviewers:
+      - "guidogar123"
     labels:
       - "dependencies"
       - "backend"
@@ -16,22 +17,19 @@ updates:
       prefix: "chore(backend)"
       include: "scope"
     groups:
-      production-dependencies:
-        dependency-type: "production"
-        update-types: ["minor", "patch"]
-      development-dependencies:
-        dependency-type: "development"
+      minor-and-patch:
         update-types: ["minor", "patch"]
 
-  # Frontend npm dependencies
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "06:00"
+      time: "09:00"
       timezone: "America/Bogota"
     open-pull-requests-limit: 5
+    reviewers:
+      - "guidogar123"
     labels:
       - "dependencies"
       - "frontend"
@@ -39,29 +37,33 @@ updates:
       prefix: "chore(frontend)"
       include: "scope"
     groups:
-      production-dependencies:
-        dependency-type: "production"
-        update-types: ["minor", "patch"]
-      development-dependencies:
-        dependency-type: "development"
+      minor-and-patch:
         update-types: ["minor", "patch"]
 
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Bogota"
+    reviewers:
+      - "guidogar123"
     labels:
       - "dependencies"
       - "ci"
     commit-message:
       prefix: "chore(ci)"
 
-  # Docker
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Bogota"
+    reviewers:
+      - "guidogar123"
     labels:
       - "dependencies"
       - "docker"

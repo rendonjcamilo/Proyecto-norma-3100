@@ -21,7 +21,7 @@ services:
       - JWT_SECRET=dev_jwt_secret_change_in_production
       - LOG_LEVEL=debug
       - EMAIL_PROVIDER=resend
-      - RESEND_API_KEY=re_SZxw6HFN_GFcV5w3p9cpgUZmL9v4J7YEM
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
       - EMAIL_FROM_ADDRESS=onboarding@resend.dev
       - EMAIL_FROM_NAME=Sistema Norma 3100
       - EVOLUTION_API_URL=http://evolution:8080
