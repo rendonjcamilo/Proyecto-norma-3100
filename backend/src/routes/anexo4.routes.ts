@@ -5,6 +5,9 @@
 
 import { Router, Request, Response } from 'express';
 import { Pool } from 'pg';
+import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs/promises';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { Anexo4Service } from '../services/Anexo4Service.js';
@@ -197,6 +200,76 @@ export function createAnexo4Router(pool: Pool): Router {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error({ msg: 'Error generando PDF anexo4', error: msg });
+        res.status(500).json({ error: msg });
+      }
+    },
+  );
+
+  /**
+   * POST /api/anexo4/:id/save-to-documents
+   * Genera el PDF del Anexo 4 y lo guarda como documento libre del prestador.
+   * El provider_id se obtiene del assessment asociado a la verificación —
+   * nunca del body, para que un provider_id enviado por el cliente no pueda
+   * asociar el documento a un prestador ajeno ni escapar del directorio de
+   * almacenamiento esperado.
+   */
+  router.post(
+    '/anexo4/:id/save-to-documents',
+    authMiddleware,
+    rbacMiddleware(['auditor', 'super_admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const v = await service.getById(req.params.id);
+        if (!v) { return res.status(404).json({ error: 'Verificación no encontrada' }); }
+
+        const provResult = await pool.query<{ provider_id: string }>(
+          'SELECT provider_id FROM assessments WHERE id = $1',
+          [v.assessment_id],
+        );
+        const providerId = provResult.rows[0]?.provider_id;
+        if (!providerId) { return res.status(400).json({ error: 'La verificación no está asociada a ningún prestador' }); }
+
+        const pdfBuffer = await service.generatePdf(v);
+        const fechaStr  = v.fecha instanceof Date
+          ? v.fecha.toISOString().substring(0, 10)
+          : String(v.fecha).substring(0, 10);
+        const filename  = `Anexo4-HC-${fechaStr}-${v.servicio.replace(/\s+/g, '_').substring(0, 30)}.pdf`;
+
+        const storageRoot = process.env.DOCUMENT_STORAGE_PATH
+          ? path.join(process.env.DOCUMENT_STORAGE_PATH, 'free')
+          : './storage/documents/free';
+
+        const checksum = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
+        const relPath  = path.join(providerId, 'free', `${checksum.substring(0, 8)}_${filename}`);
+        const absPath  = path.join(storageRoot, relPath);
+
+        await fs.mkdir(path.dirname(absPath), { recursive: true });
+        await fs.writeFile(absPath, pdfBuffer, { mode: 0o640 });
+
+        const { rows } = await pool.query(
+          `INSERT INTO provider_free_documents
+             (provider_id, category, filename, original_filename, mime_type,
+              file_size_bytes, storage_path, checksum_sha256, description, uploaded_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id`,
+          [
+            providerId,
+            'Auditoría de Historia Clínica',
+            filename,
+            filename,
+            'application/pdf',
+            pdfBuffer.length,
+            relPath,
+            checksum,
+            `Verificación HC — ${v.servicio} — ${fechaStr}`,
+            req.user!.user_id,
+          ],
+        );
+
+        res.status(201).json({ ok: true, documentId: rows[0].id });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error({ msg: 'Error guardando Anexo4 en documentos', error: msg });
         res.status(500).json({ error: msg });
       }
     },
