@@ -59,6 +59,15 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 
+# Database dumps (may contain real production PII — never commit)
+*.sql.gz
+norma3100_dump.sql
+*_dump.sql
+*.dump
+
+# CodeGraph local index
+.codegraph/
+
 # Planning
 .planning/
 .claude/
