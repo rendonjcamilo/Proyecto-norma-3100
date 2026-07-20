@@ -301,83 +301,90 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
         }
 
         const result = await pool.query(`
-          -- Criterios evaluables: vienen de las respuestas del assessment
-          SELECT
-            ec.id,
-            ec.code,
-            COALESCE(ec.number, '') AS number,
-            ec.name,
-            COALESCE(ec.description, '') AS description,
-            COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
-            COALESCE(ec.complexity, 'medium') AS complexity,
-            ec.nc_hint,
-            COALESCE(ec.is_mandatory, false) AS is_mandatory,
-            COALESCE(ec.is_section_header, false) AS is_section_header,
-            ec.sort_order,
-            es.id AS standard_id,
-            es.code AS standard_code,
-            es.name AS standard_name,
-            es.is_transversal
-          FROM assessment_responses_detailed ard
-          JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
-          JOIN evaluation_standards es ON es.id = ec.standard_id
-          WHERE ard.assessment_id = $1
-            AND COALESCE(ec.is_section_header, false) = FALSE
+          SELECT * FROM (
+            -- Criterios evaluables: vienen de las respuestas del assessment
+            SELECT
+              ec.id,
+              ec.code,
+              COALESCE(ec.number, '') AS number,
+              ec.name,
+              COALESCE(ec.description, '') AS description,
+              COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
+              COALESCE(ec.complexity, 'medium') AS complexity,
+              ec.nc_hint,
+              COALESCE(ec.is_mandatory, false) AS is_mandatory,
+              COALESCE(ec.is_section_header, false) AS is_section_header,
+              ec.sort_order,
+              es.id AS standard_id,
+              es.code AS standard_code,
+              es.name AS standard_name,
+              es.is_transversal
+            FROM assessment_responses_detailed ard
+            JOIN evaluation_criteria ec ON ec.id = ard.criterion_id
+            JOIN evaluation_standards es ON es.id = ec.standard_id
+            WHERE ard.assessment_id = $1
+              AND COALESCE(ec.is_section_header, false) = FALSE
 
-          UNION
+            UNION
 
-          -- Encabezados del cuestionario maestro (transversales)
-          SELECT
-            ec.id,
-            ec.code,
-            COALESCE(ec.number, '') AS number,
-            ec.name,
-            COALESCE(ec.description, '') AS description,
-            COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
-            COALESCE(ec.complexity, 'medium') AS complexity,
-            ec.nc_hint,
-            COALESCE(ec.is_mandatory, false) AS is_mandatory,
-            true AS is_section_header,
-            ec.sort_order,
-            es.id AS standard_id,
-            es.code AS standard_code,
-            es.name AS standard_name,
-            es.is_transversal
-          FROM assessments a
-          JOIN questionnaire_criteria qc ON qc.questionnaire_id = a.questionnaire_id
-          JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
-          JOIN evaluation_standards es ON es.id = ec.standard_id
-          WHERE a.id = $1
-            AND ec.is_section_header = true
+            -- Encabezados del cuestionario maestro (transversales)
+            SELECT
+              ec.id,
+              ec.code,
+              COALESCE(ec.number, '') AS number,
+              ec.name,
+              COALESCE(ec.description, '') AS description,
+              COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
+              COALESCE(ec.complexity, 'medium') AS complexity,
+              ec.nc_hint,
+              COALESCE(ec.is_mandatory, false) AS is_mandatory,
+              true AS is_section_header,
+              ec.sort_order,
+              es.id AS standard_id,
+              es.code AS standard_code,
+              es.name AS standard_name,
+              es.is_transversal
+            FROM assessments a
+            JOIN questionnaire_criteria qc ON qc.questionnaire_id = a.questionnaire_id
+            JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
+            JOIN evaluation_standards es ON es.id = ec.standard_id
+            WHERE a.id = $1
+              AND ec.is_section_header = true
 
-          UNION
+            UNION
 
-          -- Encabezados del cuestionario específico del servicio
-          SELECT
-            ec.id,
-            ec.code,
-            COALESCE(ec.number, '') AS number,
-            ec.name,
-            COALESCE(ec.description, '') AS description,
-            COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
-            COALESCE(ec.complexity, 'medium') AS complexity,
-            ec.nc_hint,
-            COALESCE(ec.is_mandatory, false) AS is_mandatory,
-            true AS is_section_header,
-            ec.sort_order,
-            es.id AS standard_id,
-            es.code AS standard_code,
-            es.name AS standard_name,
-            es.is_transversal
-          FROM assessments a
-          JOIN questionnaires q ON q.service_id = a.service_id AND q.status = 'published'
-          JOIN questionnaire_criteria qc ON qc.questionnaire_id = q.id
-          JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
-          JOIN evaluation_standards es ON es.id = ec.standard_id
-          WHERE a.id = $1
-            AND ec.is_section_header = true
-
-          ORDER BY is_transversal DESC, standard_id, sort_order NULLS LAST, code
+            -- Encabezados del cuestionario específico del servicio
+            SELECT
+              ec.id,
+              ec.code,
+              COALESCE(ec.number, '') AS number,
+              ec.name,
+              COALESCE(ec.description, '') AS description,
+              COALESCE(ec.evidence_requirement, '') AS evidence_requirement,
+              COALESCE(ec.complexity, 'medium') AS complexity,
+              ec.nc_hint,
+              COALESCE(ec.is_mandatory, false) AS is_mandatory,
+              true AS is_section_header,
+              ec.sort_order,
+              es.id AS standard_id,
+              es.code AS standard_code,
+              es.name AS standard_name,
+              es.is_transversal
+            FROM assessments a
+            JOIN questionnaires q ON q.service_id = a.service_id AND q.status = 'published'
+            JOIN questionnaire_criteria qc ON qc.questionnaire_id = q.id
+            JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
+            JOIN evaluation_standards es ON es.id = ec.standard_id
+            WHERE a.id = $1
+              AND ec.is_section_header = true
+          ) sub
+          ORDER BY sub.is_transversal DESC,
+            CASE sub.standard_code
+              WHEN 'TSTH' THEN 1 WHEN 'TSHCR' THEN 2
+              WHEN 'TSDOT' THEN 3 WHEN 'TSMD' THEN 4
+              WHEN 'TSPP' THEN 5 WHEN 'TSINF' THEN 6
+              WHEN 'TSINT' THEN 7 ELSE 8
+            END, sub.sort_order NULLS LAST, sub.code
         `, [id]);
 
         const criteria = result.rows.map(row => ({

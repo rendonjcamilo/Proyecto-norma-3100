@@ -121,12 +121,19 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
+  permissionsPolicy: false,
   hsts: NODE_ENV === 'production' ? {
     maxAge: 31536000,
     includeSubDomains: true,
     preload: true,
   } : false,
 }));
+
+app.use((req, res, next) => {
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Permissions-Policy', "camera=(), microphone=(), geolocation=(), payment=(), usb=(), midi=(), sync-xhr=()");
+  next();
+});
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -138,6 +145,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.disable('x-powered-by');
 
 // Input sanitization (after body parsing)
 app.use(sanitizeInputs);
