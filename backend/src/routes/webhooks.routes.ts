@@ -11,9 +11,17 @@ import {
   SMSWebhookPayload,
   PushWebhookPayload,
 } from '../types/multichannel.types.js';
+import {
+  verifyMailgunSignature,
+  verifyTwilioSignature,
+  verifySharedSecret,
+} from '../utils/webhook-signature.js';
 
 export function createWebhooksRouter(pool: Pool): Router {
   const router = express.Router();
+  // En dev, si el secreto no está configurado, se permite el paso con warning
+  // (no rompe pruebas locales). En producción SIEMPRE se exige verificación.
+  const failOpen = process.env.NODE_ENV !== 'production';
 
   /**
    * POST /api/webhooks/email/mailgun
@@ -21,6 +29,16 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/email/mailgun', async (req: Request, res: Response) => {
     try {
+      const key = process.env.MAILGUN_WEBHOOK_SIGNING_KEY || '';
+      const ok = verifyMailgunSignature(req.body?.signature || {}, key);
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Firma Mailgun inválida');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook Mailgun sin verificar (dev)');
+      }
+
       const payload: EmailWebhookPayload = req.body;
 
       if (!payload.messageId) {
@@ -91,6 +109,16 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/email/sendgrid', async (req: Request, res: Response) => {
     try {
+      const key = process.env.SENDGRID_WEBHOOK_SECRET || '';
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Token de webhook SendGrid inválido');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook SendGrid sin verificar (dev)');
+      }
+
       const events = Array.isArray(req.body) ? req.body : [req.body];
 
       for (const event of events) {
@@ -148,6 +176,17 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/sms/twilio', async (req: Request, res: Response) => {
     try {
+      const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      const key = process.env.TWILIO_AUTH_TOKEN || '';
+      const ok = verifyTwilioSignature(key, fullUrl, req.body, req.get('X-Twilio-Signature') || '');
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Firma Twilio inválida');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook Twilio sin verificar (dev)');
+      }
+
       const payload: SMSWebhookPayload = req.body;
 
       if (!payload.messageId) {
@@ -211,6 +250,16 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/sms/aws-sns', async (req: Request, res: Response) => {
     try {
+      const key = process.env.AWS_SNS_WEBHOOK_SECRET || '';
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Token de webhook AWS SNS inválido');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook AWS SNS sin verificar (dev)');
+      }
+
       const payload: any = req.body;
 
       // AWS SNS sends delivery status in Message field (JSON string)
@@ -266,6 +315,16 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/push/fcm', async (req: Request, res: Response) => {
     try {
+      const key = process.env.FCM_WEBHOOK_SECRET || '';
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Token de webhook FCM inválido');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook FCM sin verificar (dev)');
+      }
+
       const payload: PushWebhookPayload = req.body;
 
       if (!payload.messageId) {
@@ -326,6 +385,16 @@ export function createWebhooksRouter(pool: Pool): Router {
    */
   router.post('/push/apns', async (req: Request, res: Response) => {
     try {
+      const key = process.env.APNS_WEBHOOK_SECRET || '';
+      const ok = verifySharedSecret(req.get('X-Webhook-Token') || '', key);
+      if (!ok && !(failOpen && !key)) {
+        logger.warn('Token de webhook APNS inválido');
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+      if (!ok) {
+        logger.warn('Webhook APNS sin verificar (dev)');
+      }
+
       const payload: PushWebhookPayload = req.body;
 
       if (!payload.messageId) {

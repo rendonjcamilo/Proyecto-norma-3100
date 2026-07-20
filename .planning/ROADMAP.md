@@ -362,6 +362,21 @@ Phase 6: Security Hardening & Deployment   (Weeks 15-16)
 
 **Effort:** 30 hours | **Team:** 2 engineers (1 security, 1 DevOps) | **Parallelization:** Partial
 
+**Plans:** 9 plans (finalized 2026-07-07 via `/gsd-plan-phase 6` — derived from the codebase security audit `.planning/codebase/CONCERNS.md`, not the original 6.1/6.2 estimate below which is retained as context)
+
+Plans (all Wave 1 — parallel, exclusive file ownership; 06-09 has a supervised checkpoint):
+- [x] 06-01-PLAN.md — JWT refresh-secret separation + API rate-limit hardening (FR-110.3, FR-110.4)
+- [x] 06-02-PLAN.md — dev-login limiter, welcome email, assessment export wire-up (FR-110.4, FR-103.7)
+- [x] 06-03-PLAN.md — webhook signature/secret verification on all 6 endpoints (FR-110.6)
+- [x] 06-04-PLAN.md — Express config: CORS whitelist, Swagger prod gate, Redis health auth (FR-110.5, FR-110.9)
+- [x] 06-05-PLAN.md — Nginx security headers (X-XSS, CSP), docs deny, TLS 1.3 verify (FR-110.1, FR-110.5)
+- [x] 06-06-PLAN.md — EventStore hash-chain lock + at-rest payload encryption default (FR-110.2, NFR-105.4)
+- [x] 06-07-PLAN.md — audit identity fix, risk-scoring via EventStore, user lifecycle events (NFR-105.3, NFR-105.4)
+- [x] 06-08-PLAN.md — dev secrets to gitignored .env, prod container hardening, PG logging (FR-110.7, FR-110.8, FR-110.11, FR-110.12)
+- [x] 06-09-PLAN.md — Postgres 14→17 upgrade runbook + supervised execution checkpoint (FR-110.10)
+
+Carry-over human actions (NOT plan tasks — outside executor scope): rotate leaked RESEND_API_KEY on resend.com; restrict host PostgreSQL-16 to localhost; apply VPS OS updates + reboot. Already resolved / excluded: deploy.yml migrate:up (already in origin/main).
+
 #### Phase 6.1: Security Review & Encryption Implementation
 
 **Plans:**

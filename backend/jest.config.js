@@ -1,7 +1,12 @@
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  extensionsToTreatAsEsm: ['.ts', '.js'],
+  // '.js' se omite: package.json ya declara "type": "module", así que
+  // jest-config (29.7.0) infiere ESM automáticamente e invalida listarlo aquí
+  extensionsToTreatAsEsm: ['.ts'],
+  // .ts primero: algunos módulos en src/ tienen un .js homónimo obsoleto
+  // (compilado antiguo); sin esto Node resuelve el .js stale en vez del .ts vigente
+  moduleFileExtensions: ['ts', 'js', 'mjs', 'cjs', 'jsx', 'tsx', 'json', 'node'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '@/(.*)': '<rootDir>/src/$1',

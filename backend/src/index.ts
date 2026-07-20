@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -136,7 +136,15 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+      .split(',').map((s) => s.trim()).filter(Boolean);
+    // Sin header Origin (same-origin, curl, health checks) o dominio en whitelist → permitido
+    if (!origin || allowed.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS not allowed'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -169,13 +177,18 @@ app.use((req: Request, res: Response, next) => {
 });
 
 // === API DOCUMENTATION (Swagger / OpenAPI) ===
-// Raw OpenAPI spec
-app.get('/api/docs.json', (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(openapiSpec);
-});
-// Interactive Swagger UI
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+if (NODE_ENV !== 'production') {
+  // Raw OpenAPI spec
+  app.get('/api/docs.json', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(openapiSpec);
+  });
+  // Interactive Swagger UI
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, swaggerUiOptions));
+} else {
+  // En producción los docs quedan ocultos (404) — refuerzo defensivo junto al bloqueo en nginx
+  app.use(['/api/docs', '/api/docs.json'], (_req, res) => res.status(404).json({ error: 'Not Found' }));
+}
 
 // Health check endpoint — liveness + readiness (DB + Redis)
 app.get('/health', async (_req: Request, res: Response) => {
@@ -196,7 +209,7 @@ app.get('/health', async (_req: Request, res: Response) => {
     const redisStart = Date.now();
     try {
       const { createClient } = await import('redis');
-      const client = createClient({ url: redisUrl });
+      const client = createClient({ url: redisUrl, password: process.env.REDIS_PASSWORD || undefined });
       await client.connect();
       await client.ping();
       await client.disconnect();
@@ -303,11 +316,24 @@ app.use((_req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: Error, _req: Request, res: Response) => {
+// IMPORTANTE: Express solo reconoce middleware de error por su ARIDAD (debe
+// declarar exactamente 4 parámetros: err, req, res, next). Con 3 parámetros
+// Express lo trata como middleware normal y lo SALTA en el path de errores
+// (incluye next(err) de express-async-errors y el callback de error de cors
+// abajo) — los errores caen al handler por defecto de Express, sin loggear
+// ni respetar el contrato JSON { error, message }.
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   logger.error({
     error: err.message,
     stack: err.stack,
   });
+
+  if (err.message === 'CORS not allowed') {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Origin not allowed by CORS policy',
+    });
+  }
 
   res.status(500).json({
     error: 'Internal Server Error',

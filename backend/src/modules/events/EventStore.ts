@@ -43,6 +43,16 @@ export class EventStore {
     const client = await this.pool.connect();
 
     try {
+      await client.query('BEGIN');
+
+      // Lock por aggregate: serializa appends concurrentes del MISMO aggregate
+      // (evita que dos procesos lean el mismo previous_event_hash y forken la
+      // cadena) sin bloquear appends de aggregates DISTINTOS. Se usa advisory
+      // lock (no SELECT ... FOR UPDATE) porque el primer evento de un
+      // aggregate no tiene fila previa que bloquear. Se libera automáticamente
+      // en COMMIT/ROLLBACK (pg_advisory_xact_lock).
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [event.aggregateId]);
+
       const eventId = event.id || uuidv4();
       const timestamp = event.timestamp || new Date();
 
@@ -59,6 +69,10 @@ export class EventStore {
 
       // El hash se calcula SIEMPRE sobre el payload plano (antes de cifrar)
       // Garantiza que verifyIntegrity funcione con o sin cifrado habilitado
+      // previousEventHash se normaliza a null (nunca undefined): JSON.stringify omite
+      // claves undefined pero conserva claves null, y verifyIntegrity siempre relee
+      // previous_event_hash como null (nunca undefined) desde la BD — sin esta
+      // normalización el hash calculado aquí nunca coincide con el recalculado después.
       const eventHash = this.calculateHash({
         id: eventId,
         aggregateId: event.aggregateId,
@@ -66,7 +80,7 @@ export class EventStore {
         eventType: event.eventType,
         payload: event.payload,
         timestamp,
-        previousEventHash,
+        previousEventHash: previousEventHash ?? null,
       });
 
       // Cifrar payload si está habilitado — el sobre JSONB coexiste con registros no cifrados
@@ -96,6 +110,8 @@ export class EventStore {
 
       const storedEvent = result.rows[0];
 
+      await client.query('COMMIT');
+
       logger.info({
         msg: 'Event appended',
         eventId,
@@ -115,6 +131,9 @@ export class EventStore {
         previousEventHash: storedEvent.previous_event_hash,
         timestamp: storedEvent.timestamp,
       };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
     } finally {
       client.release();
     }

@@ -16,16 +16,16 @@ services:
       - DB_PORT=5432
       - DB_NAME=norma3100
       - DB_USER=postgres
-      - DB_PASSWORD=postgres_dev_password
+      - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=dev_jwt_secret_change_in_production
+      - JWT_SECRET=${JWT_SECRET}
       - LOG_LEVEL=debug
       - EMAIL_PROVIDER=resend
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_API_KEY=${RESEND_API_KEY}
       - EMAIL_FROM_ADDRESS=onboarding@resend.dev
       - EMAIL_FROM_NAME=Sistema Norma 3100
       - EVOLUTION_API_URL=http://evolution:8080
-      - EVOLUTION_API_KEY=norma3100_evo_key_2025
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
       - EVOLUTION_INSTANCE_NAME=norma3100
     depends_on:
       postgres:
@@ -84,7 +84,7 @@ services:
     environment:
       - POSTGRES_DB=norma3100
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres_dev_password
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
       - PGDATA=/var/lib/postgresql/data/pgdata
     networks:
       - norma-network
@@ -117,7 +117,7 @@ services:
       - LOG_BAILEYS=error
       - DEL_INSTANCE=false
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://postgres:postgres_dev_password@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${DB_PASSWORD}@postgres:5432/evolution?schema=public
       - DATABASE_CONNECTION_CLIENT_NAME=evolution_norma3100
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=false
@@ -134,7 +134,7 @@ services:
       - CACHE_REDIS_PREFIX_KEY=evolution
       - CACHE_REDIS_SAVE_INSTANCES=false
       - CACHE_LOCAL_ENABLED=false
-      - AUTHENTICATION_API_KEY=norma3100_evo_key_2025
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
       - QRCODE_LIMIT=30
       - LANGUAGE=es

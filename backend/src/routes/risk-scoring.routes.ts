@@ -9,11 +9,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { RiskScoringService } from '../services/RiskScoringService.js';
+import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 
 export function createRiskScoringRouter(pool: Pool): Router {
   const router = Router();
   const riskScoringService = new RiskScoringService(pool);
+  const eventStore = new EventStore(pool);
 
   // Require authentication for all routes
   router.use(authMiddleware);
@@ -71,6 +73,29 @@ export function createRiskScoringRouter(pool: Pool): Router {
         const { findingId } = req.params;
         const { months = '3' } = req.query;
         const monthsBack = Math.min(12, Math.max(1, parseInt(months as string) || 3));
+
+        const findingResult = await pool.query(
+          `SELECT id, provider_id FROM findings WHERE id = $1`,
+          [findingId]
+        );
+
+        if (findingResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Hallazgo no encontrado' });
+        }
+
+        const finding = findingResult.rows[0];
+        const userId = req.user?.user_id;
+        const userRole = req.user?.role;
+
+        if (userRole !== 'super_admin' && userRole !== 'auditor') {
+          const accessResult = await pool.query(
+            `SELECT id FROM users WHERE id = $1 AND provider_id = $2`,
+            [userId, finding.provider_id]
+          );
+          if (accessResult.rows.length === 0) {
+            return res.status(403).json({ error: 'No autorizado' });
+          }
+        }
 
         const riskTrend = await riskScoringService.getRiskTrend(findingId, monthsBack);
         res.json(riskTrend);
@@ -165,18 +190,13 @@ export function createRiskScoringRouter(pool: Pool): Router {
 
         const updatedRiskScore = await riskScoringService.updateRiskScore(findingId);
 
-        await pool.query(
-          `INSERT INTO events (id, event_type, aggregate_id, aggregate_type, data, user_id, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-          [
-            uuidv4(),
-            'finding.risk_recalculated',
-            findingId,
-            'finding',
-            JSON.stringify({ risk_score: updatedRiskScore.currentScore }),
-            userId,
-          ]
-        );
+        await eventStore.append({
+          aggregateId: findingId,
+          aggregateType: 'finding',
+          eventType: 'finding.risk_recalculated',
+          payload: { risk_score: updatedRiskScore.currentScore },
+          userId,
+        });
 
         res.json(updatedRiskScore);
       } catch (error) {
@@ -219,22 +239,17 @@ export function createRiskScoringRouter(pool: Pool): Router {
           }
         }
 
-        await pool.query(
-          `INSERT INTO events (id, event_type, aggregate_id, aggregate_type, data, user_id, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-          [
-            uuidv4(),
-            'findings.bulk_risk_update',
-            'batch-' + uuidv4(),
-            'findings',
-            JSON.stringify({
-              count: findingIds.length,
-              updated: results.updated,
-              errors: results.errors.length,
-            }),
-            userId,
-          ]
-        );
+        await eventStore.append({
+          aggregateId: 'batch-' + uuidv4(),
+          aggregateType: 'findings',
+          eventType: 'findings.bulk_risk_update',
+          payload: {
+            count: findingIds.length,
+            updated: results.updated,
+            errors: results.errors.length,
+          },
+          userId,
+        });
 
         res.json(results);
       } catch (error) {
