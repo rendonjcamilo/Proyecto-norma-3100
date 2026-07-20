@@ -16,6 +16,7 @@ import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
 import { ImprovementPlanService } from '../services/ImprovementPlanService.js';
 import { ReportService } from '../services/ReportService.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Router {
   const router = Router();
@@ -380,12 +381,7 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
               AND ec.is_section_header = true
           ) sub
           ORDER BY sub.is_transversal DESC,
-            CASE sub.standard_code
-              WHEN 'TSTH' THEN 1 WHEN 'TSHCR' THEN 2
-              WHEN 'TSDOT' THEN 3 WHEN 'TSMD' THEN 4
-              WHEN 'TSPP' THEN 5 WHEN 'TSINF' THEN 6
-              WHEN 'TSINT' THEN 7 ELSE 8
-            END, sub.sort_order NULLS LAST, sub.code
+            ${standardOrderCaseSql('sub.standard_code')}, sub.sort_order NULLS LAST, sub.code
         `, [id]);
 
         const criteria = result.rows.map(row => ({

@@ -129,11 +129,15 @@ function groupCriteriaByStandard(criteria: QuestionnaireCriterion[]): Standard[]
     }
   }
 
-  // TH=1, INF=2, DOT=3, MD=4, PP=5, HCR=6, INT=7
+  // TH=1, INF=2, DOT=3, MD=4, PP=5, HCR=6, INT=7 (Res. 3100, Cap. 11 Condición 3) — debe
+  // coincidir con backend/src/config/standard-order.config.ts (TRANSVERSAL_STANDARD_ORDER).
+  // Corregido 2026-07-20: el código aquí tenía HCR/INF invertidos (HCR=2, INF=6), el mismo
+  // error de copy-paste que en assessments.routes.ts y ReportService.ts — ver
+  // backend/docs/BUG16-orden-estandares.md.
   // Aplica tanto a transversales (TSTH, TSINF…) como a específicos (APH_TH, APH_INF…)
   // MED = alias de MD (SF_MED), HC = alias de HCR (SF_HC) — Excel usa esas abreviaturas
   const DOMAIN_ORDER: Record<string, number> = {
-    TH: 1, HCR: 2, HC: 2, DOT: 3, MD: 4, MED: 4, PP: 5, INF: 6, INT: 7,
+    TH: 1, INF: 2, DOT: 3, MD: 4, MED: 4, PP: 5, HCR: 6, HC: 6, INT: 7,
   };
   const getDomainSuffix = (code: string): string => {
     const underscoreIdx = code.lastIndexOf('_');

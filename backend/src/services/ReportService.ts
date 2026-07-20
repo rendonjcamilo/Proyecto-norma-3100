@@ -26,6 +26,7 @@ import {
 } from 'docx';
 import sharp from 'sharp';
 import { logger } from '../utils/logger.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -165,10 +166,7 @@ export class ReportService {
        AND ec.is_section_header = false
        AND es.is_transversal = TRUE
        GROUP BY es.id, es.code, es.name
-       ORDER BY CASE es.code
-         WHEN 'TSTH'  THEN 1 WHEN 'TSINF' THEN 2 WHEN 'TSDOT' THEN 3
-         WHEN 'TSMD'  THEN 4 WHEN 'TSPP'  THEN 5 WHEN 'TSHCR' THEN 6
-         WHEN 'TSINT' THEN 7 ELSE 8 END`,
+       ORDER BY ${standardOrderCaseSql('es.code')}`,
       [providerId]
     ).catch(() => ({ rows: [] as { code: string; name: string; cumple: string; no_cumple: string; no_aplica: string; total: string; }[] }));
 
@@ -804,18 +802,13 @@ export class ReportService {
         fechaAuditoria = new Date(dateResult.rows[0].fecha);
       }
 
-      // servicios: JOIN separado
+      // servicios: JOIN separado — usa services_enabled del prestador (REPS)
       const svcResult = await this.pool.query<{ code: string; name: string }>(
         `SELECT DISTINCT s.code, s.name
          FROM assessments a
-         JOIN services s ON (
-           s.id = a.service_id
-           OR (
-             a.service_ids IS NOT NULL
-             AND a.service_ids <> '[]'::jsonb
-             AND s.id::text IN (SELECT jsonb_array_elements_text(a.service_ids))
-           )
-         )
+         JOIN providers p ON p.id = a.provider_id
+         JOIN services_enabled se ON se.provider_id = p.id AND se.status = 'active'
+         JOIN services s ON s.id = se.service_id
          WHERE a.id = $1
          ORDER BY s.name`,
         [assessmentId]
@@ -833,16 +826,7 @@ export class ReportService {
          AND EXISTS (
            SELECT 1 FROM evaluation_criteria ec WHERE ec.standard_id = es.id
          )
-       ORDER BY CASE es.code
-         WHEN 'TSTH'  THEN 1
-         WHEN 'TSINF' THEN 2
-         WHEN 'TSDOT' THEN 3
-         WHEN 'TSMD'  THEN 4
-         WHEN 'TSPP'  THEN 5
-         WHEN 'TSHCR' THEN 6
-         WHEN 'TSINT' THEN 7
-         ELSE 8
-       END`,
+       ORDER BY ${standardOrderCaseSql('es.code')}`,
     ).catch(() => ({ rows: [] }));
 
     const estandares = [];

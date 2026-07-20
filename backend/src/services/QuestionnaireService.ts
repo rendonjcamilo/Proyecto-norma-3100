@@ -10,6 +10,7 @@
 
 import { Pool, PoolClient } from 'pg';
 import { logger } from '../utils/logger.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 export interface Questionnaire {
   id: string;
@@ -190,16 +191,7 @@ export class QuestionnaireService {
       INNER JOIN evaluation_criteria ec ON qc.criterion_id = ec.id
       INNER JOIN evaluation_standards es ON ec.standard_id = es.id
       WHERE qc.questionnaire_id = $1
-      ORDER BY CASE es.code
-        WHEN 'TSTH'  THEN 1
-        WHEN 'TSINF' THEN 2
-        WHEN 'TSDOT' THEN 3
-        WHEN 'TSMD'  THEN 4
-        WHEN 'TSPP'  THEN 5
-        WHEN 'TSHCR' THEN 6
-        WHEN 'TSINT' THEN 7
-        ELSE 8
-      END,
+      ORDER BY ${standardOrderCaseSql('es.code')},
       CASE WHEN es.code ~ '^IDX_NI_' THEN 1 ELSE 0 END,
       es.code,
       COALESCE(ec.sort_order, 9999),
@@ -483,16 +475,7 @@ export class QuestionnaireService {
       FROM evaluation_standards es
       WHERE es.is_transversal = true
          OR es.service_id = $1
-      ORDER BY CASE es.code
-        WHEN 'TSTH'  THEN 1
-        WHEN 'TSINF' THEN 2
-        WHEN 'TSDOT' THEN 3
-        WHEN 'TSMD'  THEN 4
-        WHEN 'TSPP'  THEN 5
-        WHEN 'TSHCR' THEN 6
-        WHEN 'TSINT' THEN 7
-        ELSE 8
-      END,
+      ORDER BY ${standardOrderCaseSql('es.code')},
       CASE WHEN es.code ~ '^IDX_NI_' THEN 1 ELSE 0 END,
       es.code
     `;
@@ -553,6 +536,7 @@ export class QuestionnaireService {
         INNER JOIN evaluation_standards es ON ec.standard_id = es.id
         WHERE (es.is_transversal = true OR ec.service_id = $1)
           AND ec.status = 'active'
+          AND ec.is_section_header = FALSE
         ORDER BY ec.id
       `;
       params = [serviceId];
@@ -563,6 +547,7 @@ export class QuestionnaireService {
         FROM evaluation_criteria ec
         INNER JOIN evaluation_standards es ON ec.standard_id = es.id
         WHERE es.is_transversal = true AND ec.status = 'active'
+          AND ec.is_section_header = FALSE
         ORDER BY ec.id
       `;
       params = [];
