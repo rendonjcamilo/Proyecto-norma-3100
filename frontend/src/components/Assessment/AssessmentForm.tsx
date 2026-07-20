@@ -75,14 +75,13 @@ export interface AssessmentFormProps {
 }
 
 /**
- * Extrae el número jerárquico embebido en el nombre del criterio.
- * El campo `number` de la BD es un contador secuencial (1, 2, 3...) y no refleja
- * la jerarquía real. El número jerárquico vive solo en el nombre:
- *   "4. El prestador..."  → "4"
- *   "4.1. Convenio..."   → "4.1"
- *   "13.1.1. Profesional..." → "13.1.1"
+ * Retorna el número jerárquico del criterio.
+ * La BD almacena el número en la columna `number` (ej: "4", "4.1", "13.1.1").
+ * El campo `name` es texto plano sin prefijo numérico.
  */
 function getHierarchicalNumber(criterion: Criterion): string | null {
+  if (criterion.number && criterion.number.trim()) return criterion.number.trim();
+  // Fallback: intentar extraer del nombre para datos legados
   const match = criterion.name.match(/^(\d+(?:\.\d+)*)[.\s]/);
   return match ? match[1] : null;
 }
@@ -127,7 +126,17 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(new Set());
+  const [collapsedBranches, setCollapsedBranches] = useState<Set<string>>(() => {
+    // Por defecto, todos los padres con subitems inician colapsados
+    const s = new Set<string>();
+    for (const std of questionnaiireData.standards) {
+      for (const c of std.criteria) {
+        const children = getBranchChildIds(c, std.criteria);
+        if (children.length > 0) s.add(c.id);
+      }
+    }
+    return s;
+  });
 
   const { user } = useAuth();
   const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
@@ -216,6 +225,10 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
       next.delete(parentId);
       return next;
     });
+  }, []);
+
+  const handleCollapseBranch = useCallback((parentId: string) => {
+    setCollapsedBranches((prev) => new Set([...prev, parentId]));
   }, []);
 
   const handleDescriptionChange = (criterionId: string, description: string) => {
@@ -382,6 +395,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 isAuditor={isAuditor}
                 collapsedBranches={collapsedBranches}
                 onExpandBranch={handleExpandBranch}
+                onCollapseBranch={handleCollapseBranch}
               />
             ))}
           </section>
@@ -405,6 +419,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 isAuditor={isAuditor}
                 collapsedBranches={collapsedBranches}
                 onExpandBranch={handleExpandBranch}
+                onCollapseBranch={handleCollapseBranch}
               />
             ))}
           </section>
@@ -468,6 +483,7 @@ interface StandardGroupProps {
   isAuditor?: boolean;
   collapsedBranches: Set<string>;
   onExpandBranch: (parentId: string) => void;
+  onCollapseBranch: (parentId: string) => void;
 }
 
 const StandardGroup: React.FC<StandardGroupProps> = ({
@@ -482,6 +498,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   isAuditor = false,
   collapsedBranches,
   onExpandBranch,
+  onCollapseBranch,
 }) => {
   const evaluable = standard.criteria.filter((c) => !c.is_section_header);
   const answeredInGroup = evaluable.filter((c) => responses.has(c.id)).length;
@@ -522,6 +539,40 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
         </div>
       </div>
 
+      {!readOnly && (
+        <div className="standard-bulk-actions">
+          <button
+            type="button"
+            className="bulk-btn bulk-btn-nc"
+            onClick={() => {
+              evaluable.forEach((c) => {
+                onResponseChange(c.id, {
+                  criterionId: c.id,
+                  status: 'NC',
+                  description: c.ncHint || 'No cumple - marcado masivo',
+                });
+              });
+            }}
+          >
+            Marcar todos NC
+          </button>
+          <button
+            type="button"
+            className="bulk-btn bulk-btn-na"
+            onClick={() => {
+              evaluable.forEach((c) => {
+                onResponseChange(c.id, {
+                  criterionId: c.id,
+                  status: 'NA',
+                });
+              });
+            }}
+          >
+            Marcar todos NA
+          </button>
+        </div>
+      )}
+
       {isExpanded && (
         <div className="standard-criteria">
           {standard.criteria.map((criterion, index) => {
@@ -531,6 +582,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
             const branchIds = getBranchChildIds(criterion, standard.criteria);
             const isCollapsed = collapsedBranches.has(criterion.id) && branchIds.length > 0;
             const branchStatus = responses.get(criterion.id)?.status;
+            const isNcNaCollapse = isCollapsed && (branchStatus === 'NC' || branchStatus === 'NA');
 
             return (
               <React.Fragment key={criterion.id}>
@@ -548,16 +600,31 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
                 />
                 {isCollapsed && (
                   <div className="branch-collapsed-summary">
-                    <span className="branch-collapsed-label">
-                      {branchIds.length} sub-criterio{branchIds.length !== 1 ? 's' : ''} marcado{branchIds.length !== 1 ? 's' : ''} como{' '}
-                      <strong>{branchStatus === 'NC' ? 'No Cumple' : 'No Aplica'}</strong>
-                    </span>
+                    {isNcNaCollapse ? (
+                      <>
+                        <span className="branch-collapsed-label">
+                          {branchIds.length} sub-criterio{branchIds.length !== 1 ? 's' : ''} marcado{branchIds.length !== 1 ? 's' : ''} como{' '}
+                          <strong>{branchStatus === 'NC' ? 'No Cumple' : 'No Aplica'}</strong>
+                        </span>
+                        <button type="button" className="btn-expand-branch" onClick={() => onExpandBranch(criterion.id)}>
+                          Expandir ▼
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="btn-expand-branch" onClick={() => onExpandBranch(criterion.id)}>
+                        ▼ Expandir ({branchIds.length} sub-criterio{branchIds.length !== 1 ? 's' : ''})
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!isCollapsed && branchIds.length > 0 && (
+                  <div className="branch-collapsed-summary">
                     <button
                       type="button"
                       className="btn-expand-branch"
-                      onClick={() => onExpandBranch(criterion.id)}
+                      onClick={() => onCollapseBranch(criterion.id)}
                     >
-                      Expandir ▼
+                      Contraer ▲
                     </button>
                   </div>
                 )}
