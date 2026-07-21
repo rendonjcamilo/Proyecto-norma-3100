@@ -672,7 +672,7 @@ export const ProvidersPage: React.FC = () => {
                         )}
                       </div>
                       <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px', color: '#6b7280' }}>
-                        REPS no reporta servicios habilitados — selecciona los servicios manualmente en la sección de abajo.
+                        Sin servicios habilitados reportados en REPS. Debes seleccionarlos manualmente en la sección "Servicios Habilitados" más abajo.
                       </div>
                     </div>
                   )}
