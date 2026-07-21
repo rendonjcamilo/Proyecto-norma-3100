@@ -157,14 +157,12 @@ export const ProvidersPage: React.FC = () => {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [repsSearchCode, setRepsSearchCode] = useState('');
   const [repsSearching, setRepsSearching] = useState(false);
-  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; fecha_vencimiento?: string; servicios_count: number; servicios_matched: number } | null>(null);
+  const [repsFound, setRepsFound] = useState<{ nombre: string; identificacion: string; telefono: string; codigo_prestador: string; sede: string; fecha_vencimiento?: string } | null>(null);
   const [repsError, setRepsError] = useState<string | null>(null);
   const [allServices, setAllServices] = useState<HealthService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [servicesSearch, setServicesSearch] = useState('');
   const [loadingServices, setLoadingServices] = useState(false);
-  const [repsServiciosCodigos, setRepsServiciosCodigos] = useState<Set<string>>(new Set());
-  const [repsServicesFound, setRepsServicesFound] = useState<Array<{ nombre: string; codigo?: string }>>([]); // Servicios extraídos de REPS
 
   useEffect(() => {
     const load = async () => {
@@ -403,31 +401,18 @@ export const ProvidersPage: React.FC = () => {
       const res = await repsApi.consultar(repsSearchCode.trim());
       if (res.data?.found && res.data.data) {
         const d = res.data.data;
-        console.log('🔍 REPS data completo:', d);
-        console.log('📋 Servicios habilitados:', d.servicios_habilitados);
-
         const mobileNumber = extractMobileNumber(d.telefono);
-        // Cruzar servicios REPS con servicios del sistema por código oficial
-        const serviciosList = d.servicios_habilitados || [];
-        console.log('📊 Servicios a procesar:', serviciosList);
-
-        const repsCodigos = new Set(serviciosList.map((s) => s.codigo || s.code || s.nombre));
-        console.log('🏷️ Códigos REPS encontrados:', Array.from(repsCodigos));
-        console.log('🗂️ Servicios del sistema disponibles:', allServices.map(s => ({ id: s.id, code: s.code, name: s.name })));
-
-        const matchedIds = allServices.filter((s) => repsCodigos.has(s.code)).map((s) => s.id);
-        console.log('✅ Servicios coincidentes:', matchedIds);
-
-        setRepsServiciosCodigos(repsCodigos);
-        setRepsServicesFound(serviciosList); // Guardar lista completa de servicios REPS
-        if (matchedIds.length > 0) setSelectedServiceIds(matchedIds);
 
         // Normalizar fecha_vencimiento al formato YYYY-MM-DD que espera el input[type=date]
         const fechaVenc = d.fecha_vencimiento
           ? d.fecha_vencimiento.replace(/T.*$/, '').replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3')
           : undefined;
 
-        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '', fecha_vencimiento: fechaVenc, servicios_count: d.servicios_habilitados?.length || 0, servicios_matched: matchedIds.length });
+        // NOTA: REPS (datos.gov.co, dataset c36g-9fc2) no reporta servicios habilitados,
+        // solo identidad del prestador — confirmado 2026-07-21. No hay preselección posible
+        // de "Servicios Habilitados" desde esta fuente; el usuario los marca manualmente
+        // en la sección de abajo (ver nota fija junto al checklist).
+        setRepsFound({ nombre: d.nombre_prestador, identificacion: d.nit, telefono: mobileNumber ? `${mobileNumber} (WhatsApp)` : (d.telefono ? `${d.telefono} (solo fijo, no WhatsApp)` : ''), codigo_prestador: d.codigo_habilitacion, sede: d.nombre_sede || '', fecha_vencimiento: fechaVenc });
         // Autocompletar campos del formulario directamente desde REPS
         setFormData((prev) => ({
           ...prev,
@@ -504,8 +489,6 @@ export const ProvidersPage: React.FC = () => {
               setRepsSearchCode('');
               setRepsFound(null);
               setRepsError(null);
-              setRepsServiciosCodigos(new Set());
-              setRepsServicesFound([]);
               setServicesSearch('');
               setSelectedServiceIds([]);
               loadServices();
@@ -688,33 +671,9 @@ export const ProvidersPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      {repsServicesFound.length > 0 && (
-                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px' }}>
-                          <strong>✓ Servicios habilitados encontrados en REPS:</strong>
-                          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {repsServicesFound.map((s, i) => (
-                              <div key={i} style={{ fontSize: '12px', color: '#047857', padding: '4px 8px', background: '#ecfdf5', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
-                                • {s.nombre} {s.codigo ? `(${s.codigo})` : ''}
-                              </div>
-                            ))}
-                          </div>
-                          {repsFound.servicios_matched > 0 && (
-                            <div style={{ marginTop: '6px', fontSize: '11px', color: '#0891b2', fontWeight: 600 }}>
-                              📌 {repsFound.servicios_matched} preseleccionados abajo
-                            </div>
-                          )}
-                          {repsFound.servicios_matched === 0 && repsServicesFound.length > 0 && (
-                            <div style={{ marginTop: '6px', fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>
-                              ⚠️ Ninguno coincide con servicios registrados en el sistema
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {repsServicesFound.length === 0 && (
-                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px', color: '#6b7280' }}>
-                          Sin servicios habilitados reportados en REPS
-                        </div>
-                      )}
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #a7f3d0', fontSize: '12px', color: '#6b7280' }}>
+                        REPS no reporta servicios habilitados — selecciona los servicios manualmente en la sección de abajo.
+                      </div>
                     </div>
                   )}
                 </div>
@@ -919,11 +878,6 @@ export const ProvidersPage: React.FC = () => {
                 {selectedServiceIds.length > 0 && (
                   <div style={{ marginBottom: '10px', fontSize: '13px', color: '#7C3AED', fontWeight: 600 }}>
                     {selectedServiceIds.length} servicio{selectedServiceIds.length !== 1 ? 's' : ''} seleccionado{selectedServiceIds.length !== 1 ? 's' : ''}
-                    {repsServiciosCodigos.size > 0 && (
-                      <span style={{ marginLeft: '8px', fontSize: '11px', background: '#dbeafe', color: '#1d4ed8', padding: '2px 7px', borderRadius: '10px', fontWeight: 600 }}>
-                        {selectedServiceIds.filter((id) => repsServiciosCodigos.has(allServices.find((s) => s.id === id)?.code || '')).length} desde REPS
-                      </span>
-                    )}
                   </div>
                 )}
 
@@ -949,7 +903,12 @@ export const ProvidersPage: React.FC = () => {
                         acc[s.category].push(s);
                         return acc;
                       }, {} as Record<string, HealthService[]>);
-                      const categories = Object.keys(grouped).sort();
+                      const CATEGORY_ORDER = ['Internación', 'Quirúrgicos', 'Consulta Externa', 'Apoyo Diagnóstico y Complementación Terapéutica', 'Atención Inmediata'];
+                      const categories = Object.keys(grouped).sort((a, b) => {
+                        const ai = CATEGORY_ORDER.indexOf(a);
+                        const bi = CATEGORY_ORDER.indexOf(b);
+                        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                      });
                       if (categories.length === 0) return (
                         <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '13px' }}>Sin resultados</div>
                       );
@@ -958,31 +917,25 @@ export const ProvidersPage: React.FC = () => {
                           <div style={{ padding: '6px 12px', fontSize: '11px', fontWeight: 700, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: '0.5px', background: '#f8f9ff', borderBottom: '1px solid #e8eaff', position: 'sticky', top: 0 }}>
                             {cat}
                           </div>
-                          {grouped[cat].map((service) => {
-                            const isFromReps = repsServiciosCodigos.has(service.code);
-                            return (
-                              <label
-                                key={service.id}
-                                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', color: '#1a1a2e', borderBottom: '1px solid #f3f4f6', background: isFromReps ? '#eff6ff' : undefined }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedServiceIds.includes(service.id)}
-                                  onChange={(e) => {
-                                    setSelectedServiceIds((prev) =>
-                                      e.target.checked ? [...prev, service.id] : prev.filter((id) => id !== service.id)
-                                    );
-                                  }}
-                                  disabled={creating}
-                                  style={{ accentColor: '#8B5CF6', width: '15px', height: '15px', flexShrink: 0 }}
-                                />
-                                <span style={{ flex: 1 }}>{service.name}</span>
-                                {isFromReps && (
-                                  <span style={{ fontSize: '10px', background: '#1d4ed8', color: '#fff', padding: '1px 6px', borderRadius: '8px', fontWeight: 700, flexShrink: 0 }}>REPS</span>
-                                )}
-                              </label>
-                            );
-                          })}
+                          {grouped[cat].map((service) => (
+                            <label
+                              key={service.id}
+                              style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '13px', color: '#1a1a2e', borderBottom: '1px solid #f3f4f6' }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedServiceIds.includes(service.id)}
+                                onChange={(e) => {
+                                  setSelectedServiceIds((prev) =>
+                                    e.target.checked ? [...prev, service.id] : prev.filter((id) => id !== service.id)
+                                  );
+                                }}
+                                disabled={creating}
+                                style={{ accentColor: '#8B5CF6', width: '15px', height: '15px', flexShrink: 0 }}
+                              />
+                              <span style={{ flex: 1 }}>{service.name}</span>
+                            </label>
+                          ))}
                         </div>
                       ));
                     })()}
