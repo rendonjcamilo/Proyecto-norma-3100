@@ -34,6 +34,15 @@ async function runMigration(direction: 'up' | 'down'): Promise<void> {
       const executeSchemaFile = async (filePath: string, migrationName: string) => {
         if (!fs.existsSync(filePath)) return;
 
+        const already = await client.query(
+          'SELECT 1 FROM migrations WHERE name = $1',
+          [migrationName]
+        );
+        if ((already.rowCount ?? 0) > 0) {
+          console.log(`Skipping already-applied migration: ${migrationName}`);
+          return;
+        }
+
         const content = fs.readFileSync(filePath, 'utf8');
         let statements = content
           .split(';')
