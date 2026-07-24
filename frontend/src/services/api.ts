@@ -536,7 +536,7 @@ export interface EvaluableService {
 }
 
 export const servicesApi = {
-  getAll: (params?: { category?: string; status?: string; search?: string }) => {
+  getAll: (params?: { category?: string; status?: string; search?: string; type?: 'reps_service' | 'compliance_chapter' }) => {
     const qs = params
       ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
       : '';
@@ -1290,6 +1290,9 @@ export const anexo4Api = {
 
   downloadPdf: (id: string) =>
     blob(`/api/anexo4/${id}/pdf`),
+
+  saveToDocuments: (id: string, providerId: string) =>
+    post<{ ok: boolean; documentId: string }>(`/api/anexo4/${id}/save-to-documents`, { provider_id: providerId }),
 };
 
 // ─────────────────────────────────────────────
