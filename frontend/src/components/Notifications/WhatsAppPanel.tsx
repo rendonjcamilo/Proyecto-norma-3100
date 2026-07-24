@@ -1356,7 +1356,6 @@ export const WhatsAppPanel: React.FC = () => {
                         {autoSendQueuedMsg}
                       </div>
                     )}
-                    )}
                   </>
                 )}
 
