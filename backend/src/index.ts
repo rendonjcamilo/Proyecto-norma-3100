@@ -15,6 +15,7 @@ import { createProviderRouter } from './routes/provider.routes.js';
 import { createAssessmentsRouter } from './routes/assessments.routes.js';
 import { createFindingRouter } from './routes/finding.routes.js';
 import { createServiceRouter } from './routes/services.routes.js';
+import { createStructureRouter } from './routes/structure.routes.js';
 import { createQuestionsRouter } from './routes/questions.routes.js';
 import { createMultiChannelRouter } from './routes/multichannel.routes.js';
 import { createWebhooksRouter } from './routes/webhooks.routes.js';
@@ -254,6 +255,7 @@ app.use('/api', apiLimiter, createProviderRouter(pool, eventStore));
 app.use('/api', apiLimiter, createAssessmentsRouter(pool, eventStore));
 app.use('/api', apiLimiter, createFindingRouter(pool, eventStore));
 app.use('/api', apiLimiter, createServiceRouter(pool, eventStore));
+app.use('/api', apiLimiter, createStructureRouter(pool));
 app.use('/api/questions', apiLimiter, createQuestionsRouter(pool, eventStore));
 
 // Phase 4 Sprint 2: Multi-Channel Notifications
