@@ -57,6 +57,7 @@ export const AnexoCuatroPage: React.FC = () => {
   const [observaciones, setObs]     = useState('');
   const [saving, setSaving]         = useState(false);
   const [savingPdf, setSavingPdf]   = useState<string | null>(null);
+  const [savingDoc, setSavingDoc]   = useState<string | null>(null);
   const [errorMsg, setErrorMsg]     = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Anexo4Verificacion | null>(null);
@@ -133,6 +134,20 @@ export const AnexoCuatroPage: React.FC = () => {
       alert('Error al generar el PDF');
     } finally {
       setSavingPdf(null);
+    }
+  };
+
+  // ── Guardar PDF en documentos del prestador ──────────────────────────────
+  const handleSaveDoc = async (v: Anexo4Verificacion) => {
+    setSavingDoc(v.id);
+    try {
+      await anexo4Api.saveToDocuments(v.id, '');
+      setSuccessMsg('PDF guardado en documentos del prestador');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch {
+      alert('Error al guardar el PDF como documento del prestador');
+    } finally {
+      setSavingDoc(null);
     }
   };
 
@@ -279,6 +294,14 @@ export const AnexoCuatroPage: React.FC = () => {
                       title="Descargar PDF"
                     >
                       {savingPdf === v.id ? '...' : '⬇ PDF'}
+                    </button>
+                    <button
+                      className="a4-btn a4-btn--ghost"
+                      onClick={() => handleSaveDoc(v)}
+                      disabled={savingDoc === v.id}
+                      title="Guardar en documentos del prestador"
+                    >
+                      {savingDoc === v.id ? '...' : '📁 Guardar'}
                     </button>
                     <button
                       className="a4-btn a4-btn--ghost"
