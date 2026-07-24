@@ -157,7 +157,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
             }
           } else {
             setServicesFiltered(false);
-            const svcData = await servicesApi.getAll();
+            const svcData = await servicesApi.getAll({ type: 'reps_service' });
             if (svcData.data && svcData.data.length > 0) {
               setServices(svcData.data);
             }
@@ -165,7 +165,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         } catch (svcErr) {
           console.error('Error cargando servicios:', svcErr);
           try {
-            const svcData = await servicesApi.getAll();
+            const svcData = await servicesApi.getAll({ type: 'reps_service' });
             if (svcData.data && svcData.data.length > 0) setServices(svcData.data);
           } catch { /* sin servicios */ }
         }
@@ -200,13 +200,13 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
         setSelectedServiceIds(new Set(provServices.map((s: { id: string }) => s.id)));
       } else {
         setServicesFiltered(false);
-        const svcData = await servicesApi.getAll();
+        const svcData = await servicesApi.getAll({ type: 'reps_service' });
         setServices(svcData.data || []);
       }
     } catch {
       setServicesFiltered(false);
       try {
-        const svcData = await servicesApi.getAll();
+        const svcData = await servicesApi.getAll({ type: 'reps_service' });
         setServices(svcData.data || []);
       } catch { /* sin servicios */ }
     } finally {

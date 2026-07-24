@@ -25,12 +25,13 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
    */
   router.get('/services', authMiddleware, async (req: Request, res: Response) => {
     try {
-      const { category, status, search } = req.query;
+      const { category, status, search, type } = req.query;
 
       const services = await serviceService.getAllServices({
         category: category as string,
         status: status as string,
         search: search as string,
+        type: type as string,
       });
 
       res.status(200).json({

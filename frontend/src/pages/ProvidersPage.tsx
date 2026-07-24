@@ -442,7 +442,7 @@ export const ProvidersPage: React.FC = () => {
   const loadServices = async (providerId?: string) => {
     setLoadingServices(true);
     try {
-      const res = await servicesApi.getAll({ status: 'available' });
+      const res = await servicesApi.getAll({ status: 'available', type: 'reps_service' });
       setAllServices(res.data || []);
       if (providerId) {
         const provRes = await providerServicesApi.getForProvider(providerId);

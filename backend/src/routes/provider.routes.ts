@@ -1037,7 +1037,7 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
                   se.enabled_from, se.enabled_until, se.status AS enabled_status
            FROM services_enabled se
            JOIN services s ON s.id = se.service_id
-           WHERE se.provider_id = $1 AND se.status = 'active'
+           WHERE se.provider_id = $1 AND se.status = 'active' AND s.type = 'reps_service'
            ORDER BY s.category, s.name`,
           [providerId]
         );
@@ -1064,6 +1064,19 @@ export function createProviderRouter(pool: Pool, eventStore: EventStore): Router
 
         if (!Array.isArray(serviceIds)) {
           return res.status(400).json({ error: 'serviceIds debe ser un array' });
+        }
+
+        if (serviceIds.length > 0) {
+          const invalid = await pool.query(
+            `SELECT code, name FROM services WHERE id = ANY($1::uuid[]) AND type <> 'reps_service'`,
+            [serviceIds]
+          );
+          if (invalid.rows.length > 0) {
+            return res.status(400).json({
+              error: 'Uno o más IDs no corresponden a servicios REPS habilitables (son capítulos de cumplimiento internos)',
+              invalid: invalid.rows,
+            });
+          }
         }
 
         const client = await pool.connect();

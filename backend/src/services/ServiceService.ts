@@ -10,6 +10,7 @@ export interface ServiceCatalogItem {
   code: string;
   name: string;
   category: string;
+  type: 'reps_service' | 'compliance_chapter';
   description?: string;
   complexity?: string;
   standard_count?: number;
@@ -49,9 +50,15 @@ export class ServiceService {
     category?: string;
     status?: string;
     search?: string;
+    type?: string;
   }): Promise<ServiceCatalogItem[]> {
     let query = 'SELECT * FROM services WHERE 1=1';
     const params: any[] = [];
+
+    if (filters?.type) {
+      query += ` AND type = $${params.length + 1}`;
+      params.push(filters.type);
+    }
 
     if (filters?.category) {
       query += ` AND category = $${params.length + 1}`;
@@ -68,7 +75,14 @@ export class ServiceService {
       params.push(`%${filters.search}%`, `%${filters.search}%`);
     }
 
-    query += ' ORDER BY category, code';
+    query += ` ORDER BY CASE category
+      WHEN 'Internación' THEN 1
+      WHEN 'Quirúrgicos' THEN 2
+      WHEN 'Consulta Externa' THEN 3
+      WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
+      WHEN 'Atención Inmediata' THEN 5
+      ELSE 6
+    END, code`;
 
     const result = await this.pool.query(query, params);
     return result.rows;
@@ -108,7 +122,14 @@ export class ServiceService {
       FROM services
       WHERE status = 'available'
       GROUP BY category
-      ORDER BY category
+      ORDER BY CASE category
+        WHEN 'Internación' THEN 1
+        WHEN 'Quirúrgicos' THEN 2
+        WHEN 'Consulta Externa' THEN 3
+        WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
+        WHEN 'Atención Inmediata' THEN 5
+        ELSE 6
+      END
     `);
     return result.rows;
   }
@@ -258,7 +279,14 @@ export class ServiceService {
       params.push(filters.category);
     }
 
-    query += ' ORDER BY s.category, s.code';
+    query += ` ORDER BY CASE s.category
+      WHEN 'Internación' THEN 1
+      WHEN 'Quirúrgicos' THEN 2
+      WHEN 'Consulta Externa' THEN 3
+      WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
+      WHEN 'Atención Inmediata' THEN 5
+      ELSE 6
+    END, s.code`;
 
     const result = await this.pool.query(query, params);
     return result.rows.map(row => ({
