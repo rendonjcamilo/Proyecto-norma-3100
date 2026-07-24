@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import 'express-async-errors';
 import { Pool } from 'pg';
+import multer from 'multer';
 
 import { logger } from './utils/logger.js';
 import authRoutes, { setUserService } from './routes/auth.routes.js';
@@ -332,6 +333,19 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Origin not allowed by CORS policy',
+    });
+  }
+
+  if (err instanceof multer.MulterError) {
+    const messages: Record<string, string> = {
+      LIMIT_FILE_SIZE: 'El archivo supera el límite de 5MB permitido',
+      LIMIT_UNEXPECTED_FILE: 'Campo de archivo inesperado en la solicitud',
+    };
+    // El frontend (services/api.ts) prioriza el campo `error` sobre `message` al mostrar el
+    // toast -- el texto útil debe ir ahí, no solo en `message`.
+    return res.status(400).json({
+      error: messages[err.code] || `Error al procesar el archivo: ${err.code}`,
+      message: messages[err.code] || `Error al procesar el archivo: ${err.code}`,
     });
   }
 

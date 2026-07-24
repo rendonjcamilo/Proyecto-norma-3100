@@ -35,6 +35,7 @@ export interface Provider {
   id: string;
   rut: string;
   legal_name: string;
+  legal_entity_type?: string;
   address?: string;
   city: string;
   department: string;
