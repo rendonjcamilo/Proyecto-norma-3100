@@ -40,6 +40,7 @@ import { HabilitacionAlertService } from './services/HabilitacionAlertService.js
 import { DocumentExpiryAlertService } from './services/DocumentExpiryAlertService.js';
 import { AdherenceAlertService } from './services/AdherenceAlertService.js';
 import { MedicamentosAlertService } from './services/MedicamentosAlertService.js';
+import { WhatsAppSchedulerService } from './services/WhatsAppSchedulerService.js';
 import { NotificationService } from './services/NotificationService.js';
 import { EventStore } from './modules/events/EventStore.js';
 import swaggerUi from 'swagger-ui-express';
@@ -381,6 +382,10 @@ void runStartupMigrations().then(() => app.listen(PORT, () => {
 
   const medicamentosAlertService = new MedicamentosAlertService(pool, notificationService);
   medicamentosAlertService.startSchedules();
+
+  // Despacha mensajes de WhatsApp encolados fuera de horario laboral (cada 15 min)
+  const whatsAppSchedulerService = new WhatsAppSchedulerService(pool);
+  whatsAppSchedulerService.startScheduler();
 
   // Iniciar schedulers de alertas REPS configuradas por el usuario
   void repsAlertService.initAllActiveSchedulers();

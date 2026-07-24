@@ -109,7 +109,8 @@ export const WhatsAppPanel: React.FC = () => {
 
   // Estado de envío automático
   const [autoSending, setAutoSending] = useState(false);
-  const [autoSendResult, setAutoSendResult] = useState<'success' | 'error' | null>(null);
+  const [autoSendResult, setAutoSendResult] = useState<'success' | 'error' | 'queued' | null>(null);
+  const [autoSendQueuedMsg, setAutoSendQueuedMsg] = useState('');
   const [autoSendError, setAutoSendError] = useState('');
 
   const [prospectos, setProspectos] = useState<RepsProspecto[]>([]);
@@ -292,14 +293,18 @@ export const WhatsAppPanel: React.FC = () => {
       const p = destinatarios[i];
       const phone = toWaPhone(p.celular!);
       try {
-        await whatsappApi.send(phone, buildMensaje(plantilla, p), {
+        const result = await whatsappApi.send(phone, buildMensaje(plantilla, p), {
           provider_nit: p.nit,
           provider_name: p.nombre_prestador,
         });
-        setRecentSends(prev => ({
-          ...prev,
-          [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: p.nombre_prestador },
-        }));
+        // Fuera de horario laboral el mensaje queda encolado, no enviado ya mismo -- no marcarlo
+        // como "recién enviado".
+        if (!result.queued) {
+          setRecentSends(prev => ({
+            ...prev,
+            [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: p.nombre_prestador },
+          }));
+        }
       } catch {
         errors++;
       }
@@ -317,22 +322,29 @@ export const WhatsAppPanel: React.FC = () => {
     setAutoSending(true);
     setAutoSendResult(null);
     setAutoSendError('');
+    let wasQueued = false;
     try {
-      await whatsappApi.send(phone, buildMensaje(plantilla, selected), {
+      const result = await whatsappApi.send(phone, buildMensaje(plantilla, selected), {
         provider_nit: selected.nit,
         provider_name: selected.nombre_prestador,
       });
-      setAutoSendResult('success');
-      setRecentSends(prev => ({
-        ...prev,
-        [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: selected.nombre_prestador },
-      }));
+      if (result.queued) {
+        wasQueued = true;
+        setAutoSendResult('queued');
+        setAutoSendQueuedMsg(result.message);
+      } else {
+        setAutoSendResult('success');
+        setRecentSends(prev => ({
+          ...prev,
+          [phone]: { sent_at: new Date().toISOString(), days_ago: 0, provider_name: selected.nombre_prestador },
+        }));
+      }
     } catch (err) {
       setAutoSendResult('error');
       setAutoSendError(err instanceof Error ? err.message : 'Error al enviar');
     } finally {
       setAutoSending(false);
-      setTimeout(() => setAutoSendResult(null), 5000);
+      setTimeout(() => setAutoSendResult(null), wasQueued ? 10000 : 5000);
     }
   };
 
@@ -904,8 +916,8 @@ export const WhatsAppPanel: React.FC = () => {
             </div>
           )}
 
-          {/* ── Barra de selección múltiple ──────────────────────────── */}
-          {!loading && !error && prospectosFiltrados.length > 0 && viewMode === 'cards' && (
+          {/* ── Barra de selección múltiple (compartida entre vista tarjetas y tabla) ── */}
+          {!loading && !error && prospectosFiltrados.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', background: selectedIds.size > 0 ? '#f0fdf4' : '#f8fafc', border: '1px solid', borderColor: selectedIds.size > 0 ? '#86efac' : '#e2e8f0', borderRadius: 8, marginBottom: 6 }}>
               <input
                 type="checkbox"
@@ -1031,6 +1043,15 @@ export const WhatsAppPanel: React.FC = () => {
               <table className="wap-table">
                 <thead>
                   <tr>
+                    <th className="wap-th wap-th-check">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size > 0 && selectedIds.size === prospectosFiltrados.filter(p => p.celular).length}
+                        ref={el => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < prospectosFiltrados.filter(p => p.celular).length; }}
+                        onChange={toggleSelectAll}
+                        style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }}
+                      />
+                    </th>
                     <th className="wap-th wap-th-num">#</th>
                     <th className="wap-th wap-th-sort" onClick={() => handleSort('nombre')}>
                       Nombre{sortArrow('nombre')}
@@ -1054,6 +1075,22 @@ export const WhatsAppPanel: React.FC = () => {
                     const chip = chipParaClase(p.clase_prestador);
                     return (
                       <tr key={`${p.codigo_habilitacion}-${p.nit}`} className="wap-tr">
+                        <td className="wap-td wap-td-check">
+                          {p.celular && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(prospKey(p))}
+                              onChange={() => {
+                                setSelectedIds(prev => {
+                                  const next = new Set(prev);
+                                  next.has(prospKey(p)) ? next.delete(prospKey(p)) : next.add(prospKey(p));
+                                  return next;
+                                });
+                              }}
+                              style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#16a34a' }}
+                            />
+                          )}
+                        </td>
                         <td className="wap-td wap-td-num">{rowNum}</td>
                         <td className="wap-td wap-td-name" title={p.nombre_prestador}>{p.nombre_prestador}</td>
                         <td className="wap-td wap-td-mono">{p.nit}</td>
@@ -1298,7 +1335,7 @@ export const WhatsAppPanel: React.FC = () => {
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                         padding: '12px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 700,
                         cursor: phoneValido && !autoSending ? 'pointer' : 'not-allowed',
-                        background: autoSendResult === 'success' ? '#16a34a' : autoSendResult === 'error' ? '#dc2626' : '#16a34a',
+                        background: autoSendResult === 'success' ? '#16a34a' : autoSendResult === 'error' ? '#dc2626' : autoSendResult === 'queued' ? '#d97706' : '#16a34a',
                         color: 'white', border: 'none', transition: 'all 0.2s',
                         opacity: !phoneValido || autoSending ? 0.6 : 1,
                       }}
@@ -1307,12 +1344,18 @@ export const WhatsAppPanel: React.FC = () => {
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.552 4.12 1.518 5.851L.057 23.944l6.254-1.641A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.847 0-3.574-.487-5.063-1.337l-.363-.214-3.716.975.992-3.624-.237-.375A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
                       </svg>
-                      {autoSending ? 'Enviando…' : autoSendResult === 'success' ? '✅ Enviado correctamente' : autoSendResult === 'error' ? '❌ Error al enviar' : 'Enviar automáticamente'}
+                      {autoSending ? 'Enviando…' : autoSendResult === 'success' ? '✅ Enviado correctamente' : autoSendResult === 'error' ? '❌ Error al enviar' : autoSendResult === 'queued' ? '🕒 Encolado fuera de horario' : 'Enviar automáticamente'}
                     </button>
                     {autoSendResult === 'error' && autoSendError && (
                       <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', fontSize: '13px' }}>
                         {autoSendError}
                       </div>
+                    )}
+                    {autoSendResult === 'queued' && autoSendQueuedMsg && (
+                      <div style={{ padding: '8px 12px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', fontSize: '13px' }}>
+                        {autoSendQueuedMsg}
+                      </div>
+                    )}
                     )}
                   </>
                 )}

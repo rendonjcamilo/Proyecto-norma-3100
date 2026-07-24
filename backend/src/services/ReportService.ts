@@ -92,6 +92,16 @@ export class ReportService {
   constructor(private pool: Pool) {}
 
   /**
+   * Normaliza texto a Título Caso (evita que nombres/ciudades guardados en mayúscula sostenida
+   * se impriman así en los reportes). Aplicado una sola vez en el punto de lectura de datos del
+   * prestador, para que todos los generadores de reporte (PDF, DOCX, Excel) hereden el valor ya
+   * normalizado sin duplicar la transformación en cada uno.
+   */
+  private toTitleCase(s: string): string {
+    return s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  /**
    * Gather compliance data for a provider
    */
   async gatherProviderData(providerId: string, generatedBy: string): Promise<ComplianceReportData> {
@@ -108,6 +118,9 @@ export class ReportService {
     }
 
     const provider = providerResult.rows[0];
+    provider.legal_name = provider.legal_name ? this.toTitleCase(provider.legal_name) : provider.legal_name;
+    provider.city = provider.city ? this.toTitleCase(provider.city) : provider.city;
+    provider.department = provider.department ? this.toTitleCase(provider.department) : provider.department;
 
     // Findings metrics
     const findingsResult = await this.pool.query<{
@@ -785,9 +798,9 @@ export class ReportService {
     );
     if (provResult.rows.length === 0) {throw new Error('Provider not found');}
     const provider = provResult.rows[0];
-    const toTitleCase = (s: string) => s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-    provider.city = provider.city ? toTitleCase(provider.city) : provider.city;
-    provider.department = provider.department ? toTitleCase(provider.department) : provider.department;
+    provider.legal_name = provider.legal_name ? this.toTitleCase(provider.legal_name) : provider.legal_name;
+    provider.city = provider.city ? this.toTitleCase(provider.city) : provider.city;
+    provider.department = provider.department ? this.toTitleCase(provider.department) : provider.department;
 
     // Obtener servicios y fecha de la auditoría
     let serviciosMultiple: { codigo: string; nombre: string }[] = [];

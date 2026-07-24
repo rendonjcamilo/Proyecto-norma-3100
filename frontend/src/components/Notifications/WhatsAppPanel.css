@@ -1202,6 +1202,7 @@
 }
 
 .wap-th-num { width: 40px; text-align: center; }
+.wap-th-check, .wap-td-check { width: 32px; text-align: center; padding-left: 0.75rem; }
 
 .wap-tr:nth-child(even) { background: #fafafa; }
 .wap-tr:hover { background: #f0f4ff; }

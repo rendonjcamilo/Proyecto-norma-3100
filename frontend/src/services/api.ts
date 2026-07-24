@@ -1330,7 +1330,7 @@ export const whatsappApi = {
     del<{ message: string }>('/api/whatsapp/disconnect'),
 
   send: (phone: string, message: string, opts?: { provider_nit?: string; provider_name?: string }) =>
-    post<{ data: WaSendResult; message: string }>('/api/whatsapp/send', {
+    post<{ data: WaSendResult; message: string; queued?: boolean }>('/api/whatsapp/send', {
       phone,
       message,
       provider_nit: opts?.provider_nit,
