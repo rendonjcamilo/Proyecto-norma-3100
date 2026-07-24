@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     strictPort: false,
-    allowedHosts: ['app.habilitapro.com', 'localhost'],
+    allowedHosts: ['app.habilitapro.com', 'dev.app.habilitapro.com', 'localhost'],
     proxy: {
       '/api': {
         target: 'http://backend:3001',
