@@ -46,6 +46,7 @@ const AuditorClientsPage = lazy(() => import("./pages/AuditorClientsPage").then(
 const InvimaPage = lazy(() => import("./pages/InvimaPage").then(m => ({ default: m.InvimaPage })));
 const RepsPage = lazy(() => import("./pages/RepsPage").then(m => ({ default: m.RepsPage })));
 const AnexoCuatroPage = lazy(() => import("./pages/AnexoCuatroPage").then(m => ({ default: m.AnexoCuatroPage })));
+const StructurePage = lazy(() => import("./pages/StructurePage").then(m => ({ default: m.StructurePage })));
 
 function PageLoader() {
   return (
@@ -348,6 +349,12 @@ function AppContent(): JSX.Element {
               <Route
                 path="/anexo4"
                 element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><AnexoCuatroPage /></ProtectedRoute>}
+              />
+
+              {/* Estructura de Servicios */}
+              <Route
+                path="/estructura-servicios"
+                element={<ProtectedRoute requiredRoles={["auditor", "super_admin"]}><StructurePage /></ProtectedRoute>}
               />
 
               {/* Catch-all */}

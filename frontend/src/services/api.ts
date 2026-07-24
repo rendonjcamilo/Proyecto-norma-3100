@@ -1431,6 +1431,52 @@ export const improvementPlanApi = {
 };
 
 // ─────────────────────────────────────────────
+// ESTRUCTURA DE SERVICIOS (Grupo -> Servicio -> Capítulo -> Criterio)
+// ─────────────────────────────────────────────
+
+export interface StructureCapitulo {
+  id: string;
+  code: string;
+  name: string;
+  confidence: 'high' | 'needs_review' | 'category_wide' | 'other_regulation';
+  note: string | null;
+  criteria_count: number;
+  categoryWide: boolean;
+}
+
+export interface StructureServicio {
+  id: string;
+  code: string;
+  name: string;
+  capitulos: StructureCapitulo[];
+}
+
+export interface StructureGrupo {
+  category: string;
+  servicios: StructureServicio[];
+}
+
+export interface StructureCriterio {
+  id: string;
+  number: string;
+  name: string;
+  is_section_header: boolean;
+}
+
+export interface StructureEstandar {
+  id: string;
+  code: string;
+  name: string;
+  criterios: StructureCriterio[];
+}
+
+export const structureApi = {
+  getTree: () => get<{ data: StructureGrupo[] }>('/api/structure/tree'),
+  getCapituloCriteria: (id: string) => get<{ data: StructureCriterio[] }>(`/api/structure/capitulo/${id}/criteria`),
+  getTransversal: () => get<{ data: StructureEstandar[] }>('/api/structure/transversal'),
+};
+
+// ─────────────────────────────────────────────
 // UTILIDADES
 // ─────────────────────────────────────────────
 

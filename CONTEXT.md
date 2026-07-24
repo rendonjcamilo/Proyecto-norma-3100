@@ -79,3 +79,15 @@ contenido real (0 criterios). No deberían volver a aparecer.
   el prestador tiene habilitados (en vez de seleccionarse manualmente al crear una evaluación) —
   esto requeriría un mapeo explícito servicio↔capítulo, validado por la Dra. Adriana, que no
   existe todavía.
+- **"Agrupador" (2026-07-24, grill-with-docs)**: término usado por el usuario para referirse al
+  **Capítulo de cumplimiento** en su rol de agrupar criterios — confirma la jerarquía real de 4
+  niveles **Grupo de servicio → Servicio → Capítulo (agrupador) → Criterio**, en vez del
+  "Grupo → Servicio → Criterio" de 3 niveles pedido inicialmente (los servicios REPS reales no
+  tienen criterios propios en `evaluation_criteria` — solo los 39 capítulos los tienen, 4.622 en
+  total; aparte existe un segundo sistema de 512 criterios transversales que cuelgan directo de
+  los 7 estándares, sin relación con grupo/servicio). Esta jerarquía de 4 niveles es la base de la
+  pantalla "Estructura de Servicios" (`/estructura-servicios`, ver `backend/src/routes/structure.routes.ts`
+  y `frontend/src/pages/StructurePage.tsx`) construida para que el usuario y la Dra. Adriana puedan
+  ver por sí mismos cómo está conectado todo, sin depender de que un desarrollador lo explique.
+  CEE, QRG (aplican a categorías enteras, no a un servicio puntual) y LAB-CAL (Res. 1619, no 3100)
+  se muestran repetidos bajo cada servicio al que aplican, en vez de forzarlos a un único padre.
