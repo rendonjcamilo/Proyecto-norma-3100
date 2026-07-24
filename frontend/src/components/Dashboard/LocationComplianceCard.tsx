@@ -121,7 +121,7 @@ export const LocationComplianceCard: React.FC<LocationComplianceCardProps> = ({
       )}
 
       <div className="card-footer">
-        <button className="view-details-btn">Ver Detalles →</button>
+        <button className="view-details-btn" onClick={onClick}>Ver Detalles →</button>
       </div>
     </div>
   );

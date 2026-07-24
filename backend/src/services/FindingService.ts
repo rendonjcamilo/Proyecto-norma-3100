@@ -366,6 +366,9 @@ export class FindingService {
     try {
       await client.query('BEGIN');
 
+      // Lock finding row to prevent concurrent double-close race condition
+      await client.query('SELECT id FROM findings WHERE id = $1 FOR UPDATE', [findingId]);
+
       // Check if all actions for this finding are closed
       const actionsCheck = await client.query(
         `SELECT COUNT(*) as total, COUNT(CASE WHEN status = 'cerrada' THEN 1 END) as closed

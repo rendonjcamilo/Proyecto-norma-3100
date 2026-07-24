@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatDateTime } from '@/utils/dateFormat';
 import './ComplianceDashboard.css';
 
@@ -162,6 +163,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
   onRefresh,
   userRole = 'provider_admin',
 }) => {
+  const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [activeBreakdown, setActiveBreakdown] = useState<string | null>(null);
@@ -395,7 +397,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
             <h2 className="section-title">Estado de Hallazgos</h2>
             <p className="section-subtitle">Distribución actual por estado del ciclo de vida</p>
           </div>
-          <button type="button" className="section-link">
+          <button type="button" className="section-link" onClick={() => navigate('/findings')}>
             Ver detalles {Icons.arrow}
           </button>
         </div>
@@ -482,7 +484,7 @@ export const ComplianceDashboard: React.FC<DashboardProps> = ({
               </h2>
               <p className="section-subtitle">Hallazgos críticos que requieren atención inmediata</p>
             </div>
-            <button type="button" className="section-link">
+            <button type="button" className="section-link" onClick={() => navigate('/findings')}>
               Ver todas {Icons.arrow}
             </button>
           </div>
