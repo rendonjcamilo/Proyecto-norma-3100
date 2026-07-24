@@ -780,7 +780,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                                 style={{ marginTop: '2px', accentColor: '#2563eb' }}
                               />
                               <div>
-                                <div style={{ fontSize: '13px', fontWeight: 500, color: '#111827' }}>{svc.name}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 500, color: '#111827' }}>
+                                  {svc.name}{svc.code === 'LAB-CAL' && ' — Anexo Res. 1619'}
+                                </div>
                                 <div style={{ fontSize: '11px', color: '#6b7280' }}>{svc.total_criteria} criterios · {svc.code}</div>
                               </div>
                             </label>

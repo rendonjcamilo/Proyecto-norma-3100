@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { WhatsAppService } from '../services/WhatsAppService.js';
+import { isBusinessHours, nextBusinessHoursStart } from '../utils/businessHours.js';
 import { logger } from '../utils/logger.js';
 
 export function createWhatsAppRouter(pool: Pool): Router {
@@ -139,6 +140,30 @@ export function createWhatsAppRouter(pool: Pool): Router {
         }
         if (!message || typeof message !== 'string' || !message.trim()) {
           return res.status(400).json({ error: 'message es requerido' });
+        }
+
+        // Fuera de horario laboral: encolar en vez de enviar ya mismo. WhatsAppSchedulerService
+        // lo despacha en el próximo horario laboral (ver backend/src/utils/businessHours.ts).
+        if (!isBusinessHours()) {
+          const scheduledFor = nextBusinessHoursStart();
+          const queued = await pool.query<{ id: string }>(
+            `INSERT INTO whatsapp_scheduled_messages
+               (auditor_user_id, phone, message, provider_nit, provider_name, scheduled_for)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id`,
+            [userId, phone.trim(), message.trim(), provider_nit ?? null, provider_name ?? null, scheduledFor]
+          );
+          logger.info({
+            msg: 'WhatsApp message queued outside business hours',
+            phone: phone.trim().slice(0, 6) + '***',
+            scheduledFor: scheduledFor.toISOString(),
+            queuedBy: userId,
+          });
+          return res.status(202).json({
+            data: { id: queued.rows[0].id, scheduled_for: scheduledFor },
+            queued: true,
+            message: `Fuera de horario laboral — se enviará automáticamente el ${scheduledFor.toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'full', timeStyle: 'short' })}`,
+          });
         }
 
         const result = await waService.sendText(userId, phone.trim(), message.trim());
