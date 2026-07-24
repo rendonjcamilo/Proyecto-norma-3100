@@ -43,6 +43,8 @@ interface CriterionInputProps {
   isAuditor?: boolean;
   onDenyBranch?: () => void;
   onNABranch?: () => void;
+  isBranchCollapsed?: boolean;
+  onCollapseBranch?: () => void;
 }
 
 // Detecta el nivel jerárquico del número oficial embebido en el nombre
@@ -64,6 +66,8 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
   isAuditor = false,
   onDenyBranch,
   onNABranch,
+  isBranchCollapsed = false,
+  onCollapseBranch,
 }) => {
   const subLevel = getSubLevel(criterion.name);
 
@@ -150,9 +154,19 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
               <p className="criterion-description">{criterion.description}</p>
             )}
           </div>
-          {isBranchParent && !readOnly && (
+          {isBranchParent && (
             <div className="branch-actions">
-              {showNAConfirm ? (
+              {!isBranchCollapsed && onCollapseBranch && !showNAConfirm && !showDenyConfirm && (
+                <button
+                  type="button"
+                  className="btn-collapse-branch"
+                  onClick={onCollapseBranch}
+                  title={`Contraer los ${branchSize} criterio${branchSize !== 1 ? 's' : ''} de esta rama`}
+                >
+                  ▲ Contraer
+                </button>
+              )}
+              {!readOnly && (showNAConfirm ? (
                 <div className="na-branch-confirm">
                   <span>¿Marcar {branchSize} criterio{branchSize !== 1 ? 's' : ''} como NA?</span>
                   <button type="button" className="btn-na-confirm" onClick={handleNABranchConfirm}>Confirmar</button>
@@ -167,8 +181,8 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
                 >
                   ○ No Aplica rama ({branchSize})
                 </button>
-              )}
-              {isAuditor && !showNAConfirm && (
+              ))}
+              {!readOnly && isAuditor && !showNAConfirm && (
                 showDenyConfirm ? (
                   <div className="deny-branch-confirm">
                     <span>¿Negar {branchSize} criterio{branchSize !== 1 ? 's' : ''}?</span>
@@ -210,9 +224,19 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
             </p>
           )}
         </div>
-        {isBranchParent && !readOnly && (
+        {isBranchParent && (
           <div className="branch-actions">
-            {showNAConfirm ? (
+            {!isBranchCollapsed && onCollapseBranch && !showNAConfirm && !showDenyConfirm && (
+              <button
+                type="button"
+                className="btn-collapse-branch"
+                onClick={onCollapseBranch}
+                title={`Contraer este criterio y sus ${branchSize} sub-criterio${branchSize !== 1 ? 's' : ''}`}
+              >
+                ▲ Contraer
+              </button>
+            )}
+            {!readOnly && (showNAConfirm ? (
               <div className="na-branch-confirm">
                 <span>¿Marcar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''} como NA?</span>
                 <button type="button" className="btn-na-confirm" onClick={handleNABranchConfirm}>Confirmar</button>
@@ -227,8 +251,8 @@ const CriterionInput: React.FC<CriterionInputProps> = ({
               >
                 ○ No Aplica rama ({branchSize})
               </button>
-            )}
-            {isAuditor && !showNAConfirm && (
+            ))}
+            {!readOnly && isAuditor && !showNAConfirm && (
               showDenyConfirm ? (
                 <div className="deny-branch-confirm">
                   <span>¿Negar {branchSize} sub-criterio{branchSize !== 1 ? 's' : ''}?</span>

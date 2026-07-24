@@ -337,6 +337,28 @@
   margin-left: 12px;
 }
 
+/* Botón "Contraer" — colapsa una rama manualmente, simétrico a "Expandir" */
+.btn-collapse-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f0f5ff;
+  color: #2f54eb;
+  border: 1px solid #adc6ff;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-collapse-branch:hover {
+  background: #d6e4ff;
+  border-color: #2f54eb;
+}
+
 /* Botón "No Aplica rama" — visible para todos los usuarios */
 .btn-na-branch {
   display: inline-flex;

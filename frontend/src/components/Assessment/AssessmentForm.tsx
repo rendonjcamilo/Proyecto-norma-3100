@@ -218,6 +218,14 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
     });
   }, []);
 
+  /**
+   * Contrae una rama manualmente sin marcar ninguna respuesta -- puro toggle de UI,
+   * simétrico a handleExpandBranch. No requiere haber usado "Negar rama"/"No Aplica rama" antes.
+   */
+  const handleCollapseBranch = useCallback((parentId: string) => {
+    setCollapsedBranches((prev) => new Set([...prev, parentId]));
+  }, []);
+
   const handleDescriptionChange = (criterionId: string, description: string) => {
     const response = responses.get(criterionId);
     if (response) {
@@ -382,6 +390,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 isAuditor={isAuditor}
                 collapsedBranches={collapsedBranches}
                 onExpandBranch={handleExpandBranch}
+                onCollapseBranch={handleCollapseBranch}
               />
             ))}
           </section>
@@ -405,6 +414,7 @@ const AssessmentForm: React.FC<AssessmentFormProps> = ({
                 isAuditor={isAuditor}
                 collapsedBranches={collapsedBranches}
                 onExpandBranch={handleExpandBranch}
+                onCollapseBranch={handleCollapseBranch}
               />
             ))}
           </section>
@@ -468,6 +478,7 @@ interface StandardGroupProps {
   isAuditor?: boolean;
   collapsedBranches: Set<string>;
   onExpandBranch: (parentId: string) => void;
+  onCollapseBranch: (parentId: string) => void;
 }
 
 const StandardGroup: React.FC<StandardGroupProps> = ({
@@ -482,6 +493,7 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
   isAuditor = false,
   collapsedBranches,
   onExpandBranch,
+  onCollapseBranch,
 }) => {
   const evaluable = standard.criteria.filter((c) => !c.is_section_header);
   const answeredInGroup = evaluable.filter((c) => responses.has(c.id)).length;
@@ -545,6 +557,8 @@ const StandardGroup: React.FC<StandardGroupProps> = ({
                   isAuditor={isAuditor}
                   onDenyBranch={branchIds.length > 0 ? () => onDenyBranch(criterion.id, branchIds) : undefined}
                   onNABranch={branchIds.length > 0 ? () => onNABranch(criterion.id, branchIds) : undefined}
+                  isBranchCollapsed={isCollapsed}
+                  onCollapseBranch={branchIds.length > 0 ? () => onCollapseBranch(criterion.id) : undefined}
                 />
                 {isCollapsed && (
                   <div className="branch-collapsed-summary">
