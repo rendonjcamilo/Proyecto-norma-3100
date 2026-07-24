@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationsApi, providersApi, Provider, EmailTemplate } from '../../services/api';
 import { formatDate } from '@/utils/dateFormat';
+import DOMPurify from 'dompurify';
 import './AuditorNotificationSender.css';
 
 interface PreviewData {
@@ -517,7 +518,7 @@ export const AuditorNotificationSender: React.FC = () => {
                   <strong>Asunto:</strong>{' '}{selectedTemplateObj?.subject || '—'}
                 </div>
                 <div className="ans-preview-body">
-                  <div dangerouslySetInnerHTML={{ __html: preview || 'Selecciona plantilla y variables...' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview || 'Selecciona plantilla y variables...') }} />
                 </div>
               </div>
             ) : editorMode === 'compose' && (composeSubject || composeBody) ? (

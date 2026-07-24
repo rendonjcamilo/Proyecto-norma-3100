@@ -333,7 +333,7 @@ export class AssessmentService {
 
       // 1. Verify assessment exists
       const assessmentQuery = `
-        SELECT status FROM assessments WHERE id = $1
+        SELECT status FROM assessments WHERE id = $1 FOR UPDATE
       `;
 
       const aResult = await client.query(assessmentQuery, [assessmentId]);
@@ -426,6 +426,7 @@ export class AssessmentService {
           id, provider_id, service_id, questionnaire_id
         FROM assessments
         WHERE id = $1 AND status = 'draft'
+        FOR UPDATE
       `;
 
       const aResult = await client.query(assessmentQuery, [assessmentId]);
