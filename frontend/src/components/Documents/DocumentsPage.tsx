@@ -11,6 +11,7 @@ import { openGoogleDrivePicker } from '../../services/googleDrivePicker';
 import { useRolePermission } from '../../hooks/useRolePermission';
 import { useAuth } from '../../context/AuthContext';
 import { formatDate } from '@/utils/dateFormat';
+import DOMPurify from 'dompurify';
 import './DocumentsPage.css';
 import '../../pages/Pages.css';
 
@@ -62,7 +63,18 @@ interface ProviderDocument {
 interface DocumentsPageProps {
   providerId: string;
   providerName: string;
+  providerLegalEntityType?: string;
 }
+
+// El dato legal_entity_type es texto libre e inconsistente en la BD (ej. "healthcare_organization",
+// "Independiente", "Profesional Independiente", "Instituciones Prestadoras de Servicios de Salud - IPS").
+// Clasificación tolerante en vez de comparación exacta.
+const classifyProviderType = (legalEntityType?: string): 'ips' | 'independiente' => {
+  const normalized = (legalEntityType || '').toLowerCase().trim();
+  if (normalized.includes('independiente')) return 'independiente';
+  if (normalized.includes('ips') || normalized.includes('instituci') || normalized === 'healthcare_organization') return 'ips';
+  return 'independiente';
+};
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
@@ -84,7 +96,7 @@ const STATUS_COLORS: Record<string, string> = {
   not_applicable: '#94a3b8',
 };
 
-export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName }) => {
+export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, providerName, providerLegalEntityType }) => {
   const [catalog, setCatalog] = useState<DocumentCatalogItem[]>([]);
   const [documents, setDocuments] = useState<ProviderDocument[]>([]);
   const [_missing, setMissing] = useState<DocumentCatalogItem[]>([]);
@@ -103,7 +115,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [driveFile, setDriveFile] = useState<File | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [providerType, setProviderType] = useState<'ips' | 'independiente'>('independiente');
+  const [providerType, setProviderType] = useState<'ips' | 'independiente'>(() => classifyProviderType(providerLegalEntityType));
   const [catalogCounts, setCatalogCounts] = useState<{ ips: number; independiente: number }>({ ips: 0, independiente: 0 });
   const [expiryEditModal, setExpiryEditModal] = useState<{ item: DocumentCatalogItem; doc: ProviderDocument } | null>(null);
   const [expiryEditSaving, setExpiryEditSaving] = useState(false);
@@ -113,6 +125,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
   const [freeDocuments, setFreeDocuments] = useState<FreeDocument[]>([]);
   const [freeUploading, setFreeUploading] = useState(false);
   const freeFileInputRef = useRef<HTMLInputElement>(null);
+  const viewerBlobUrlRef = useRef<string | null>(null);
 
   const [viewer, setViewer] = useState<{
     open: boolean;
@@ -121,7 +134,8 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     htmlContent: string | null;
     error: string | null;
     downloadRef: { id: string; type: 'catalog' | 'free' } | null;
-  }>({ open: false, title: '', loading: false, htmlContent: null, error: null, downloadRef: null });
+    viewerType: 'html' | 'pdf' | 'image';
+  }>({ open: false, title: '', loading: false, htmlContent: null, error: null, downloadRef: null, viewerType: 'html' });
 
   const isAuditor = user?.role === 'auditor' || user?.role === 'super_admin';
 
@@ -191,6 +205,14 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
       setLoading(false);
     }
   };
+
+  // Re-clasifica el tipo de prestador al cambiar de prestador (el auditor puede alternar entre
+  // varios sin que el componente se desmonte). El radio button manual sigue permitiendo
+  // sobreescribir el valor detectado dentro de la misma sesión de vista.
+  useEffect(() => {
+    setProviderType(classifyProviderType(providerLegalEntityType));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId]);
 
   useEffect(() => {
     loadData();
@@ -537,25 +559,39 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
     }
   };
 
+  const closeViewer = () => {
+    if (viewerBlobUrlRef.current) {
+      URL.revokeObjectURL(viewerBlobUrlRef.current);
+      viewerBlobUrlRef.current = null;
+    }
+    setViewer(v => ({ ...v, open: false }));
+  };
+
   const openViewer = async (
     title: string,
     mimeType: string,
     fetchBlob: () => Promise<Blob>,
     downloadRef: { id: string; type: 'catalog' | 'free' },
   ) => {
-    setViewer({ open: true, title, loading: true, htmlContent: null, error: null, downloadRef });
+    if (viewerBlobUrlRef.current) {
+      URL.revokeObjectURL(viewerBlobUrlRef.current);
+      viewerBlobUrlRef.current = null;
+    }
+    setViewer({ open: true, title, loading: true, htmlContent: null, error: null, downloadRef, viewerType: 'html' });
     try {
       const isDocx = mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         || mimeType === 'application/msword';
       const isXlsx = mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         || mimeType === 'application/vnd.ms-excel';
+      const isPdf = mimeType === 'application/pdf';
+      const isImage = mimeType.startsWith('image/');
 
       if (isDocx) {
         const fileBlob = await fetchBlob();
         const arrayBuffer = await fileBlob.arrayBuffer();
         const mammoth = await import('mammoth');
         const result = await mammoth.convertToHtml({ arrayBuffer });
-        setViewer(v => ({ ...v, loading: false, htmlContent: result.value || '<p>El documento está vacío.</p>' }));
+        setViewer(v => ({ ...v, loading: false, htmlContent: result.value || '<p>El documento está vacío.</p>', viewerType: 'html' }));
       } else if (isXlsx) {
         const fileBlob = await fetchBlob();
         const arrayBuffer = await fileBlob.arrayBuffer();
@@ -563,7 +599,17 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const html = XLSX.utils.sheet_to_html(sheet);
-        setViewer(v => ({ ...v, loading: false, htmlContent: html }));
+        setViewer(v => ({ ...v, loading: false, htmlContent: html, viewerType: 'html' }));
+      } else if (isPdf) {
+        const fileBlob = await fetchBlob();
+        const url = URL.createObjectURL(fileBlob);
+        viewerBlobUrlRef.current = url;
+        setViewer(v => ({ ...v, loading: false, htmlContent: url, viewerType: 'pdf' }));
+      } else if (isImage) {
+        const fileBlob = await fetchBlob();
+        const url = URL.createObjectURL(fileBlob);
+        viewerBlobUrlRef.current = url;
+        setViewer(v => ({ ...v, loading: false, htmlContent: url, viewerType: 'image' }));
       } else {
         setViewer(v => ({ ...v, loading: false, error: 'Este formato de archivo no se puede previsualizar. Descargue el archivo para abrirlo.' }));
       }
@@ -586,45 +632,15 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
   const handleView = async (docId: string) => {
     const doc = documents.find(d => d.id === docId);
-    const mimeType = doc?.mime_type || '';
+    const mimeType = doc?.mime_type || 'application/octet-stream';
     const title = doc?.document_name || doc?.original_filename || 'Documento';
-
-    if (!mimeType || mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
-      const newTab = window.open('', '_blank');
-      try {
-        const fileBlob = await documentsApi.download(docId);
-        const url = URL.createObjectURL(fileBlob);
-        if (newTab) newTab.location.href = url;
-        setTimeout(() => URL.revokeObjectURL(url), 120_000);
-      } catch {
-        if (newTab) newTab.close();
-        showToast('error', 'Error al visualizar el documento');
-      }
-      return;
-    }
-
     await openViewer(title, mimeType, () => documentsApi.download(docId), { id: docId, type: 'catalog' });
   };
 
   const handleViewFree = async (fdId: string) => {
     const fd = freeDocuments.find(d => d.id === fdId);
-    const mimeType = fd?.mime_type || '';
+    const mimeType = fd?.mime_type || 'application/octet-stream';
     const title = fd?.original_filename || 'Archivo';
-
-    if (!mimeType || mimeType === 'application/pdf' || mimeType.startsWith('image/')) {
-      const newTab = window.open('', '_blank');
-      try {
-        const fileBlob = await documentsApi.downloadFreeDocument(providerId, fdId);
-        const url = URL.createObjectURL(fileBlob);
-        if (newTab) newTab.location.href = url;
-        setTimeout(() => URL.revokeObjectURL(url), 120_000);
-      } catch {
-        if (newTab) newTab.close();
-        showToast('error', 'Error al visualizar el archivo');
-      }
-      return;
-    }
-
     await openViewer(title, mimeType, () => documentsApi.downloadFreeDocument(providerId, fdId), { id: fdId, type: 'free' });
   };
 
@@ -1587,7 +1603,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
 
       {/* === DOCUMENT VIEWER MODAL === */}
       {viewer.open && (
-        <div className="docviewer-overlay" onClick={() => setViewer(v => ({ ...v, open: false }))}>
+        <div className="docviewer-overlay" onClick={closeViewer}>
           <div className="docviewer-modal" onClick={e => e.stopPropagation()}>
             <div className="docviewer-header">
               <span className="docviewer-title" title={viewer.title}>{viewer.title}</span>
@@ -1600,7 +1616,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   </svg>
                   Descargar
                 </button>
-                <button className="docviewer-btn-close" type="button" onClick={() => setViewer(v => ({ ...v, open: false }))}>
+                <button className="docviewer-btn-close" type="button" onClick={closeViewer}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
@@ -1627,8 +1643,20 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ providerId, provid
                   <button className="btn-primary" type="button" onClick={handleViewerDownload}>Descargar archivo</button>
                 </div>
               )}
-              {!viewer.loading && viewer.htmlContent && (
-                <div className="docviewer-content" dangerouslySetInnerHTML={{ __html: viewer.htmlContent }} />
+              {!viewer.loading && viewer.htmlContent && viewer.viewerType === 'pdf' && (
+                <iframe
+                  src={viewer.htmlContent}
+                  title={viewer.title}
+                  className="docviewer-iframe"
+                />
+              )}
+              {!viewer.loading && viewer.htmlContent && viewer.viewerType === 'image' && (
+                <div className="docviewer-image-wrapper">
+                  <img src={viewer.htmlContent} alt={viewer.title} className="docviewer-image" />
+                </div>
+              )}
+              {!viewer.loading && viewer.htmlContent && viewer.viewerType === 'html' && (
+                <div className="docviewer-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewer.htmlContent) }} />
               )}
             </div>
           </div>

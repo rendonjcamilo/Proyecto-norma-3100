@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 export interface Provider {
   id: string;
   legalName: string;
+  legalEntityType: string;
   rut: string;
   city: string;
   department: string;
@@ -24,6 +25,7 @@ const ProviderContext = createContext<ProviderContextType | undefined>(undefined
 const transformProvider = (apiProvider: ApiProvider): Provider => ({
   id: apiProvider.id,
   legalName: apiProvider.legal_name,
+  legalEntityType: apiProvider.legal_entity_type || '',
   rut: apiProvider.rut,
   city: apiProvider.city,
   department: apiProvider.department,

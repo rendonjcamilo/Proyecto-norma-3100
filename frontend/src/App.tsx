@@ -96,7 +96,7 @@ const ReportsWrapper = () => {
 
 const DocumentsWrapper = () => {
   const { selectedProvider } = useProvider();
-  return <DocumentsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} />;
+  return <DocumentsPage providerId={selectedProvider?.id || ""} providerName={selectedProvider?.legalName || ""} providerLegalEntityType={selectedProvider?.legalEntityType || ""} />;
 };
 
 const NotificationCenterWrapper = () => {
