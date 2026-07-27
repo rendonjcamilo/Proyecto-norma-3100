@@ -534,6 +534,12 @@ export interface EvaluableService {
   category: string;
   questionnaire_id: string;
   total_criteria: number;
+  /** Numeral en la norma, ej. "11.3.4". null si no pertenece a la Res. 3100. */
+  norm: string | null;
+  /** Numeral del grupo, ej. "11.3". 'otra' para lo que no es Res. 3100. */
+  groupNorm: string;
+  /** Nombre del grupo tal como aparece en el documento. */
+  groupName: string;
 }
 
 export const servicesApi = {

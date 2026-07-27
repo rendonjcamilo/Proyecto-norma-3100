@@ -61,6 +61,9 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
   const [evaluableServices, setEvaluableServices] = useState<EvaluableService[]>([]);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
   const [loadingEvaluable, setLoadingEvaluable] = useState(false);
+  // Grupos plegados en el selector de servicios. Arrancan todos plegados: son 38 servicios y
+  // desplegados obligan a desplazarse mucho para encontrar uno.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedAssessments, setSelectedAssessments] = useState<Set<string>>(new Set());
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -309,7 +312,10 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                 setLoadingEvaluable(true);
                 try {
                   const res = await servicesApi.getEvaluable();
-                  setEvaluableServices(res.data || []);
+                  const svcs = res.data || [];
+                  setEvaluableServices(svcs);
+                  // Todos los grupos arrancan plegados
+                  setCollapsedGroups(new Set(svcs.map((s) => s.groupNorm)));
                 } catch {
                   setEvaluableServices([]);
                 } finally {
@@ -753,13 +759,41 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                       Cargando servicios evaluables...
                     </div>
                   ) : (
-                    <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
-                      {[...new Set(evaluableServices.map(s => s.category))].sort().map(category => (
-                        <div key={category}>
-                          <div style={{ padding: '6px 12px', background: '#f3f4f6', fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            {category}
-                          </div>
-                          {evaluableServices.filter(s => s.category === category).map(svc => (
+                    <div style={{ maxHeight: '260px', overflowY: 'auto' }}>
+                      {/* Los servicios vienen del backend en el orden de la norma (11.2.1 …
+                          11.6.4), no alfabético. Se agrupan respetando ese orden de llegada. */}
+                      {[...new Map(evaluableServices.map(s => [s.groupNorm, s])).values()].map(first => {
+                        const groupNorm = first.groupNorm;
+                        const delGrupo = evaluableServices.filter(s => s.groupNorm === groupNorm);
+                        const isCollapsed = collapsedGroups.has(groupNorm);
+                        const seleccionadosEnGrupo = delGrupo.filter(s => selectedServiceIds.has(s.id)).length;
+                        return (
+                        <div key={groupNorm}>
+                          <button
+                            type="button"
+                            onClick={() => setCollapsedGroups(prev => {
+                              const next = new Set(prev);
+                              if (next.has(groupNorm)) next.delete(groupNorm); else next.add(groupNorm);
+                              return next;
+                            })}
+                            style={{
+                              width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '7px 12px', background: '#f3f4f6', border: 'none',
+                              borderBottom: '1px solid #e5e7eb', cursor: 'pointer', textAlign: 'left',
+                              fontSize: '11px', fontWeight: 600, color: '#6b7280',
+                              textTransform: 'uppercase', letterSpacing: '0.5px',
+                            }}
+                          >
+                            <span style={{ fontSize: '9px' }}>{isCollapsed ? '▶' : '▼'}</span>
+                            {groupNorm !== 'otra' && <span style={{ color: '#2563eb' }}>{groupNorm}</span>}
+                            <span>{first.groupName}</span>
+                            <span style={{ marginLeft: 'auto', textTransform: 'none', fontWeight: 400 }}>
+                              {seleccionadosEnGrupo > 0
+                                ? `${seleccionadosEnGrupo} de ${delGrupo.length}`
+                                : `${delGrupo.length}`}
+                            </span>
+                          </button>
+                          {!isCollapsed && delGrupo.map(svc => (
                             <label key={svc.id} style={{
                               display: 'flex', alignItems: 'flex-start', gap: '10px',
                               padding: '8px 12px', cursor: 'pointer',
@@ -781,6 +815,7 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                               />
                               <div>
                                 <div style={{ fontSize: '13px', fontWeight: 500, color: '#111827' }}>
+                                  {svc.norm && <span style={{ color: '#2563eb', marginRight: '6px' }}>{svc.norm}</span>}
                                   {svc.name}{svc.code === 'LAB-CAL' && ' — Anexo Res. 1619'}
                                 </div>
                                 <div style={{ fontSize: '11px', color: '#6b7280' }}>{svc.total_criteria} criterios · {svc.code}</div>
@@ -788,7 +823,8 @@ export const AssessmentsPage: React.FC<AssessmentsPageProps> = ({ providerId }) 
                             </label>
                           ))}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

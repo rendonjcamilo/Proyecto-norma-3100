@@ -11,6 +11,7 @@ import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { ServiceService } from '../services/ServiceService.js';
 import { EventStore } from '../modules/events/EventStore.js';
 import { logger } from '../utils/logger.js';
+import { NORMA_3100_STRUCTURE } from '../config/norma3100-structure.config.js';
 
 export function createServiceRouter(pool: Pool, eventStore: EventStore): Router {
   const router = Router();
@@ -65,8 +66,10 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
 
   /**
    * GET /api/services/evaluable
-   * Returns the 35 Res.3100/2019 services that have published service-specific questionnaires.
-   * Used by audit creation UI to show applicable evaluations beyond the 7 transversal standards.
+   * Servicios de la Res. 3100 con cuestionario publicado, en el ORDEN DE LA NORMA (11.2.1,
+   * 11.2.2, … 11.6.4) y con su numeral, no en orden alfabético. Cada uno trae el grupo al que
+   * pertenece para que la UI pueda agruparlos y colapsarlos igual que el documento fuente.
+   * Lo que no pertenece a la Res. 3100 (LAB-CAL, que es Res. 1619) va al final, aparte.
    */
   router.get('/services/evaluable', authMiddleware, async (req: Request, res: Response) => {
     try {
@@ -81,12 +84,35 @@ export function createServiceRouter(pool: Pool, eventStore: EventStore): Router 
         FROM services s
         JOIN questionnaires q ON q.service_id = s.id
         WHERE q.status = 'published' AND q.version_type = 'initial'
-        ORDER BY s.category, s.name
       `);
 
+      // Índice code -> posición en la norma, construido del capítulo 11 del archivo fuente.
+      const orden = new Map<string, { norm: string; groupNorm: string; groupName: string; pos: number }>();
+      let pos = 0;
+      for (const g of NORMA_3100_STRUCTURE) {
+        if (g.transversal) {continue;} // 11.1 se ofrece aparte, siempre obligatorio
+        for (const sv of g.servicios) {
+          orden.set(sv.code, { norm: sv.norm, groupNorm: g.norm, groupName: g.name, pos: pos++ });
+        }
+      }
+
+      const data = result.rows
+        .map((r) => {
+          const o = orden.get(r.code);
+          return {
+            ...r,
+            norm: o?.norm ?? null,
+            groupNorm: o?.groupNorm ?? 'otra',
+            groupName: o?.groupName ?? 'Fuera de la Resolución 3100',
+            _pos: o?.pos ?? 9999,
+          };
+        })
+        .sort((a, b) => a._pos - b._pos)
+        .map(({ _pos, ...rest }) => rest);
+
       res.status(200).json({
-        data: result.rows,
-        count: result.rows.length,
+        data,
+        count: data.length,
       });
     } catch (error) {
       logger.error({ msg: 'Error fetching evaluable services', error: (error as Error).message });
