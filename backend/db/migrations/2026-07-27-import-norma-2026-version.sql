@@ -10,11 +10,19 @@
 -- Las auditorias ya realizadas siguen usando la version anterior por su questionnaire_id
 -- y por la fecha de creacion. Las nuevas usan esta.
 
--- ===== Paso 1: congelar los cuestionarios de servicio vigentes =====
+-- ===== Paso 1: permitir marcar la version anterior =====
+-- version_type mezcla dos cosas: el TIPO de autoevaluacion (inicial, anual, a los 4 anos,
+-- pre-novedad) y, ahora, la version del contenido. Se amplia el CHECK con un valor mas para poder
+-- apartar los cuestionarios de servicio anteriores. Se re-crea con los 4 valores vigentes
+-- completos mas el nuevo -- omitir uno invalidaria filas existentes.
+ALTER TABLE questionnaires DROP CONSTRAINT IF EXISTS questionnaires_version_type_check;
+ALTER TABLE questionnaires ADD CONSTRAINT questionnaires_version_type_check
+  CHECK (version_type IN ('initial', 'year4', 'annual', 'pre-novelty', 'v1-hasta-2026-07'));
+
+-- ===== Paso 2: congelar los cuestionarios de servicio vigentes =====
 -- Un indice unico parcial sobre (service_id, version_type) impide que convivan dos cuestionarios
--- del mismo servicio y version, aunque uno este archivado. Por eso a los viejos se les cambia el
--- version_type a 'v1-hasta-2026-07' ademas de archivarlos, liberando 'initial' para la version
--- importada del archivo.
+-- del mismo servicio y version aunque uno este archivado, asi que ademas de archivarlos hay que
+-- moverlos de version_type para liberar 'initial'.
 --
 -- Es seguro: ninguna auditoria referencia un cuestionario de servicio por id (verificado -- solo
 -- referencian el maestro via assessments.questionnaire_id). Las auditorias ya realizadas resuelven
@@ -27,7 +35,7 @@ UPDATE questionnaires
 SET status = 'archived', version_type = 'v1-hasta-2026-07', updated_at = NOW()
 WHERE service_id IS NOT NULL;
 
--- ===== Paso 2: los 38 servicios, importados del archivo =====
+-- ===== Paso 3: los 38 servicios, importados del archivo =====
 -- ===== APH =====
 INSERT INTO questionnaires (name, service_id, version_type, status, total_criteria, published_at)
 VALUES ('APH — Res. 3100 (importado del archivo)', 'b3e97ce6-df34-4c99-85cf-84908c7a9710'::uuid, 'initial', 'published', 0, NOW());
