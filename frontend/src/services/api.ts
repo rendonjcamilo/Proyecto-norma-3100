@@ -1434,29 +1434,40 @@ export const improvementPlanApi = {
 // ESTRUCTURA DE SERVICIOS (Grupo -> Servicio -> Capítulo -> Criterio)
 // ─────────────────────────────────────────────
 
-export interface StructureCapitulo {
-  id: string;
-  code: string;
-  name: string;
-  confidence: 'high' | 'needs_review' | 'category_wide' | 'other_regulation';
-  note: string | null;
-  /** Criterios activos que el auditor realmente responde (excluye encabezados y archivados). */
-  criteria_count: number;
-  /** Encabezados de grupo activos — se muestran en el formulario pero no se responden. */
-  header_count: number;
-  categoryWide: boolean;
-}
-
+/** Un servicio auditable del Capítulo 11 (11.1.1 … 11.6.4). */
 export interface StructureServicio {
-  id: string;
+  /** Numeral normativo, ej. "11.2.2". */
+  norm: string;
   code: string;
+  id: string | null;
   name: string;
-  capitulos: StructureCapitulo[];
+  /** 'standard' = transversal de 11.1 · 'chapter' = servicio de 11.2-11.6 */
+  kind: 'standard' | 'chapter';
+  /** Criterios activos que el auditor responde (excluye encabezados y archivados). */
+  criteria_count: number;
+  /** Encabezados de grupo: se muestran, no se califican. */
+  header_count: number;
+  /** true si el código está en la norma pero no existe en la base de datos. */
+  missing: boolean;
 }
 
+/** Un grupo de la norma: 11.1 (transversales) o 11.2-11.6 (grupos de servicio). */
 export interface StructureGrupo {
-  category: string;
+  norm: string;
+  name: string;
+  transversal: boolean;
+  criteria_total: number;
   servicios: StructureServicio[];
+}
+
+export interface StructureOtraNormativa {
+  code: string;
+  id: string;
+  name: string;
+  kind: 'chapter';
+  note: string;
+  criteria_count: number;
+  header_count: number;
 }
 
 export interface StructureCriterio {
@@ -1466,17 +1477,10 @@ export interface StructureCriterio {
   is_section_header: boolean;
 }
 
-export interface StructureEstandar {
-  id: string;
-  code: string;
-  name: string;
-  criterios: StructureCriterio[];
-}
-
 export const structureApi = {
-  getTree: () => get<{ data: StructureGrupo[] }>('/api/structure/tree'),
-  getCapituloCriteria: (id: string) => get<{ data: StructureCriterio[] }>(`/api/structure/capitulo/${id}/criteria`),
-  getTransversal: () => get<{ data: StructureEstandar[] }>('/api/structure/transversal'),
+  getTree: () => get<{ data: StructureGrupo[]; otraNormativa: StructureOtraNormativa[] }>('/api/structure/tree'),
+  getCriteria: (kind: 'standard' | 'chapter', id: string) =>
+    get<{ data: StructureCriterio[] }>(`/api/structure/servicio/${kind}/${id}/criteria`),
 };
 
 // ─────────────────────────────────────────────
