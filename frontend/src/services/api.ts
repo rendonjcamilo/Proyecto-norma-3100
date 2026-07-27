@@ -1440,7 +1440,10 @@ export interface StructureCapitulo {
   name: string;
   confidence: 'high' | 'needs_review' | 'category_wide' | 'other_regulation';
   note: string | null;
+  /** Criterios activos que el auditor realmente responde (excluye encabezados y archivados). */
   criteria_count: number;
+  /** Encabezados de grupo activos — se muestran en el formulario pero no se responden. */
+  header_count: number;
   categoryWide: boolean;
 }
 

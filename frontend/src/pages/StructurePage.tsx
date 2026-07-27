@@ -247,7 +247,10 @@ export const StructurePage: React.FC = () => {
                                       <span>{isCapOpen ? '▼' : '▶'}</span>
                                       <strong>{cap.name}</strong>
                                       <span style={{ opacity: 0.7 }}>· {cap.code}</span>
-                                      <span style={{ marginLeft: 'auto', fontSize: '10px' }}>{cap.criteria_count} criterios</span>
+                                      <span style={{ marginLeft: 'auto', fontSize: '10px' }} title="Criterios que se responden. Los encabezados agrupan sub-criterios y no se califican.">
+                                        {cap.criteria_count} criterios
+                                        {cap.header_count > 0 && ` + ${cap.header_count} encabezados`}
+                                      </span>
                                     </button>
                                     {cap.note && (
                                       <div style={{ padding: '4px 10px 0 10px', fontSize: '11px', color: style.color, opacity: 0.85 }}>

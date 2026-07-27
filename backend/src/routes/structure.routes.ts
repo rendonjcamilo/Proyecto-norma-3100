@@ -23,6 +23,23 @@ const CATEGORY_WIDE_CHAPTERS = new Set(['CEE', 'QRG']);
 // LAB-CAL (Res. 1619) se ancla bajo el mismo servicio que el capitulo LAB (706 Laboratorio Clinico).
 const LAB_CAL_ANCHOR_CODE = '706';
 
+/**
+ * Cuenta solo los criterios que un auditor realmente responde: activos y que no son encabezado
+ * de grupo. Excluir `status='archived'` importa desde 2026-07-27, cuando se archivaron 143
+ * criterios (39 de contaminacion cruzada LAB->LAC y 104 duplicados exactos) -- sin este filtro la
+ * pantalla los seguia contando y mostraba, por ejemplo, 119 criterios en LAC en vez de 80.
+ */
+const activeCriteriaCountSql = (serviceIdExpr: string) =>
+  `(SELECT count(*) FROM evaluation_criteria ec
+    WHERE ec.service_id = ${serviceIdExpr} AND ec.status = 'active'
+      AND COALESCE(ec.is_section_header, false) = false)::int`;
+
+/** Encabezados de grupo activos -- se muestran, pero no se responden. */
+const sectionHeaderCountSql = (serviceIdExpr: string) =>
+  `(SELECT count(*) FROM evaluation_criteria ec
+    WHERE ec.service_id = ${serviceIdExpr} AND ec.status = 'active'
+      AND COALESCE(ec.is_section_header, false) = true)::int`;
+
 interface ChapterRow {
   service_id: string;
   chapter_id: string;
@@ -31,6 +48,7 @@ interface ChapterRow {
   confidence: string;
   note: string | null;
   criteria_count: number;
+  header_count: number;
 }
 
 export function createStructureRouter(pool: Pool): Router {
@@ -56,23 +74,26 @@ export function createStructureRouter(pool: Pool): Router {
            c.name AS chapter_name,
            m.confidence,
            m.note,
-           (SELECT count(*) FROM evaluation_criteria ec WHERE ec.service_id = c.id)::int AS criteria_count
+           ${activeCriteriaCountSql('c.id')} AS criteria_count,
+           ${sectionHeaderCountSql('c.id')} AS header_count
          FROM service_chapter_mapping m
          JOIN services c ON c.id = m.chapter_id
          ORDER BY c.code`
       );
 
       // Capitulos de categoria completa (CEE, QRG) -- no tienen fila en service_chapter_mapping.
-      const categoryWideResult = await pool.query<{ id: string; code: string; name: string; category: string; criteria_count: number }>(
+      const categoryWideResult = await pool.query<{ id: string; code: string; name: string; category: string; criteria_count: number; header_count: number }>(
         `SELECT s.id, s.code, s.name, s.category,
-                (SELECT count(*) FROM evaluation_criteria ec WHERE ec.service_id = s.id)::int AS criteria_count
+                ${activeCriteriaCountSql('s.id')} AS criteria_count,
+                ${sectionHeaderCountSql('s.id')} AS header_count
          FROM services s WHERE s.type = 'compliance_chapter' AND s.code = ANY($1::text[])`,
         [Array.from(CATEGORY_WIDE_CHAPTERS)]
       );
 
-      const labCalResult = await pool.query<{ id: string; code: string; name: string; criteria_count: number }>(
+      const labCalResult = await pool.query<{ id: string; code: string; name: string; criteria_count: number; header_count: number }>(
         `SELECT s.id, s.code, s.name,
-                (SELECT count(*) FROM evaluation_criteria ec WHERE ec.service_id = s.id)::int AS criteria_count
+                ${activeCriteriaCountSql('s.id')} AS criteria_count,
+                ${sectionHeaderCountSql('s.id')} AS header_count
          FROM services s WHERE s.type = 'compliance_chapter' AND s.code = 'LAB-CAL'`
       );
 
@@ -91,6 +112,7 @@ export function createStructureRouter(pool: Pool): Router {
           confidence: c.confidence,
           note: c.note,
           criteria_count: c.criteria_count,
+          header_count: c.header_count,
           categoryWide: false,
         }))];
 
@@ -103,6 +125,7 @@ export function createStructureRouter(pool: Pool): Router {
               confidence: 'category_wide',
               note: `Aplica a todos los servicios de "${cw.category}", no a un servicio único`,
               criteria_count: cw.criteria_count,
+              header_count: cw.header_count,
               categoryWide: true,
             });
           }
@@ -117,6 +140,7 @@ export function createStructureRouter(pool: Pool): Router {
               confidence: 'other_regulation',
               note: 'Resolución 1619 (calidad de laboratorios) — no es Resolución 3100',
               criteria_count: lc.criteria_count,
+              header_count: lc.header_count,
               categoryWide: false,
             });
           }
@@ -152,8 +176,8 @@ export function createStructureRouter(pool: Pool): Router {
       const result = await pool.query(
         `SELECT id, number, name, is_section_header
          FROM evaluation_criteria
-         WHERE service_id = $1
-         ORDER BY number`,
+         WHERE service_id = $1 AND status = 'active'
+         ORDER BY COALESCE(sort_order, 9999), code`,
         [req.params.id]
       );
       res.status(200).json({ data: result.rows });
@@ -176,7 +200,8 @@ export function createStructureRouter(pool: Pool): Router {
       );
       const criteriaResult = await pool.query<{ id: string; standard_id: string; number: string; name: string; is_section_header: boolean }>(
         `SELECT id, standard_id, number, name, is_section_header
-         FROM evaluation_criteria WHERE service_id IS NULL ORDER BY standard_id, number`
+         FROM evaluation_criteria WHERE service_id IS NULL AND status = 'active'
+         ORDER BY standard_id, COALESCE(sort_order, 9999), code`
       );
 
       const criteriaByStandard = new Map<string, typeof criteriaResult.rows>();
