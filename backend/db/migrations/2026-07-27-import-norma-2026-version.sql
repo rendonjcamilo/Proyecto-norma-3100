@@ -11,14 +11,21 @@
 -- y por la fecha de creacion. Las nuevas usan esta.
 
 -- ===== Paso 1: congelar los cuestionarios de servicio vigentes =====
--- Solo los de servicio. El cuestionario MAESTRO (los 7 estandares transversales) se reutiliza tal
--- cual: el usuario confirmo que los transversales estan correctos, asi que no se reimportan. Un
--- indice unico impide ademas tener dos maestros con el mismo version_type.
+-- Un indice unico parcial sobre (service_id, version_type) impide que convivan dos cuestionarios
+-- del mismo servicio y version, aunque uno este archivado. Por eso a los viejos se les cambia el
+-- version_type a 'v1-hasta-2026-07' ademas de archivarlos, liberando 'initial' para la version
+-- importada del archivo.
 --
--- Las auditorias ya realizadas no se rompen al archivar: resuelven su cuestionario de servicio por
--- la fecha en que fueron creadas, no por cual esta publicado hoy (ver assessments.routes.ts).
-UPDATE questionnaires SET status = 'archived', updated_at = NOW()
-WHERE service_id IS NOT NULL AND status = 'published';
+-- Es seguro: ninguna auditoria referencia un cuestionario de servicio por id (verificado -- solo
+-- referencian el maestro via assessments.questionnaire_id). Las auditorias ya realizadas resuelven
+-- su cuestionario de servicio por la fecha en que fueron creadas, no por version ni por estado
+-- (ver el JOIN LATERAL en assessments.routes.ts).
+--
+-- El cuestionario MAESTRO no se toca: los 7 estandares transversales estan correctos y se
+-- reutilizan tal cual.
+UPDATE questionnaires
+SET status = 'archived', version_type = 'v1-hasta-2026-07', updated_at = NOW()
+WHERE service_id IS NOT NULL;
 
 -- ===== Paso 2: los 38 servicios, importados del archivo =====
 -- ===== APH =====
