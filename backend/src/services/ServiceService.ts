@@ -4,6 +4,7 @@
  */
 
 import { Pool } from 'pg';
+import { categoryOrderCaseSql } from '../config/category-order.config.js';
 
 export interface ServiceCatalogItem {
   id: string;
@@ -75,14 +76,7 @@ export class ServiceService {
       params.push(`%${filters.search}%`, `%${filters.search}%`);
     }
 
-    query += ` ORDER BY CASE category
-      WHEN 'Internación' THEN 1
-      WHEN 'Quirúrgicos' THEN 2
-      WHEN 'Consulta Externa' THEN 3
-      WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
-      WHEN 'Atención Inmediata' THEN 5
-      ELSE 6
-    END, code`;
+    query += ` ORDER BY ${categoryOrderCaseSql('category')}, code`;
 
     const result = await this.pool.query(query, params);
     return result.rows;
@@ -122,14 +116,7 @@ export class ServiceService {
       FROM services
       WHERE status = 'available'
       GROUP BY category
-      ORDER BY CASE category
-        WHEN 'Internación' THEN 1
-        WHEN 'Quirúrgicos' THEN 2
-        WHEN 'Consulta Externa' THEN 3
-        WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
-        WHEN 'Atención Inmediata' THEN 5
-        ELSE 6
-      END
+      ORDER BY ${categoryOrderCaseSql('category')}
     `);
     return result.rows;
   }
@@ -279,14 +266,7 @@ export class ServiceService {
       params.push(filters.category);
     }
 
-    query += ` ORDER BY CASE s.category
-      WHEN 'Internación' THEN 1
-      WHEN 'Quirúrgicos' THEN 2
-      WHEN 'Consulta Externa' THEN 3
-      WHEN 'Apoyo Diagnóstico y Complementación Terapéutica' THEN 4
-      WHEN 'Atención Inmediata' THEN 5
-      ELSE 6
-    END, s.code`;
+    query += ` ORDER BY ${categoryOrderCaseSql('s.category')}, s.code`;
 
     const result = await this.pool.query(query, params);
     return result.rows.map(row => ({

@@ -903,7 +903,9 @@ export const ProvidersPage: React.FC = () => {
                         acc[s.category].push(s);
                         return acc;
                       }, {} as Record<string, HealthService[]>);
-                      const CATEGORY_ORDER = ['Internación', 'Quirúrgicos', 'Consulta Externa', 'Apoyo Diagnóstico y Complementación Terapéutica', 'Atención Inmediata'];
+                      // Orden normativo Res. 3100 Cap. 11 (11.2-11.6) — espejo de
+                      // backend/src/config/category-order.config.ts, mantener sincronizado
+                      const CATEGORY_ORDER = ['Consulta Externa', 'Apoyo Diagnóstico y Complementación Terapéutica', 'Internación', 'Quirúrgicos', 'Atención Inmediata'];
                       const categories = Object.keys(grouped).sort((a, b) => {
                         const ai = CATEGORY_ORDER.indexOf(a);
                         const bi = CATEGORY_ORDER.indexOf(b);

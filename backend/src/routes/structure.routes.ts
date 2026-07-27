@@ -13,14 +13,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { logger } from '../utils/logger.js';
 import { standardOrderCaseSql } from '../config/standard-order.config.js';
-
-const CATEGORY_ORDER = [
-  'Internación',
-  'Quirúrgicos',
-  'Consulta Externa',
-  'Apoyo Diagnóstico y Complementación Terapéutica',
-  'Atención Inmediata',
-];
+import { SERVICE_CATEGORY_ORDER as CATEGORY_ORDER } from '../config/category-order.config.js';
 
 // Capitulos sin un unico servicio padre en service_chapter_mapping (por diseño, ver
 // 2026-07-24-create-service-chapter-mapping.sql). Se muestran repetidos bajo cada servicio al
