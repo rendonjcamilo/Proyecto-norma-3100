@@ -10,29 +10,17 @@
 -- Las auditorias ya realizadas siguen usando la version anterior por su questionnaire_id
 -- y por la fecha de creacion. Las nuevas usan esta.
 
--- ===== Paso 1: congelar la version anterior =====
--- Los cuestionarios vigentes pasan a archived. Las auditorias ya realizadas NO se rompen: el
--- maestro lo resuelven por su propio questionnaire_id (que no cambia) y el de servicio por la
--- fecha de creacion de la auditoria, no por el estado del cuestionario.
-UPDATE questionnaires SET status = 'archived', updated_at = NOW() WHERE status = 'published';
+-- ===== Paso 1: congelar los cuestionarios de servicio vigentes =====
+-- Solo los de servicio. El cuestionario MAESTRO (los 7 estandares transversales) se reutiliza tal
+-- cual: el usuario confirmo que los transversales estan correctos, asi que no se reimportan. Un
+-- indice unico impide ademas tener dos maestros con el mismo version_type.
+--
+-- Las auditorias ya realizadas no se rompen al archivar: resuelven su cuestionario de servicio por
+-- la fecha en que fueron creadas, no por cual esta publicado hoy (ver assessments.routes.ts).
+UPDATE questionnaires SET status = 'archived', updated_at = NOW()
+WHERE service_id IS NOT NULL AND status = 'published';
 
--- ===== Paso 2: cuestionario maestro de la version nueva =====
--- Reutiliza los mismos 512 criterios transversales que ya existen y estan correctos (decision
--- explicita del usuario: los transversales estan bien, no se reimportan).
-INSERT INTO questionnaires (name, service_id, version_type, status, total_criteria, published_at)
-VALUES ('Estándares transversales — Res. 3100 (archivo)', NULL, 'initial', 'published', 0, NOW());
-
-INSERT INTO questionnaire_criteria (questionnaire_id, criterion_id)
-SELECT q.id, ec.id FROM questionnaires q, evaluation_criteria ec
-WHERE q.service_id IS NULL AND q.version_type = 'initial' AND q.status = 'published'
-  AND ec.service_id IS NULL AND ec.status = 'active';
-
-UPDATE questionnaires q SET total_criteria = (
-  SELECT count(*) FROM questionnaire_criteria qc JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
-  WHERE qc.questionnaire_id = q.id AND ec.is_section_header = false)
-WHERE q.service_id IS NULL AND q.version_type = 'initial' AND q.status = 'published';
-
--- ===== Paso 3: los 38 servicios, importados del archivo =====
+-- ===== Paso 2: los 38 servicios, importados del archivo =====
 -- ===== APH =====
 INSERT INTO questionnaires (name, service_id, version_type, status, total_criteria, published_at)
 VALUES ('APH — Res. 3100 (importado del archivo)', 'b3e97ce6-df34-4c99-85cf-84908c7a9710'::uuid, 'initial', 'published', 0, NOW());
