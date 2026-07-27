@@ -12,6 +12,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { rbacMiddleware } from '../middleware/role.middleware.js';
 import { logger } from '../utils/logger.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 const CATEGORY_ORDER = [
   'Internación',
@@ -177,7 +178,8 @@ export function createStructureRouter(pool: Pool): Router {
   router.get('/structure/transversal', authMiddleware, rbacMiddleware(['super_admin', 'auditor']), async (_req: Request, res: Response) => {
     try {
       const standardsResult = await pool.query<{ id: string; code: string; name: string }>(
-        `SELECT id, code, name FROM evaluation_standards WHERE service_id IS NULL ORDER BY code`
+        `SELECT id, code, name FROM evaluation_standards WHERE service_id IS NULL
+         ORDER BY ${standardOrderCaseSql('code')}`
       );
       const criteriaResult = await pool.query<{ id: string; standard_id: string; number: string; name: string; is_section_header: boolean }>(
         `SELECT id, standard_id, number, name, is_section_header

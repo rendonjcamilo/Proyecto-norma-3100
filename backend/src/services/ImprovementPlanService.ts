@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import { ImprovementPlanModel, ImprovementPlanItem, UpdateImprovementPlanItem } from '../models/improvement-plan.model.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 export class ImprovementPlanService {
   private model: ImprovementPlanModel;
@@ -42,7 +43,7 @@ export class ImprovementPlanService {
        LEFT JOIN evaluation_standards  es2 ON es2.id = ec.standard_id
        WHERE f.assessment_id = $1
          AND f.status != 'cerrada'
-       ORDER BY COALESCE(es.name, es2.name) NULLS LAST, ec.code NULLS LAST`,
+       ORDER BY ${standardOrderCaseSql('COALESCE(es.code, es2.code)')}, ec.code NULLS LAST`,
       [assessmentId]
     );
 

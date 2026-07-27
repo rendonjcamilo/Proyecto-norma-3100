@@ -11,6 +11,7 @@
 
 import { Pool } from 'pg';
 import { logger } from '../utils/logger.js';
+import { standardOrderCaseSql } from '../config/standard-order.config.js';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -536,7 +537,7 @@ export class AssessmentService {
       LEFT JOIN assessment_responses_detailed acr ON ec.id = acr.criterion_id AND acr.assessment_id = $1
       WHERE ec.service_id = (SELECT service_id FROM assessments WHERE id = $1)
       GROUP BY es.id, es.code, es.name
-      ORDER BY es.code
+      ORDER BY ${standardOrderCaseSql('es.code')}
     `;
 
     const perStandardResult = await pool.query(perStandardQuery, [assessmentId]);
