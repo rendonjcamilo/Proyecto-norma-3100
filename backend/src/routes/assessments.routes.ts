@@ -373,7 +373,14 @@ export function createAssessmentsRouter(pool: Pool, _eventStore: EventStore): Ro
               es.name AS standard_name,
               es.is_transversal
             FROM assessments a
-            JOIN questionnaires q ON q.service_id = a.service_id AND q.status = 'published'
+            -- Cada auditoría ve los encabezados del cuestionario que estaba vigente cuando se
+            -- creó, no del vigente hoy. Sin esto, publicar una versión nueva del cuestionario
+            -- cambiaría lo que muestran las auditorías ya realizadas.
+            JOIN LATERAL (
+              SELECT qq.id FROM questionnaires qq
+              WHERE qq.service_id = a.service_id AND qq.created_at <= a.created_at
+              ORDER BY qq.created_at DESC LIMIT 1
+            ) q ON true
             JOIN questionnaire_criteria qc ON qc.questionnaire_id = q.id
             JOIN evaluation_criteria ec ON ec.id = qc.criterion_id
             JOIN evaluation_standards es ON es.id = ec.standard_id
