@@ -23,11 +23,11 @@
 --
 -- Deliberately NOT mapped (no rows inserted):
 --   CEE (Consulta Externa Especializada), QRG (Quirurgico) -- these capitulos have no single
---     REPS-service analog; they conceptually span an entire category (CEE: 91 Consulta Externa
+--     REPS-service analog -- they conceptually span an entire category (CEE: 91 Consulta Externa
 --     services, QRG: 24 Quirurgicos services). Mapping them 1:1 would misrepresent the domain.
 --     Needs a design decision (category-level rule vs many-to-many) plus Adriana's confirmation
 --     that a category-wide interpretation is even correct -- not just "which service".
---   LAB-CAL (Laboratorio Clinico - Calidad) -- this is Res. 1619, not Res. 3100; no REPS mapping
+--   LAB-CAL (Laboratorio Clinico - Calidad) -- this is Res. 1619, not Res. 3100 -- no REPS mapping
 --     applies to it at all.
 
 CREATE TABLE IF NOT EXISTS service_chapter_mapping (
@@ -100,7 +100,7 @@ INSERT INTO service_chapter_mapping (service_id, chapter_id, confidence)
 SELECT s.id, c.id, 'high' FROM services s, services c WHERE s.code = '1102' AND c.code = 'URG' ON CONFLICT DO NOTHING;
 
 -- ===== confidence = 'needs_review' -- capitulo splits into 2 distinct REPS services (5 chapters, 10 rows) =====
--- Both candidates inserted; Adriana needs to say whether the chapter's extra criteria apply to
+-- Both candidates inserted -- Adriana needs to say whether the chapter's extra criteria apply to
 -- both, or should be split/duplicated differently.
 
 INSERT INTO service_chapter_mapping (service_id, chapter_id, confidence, note)
